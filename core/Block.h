@@ -22,7 +22,8 @@ private:
 
     Func* func;
 
-    std::vector<Expr*> abstractSyntaxTree; //vector used for saving instructions of the block in form of AST
+    // a sequence of expression forming this basic block
+    std::vector<Expr*> expressions;
 
     //getelementptr expressions
     std::vector<std::unique_ptr<GepExpr>> geps; //GepExpr vector used in getelementptr parsing
