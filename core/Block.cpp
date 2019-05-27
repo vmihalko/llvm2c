@@ -130,7 +130,7 @@ void Block::parseAllocaInstruction(const llvm::Instruction& ins, bool isConstExp
     valueMap[value] = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
 
     if (!isConstExpr) {
-        expressions.push_back(valueMap[value].get());
+        addExpr(valueMap[value].get());
     }
 }
 
@@ -144,8 +144,8 @@ void Block::parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr,
     func->createExpr(isConstExpr ? val : &ins, std::make_unique<Value>(func->getVarName(), loadDerefs[loadDerefs.size() - 1]->getType()->clone()));
     stores.push_back(std::make_unique<AssignExpr>(func->getExpr(isConstExpr ? val : &ins), loadDerefs[loadDerefs.size() - 1].get()));
 
-    expressions.push_back(func->getExpr(isConstExpr ? val : &ins));
-    expressions.push_back(stores[stores.size() - 1].get());
+    addExpr(func->getExpr(isConstExpr ? val : &ins));
+    addExpr(stores[stores.size() - 1].get());
 }
 
 void Block::parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {
@@ -259,7 +259,7 @@ void Block::parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
 
     if (!isConstExpr) {
         func->createExpr(&ins, std::make_unique<AssignExpr>(derefs[val1].get(), val0));
-        expressions.push_back(func->getExpr(&ins));
+        addExpr(func->getExpr(&ins));
     } else {
         func->createExpr(val, std::make_unique<AssignExpr>(derefs[val1].get(), val0));
     }
@@ -383,7 +383,7 @@ void Block::parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
         func->createExpr(value, std::make_unique<IfExpr>(trueBlock));
 
         if (!isConstExpr) {
-            expressions.push_back(func->getExpr(&ins));
+            addExpr(func->getExpr(&ins));
         }
         return;
     }
@@ -396,7 +396,7 @@ void Block::parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
     func->createExpr(value, std::make_unique<IfExpr>(cmp, trueBlock, falseBlock));
 
     if (!isConstExpr) {
-        expressions.push_back(func->getExpr(&ins));
+        addExpr(func->getExpr(&ins));
     }
 }
 
@@ -414,7 +414,7 @@ void Block::parseRetInstruction(const llvm::Instruction& ins, bool isConstExpr, 
         func->createExpr(value, std::make_unique<RetExpr>(expr));
     }
 
-    expressions.push_back(func->getExpr(&ins));
+    addExpr(func->getExpr(&ins));
 }
 
 void Block::parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {
@@ -435,7 +435,7 @@ void Block::parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExp
 
     if (!isConstExpr) {
         func->createExpr(&ins, std::make_unique<SwitchExpr>(cmp, def, cases));
-        expressions.push_back(func->getExpr(&ins));
+        addExpr(func->getExpr(&ins));
     } else {
         func->createExpr(val, std::make_unique<SwitchExpr>(cmp, def, cases));
     }
@@ -457,7 +457,7 @@ void Block::parseAsmInst(const llvm::Instruction& ins, bool isConstExpr, const l
 
     if (!isConstExpr) {
         func->createExpr(&ins, std::make_unique<AsmExpr>(inst, std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
-        expressions.push_back(func->getExpr(&ins));
+        addExpr(func->getExpr(&ins));
     } else {
         func->createExpr(val, std::make_unique<AsmExpr>(inst, std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
     }
@@ -507,7 +507,7 @@ void Block::parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
 
         if (funcName.compare("llvm.trap") == 0 || funcName.compare("llvm.debugtrap") == 0) {
             func->createExpr(&ins, std::make_unique<AsmExpr>("int3", std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
-            expressions.push_back(func->getExpr(&ins));
+            addExpr(func->getExpr(&ins));
             return;
         }
 
@@ -566,7 +566,7 @@ void Block::parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
         func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
 
         if (!isConstExpr) {
-            expressions.push_back(func->getExpr(&ins));
+            addExpr(func->getExpr(&ins));
         }
     } else {
         callExprMap.push_back(std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
@@ -575,8 +575,8 @@ void Block::parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
         callValueMap.push_back(std::make_unique<AssignExpr>(func->getExpr(value), callExprMap[callExprMap.size() - 1].get()));
 
         if (!isConstExpr) {
-            expressions.push_back(func->getExpr(&ins));
-            expressions.push_back(callValueMap[callValueMap.size() - 1].get());
+            addExpr(func->getExpr(&ins));
+            addExpr(callValueMap[callValueMap.size() - 1].get());
         }
     }
 }
@@ -615,16 +615,16 @@ void Block::parseInlineASM(const llvm::Instruction& ins) {
             stores.push_back(std::make_unique<AssignExpr>(vars[vars.size() - 1].get(), func->getExpr(arg.get())));
             args.push_back(vars[vars.size() - 1].get());
 
-            expressions.push_back(vars[vars.size() - 1].get());
-            expressions.push_back(stores[stores.size() - 1].get());
+            addExpr(vars[vars.size() - 1].get());
+            addExpr(stores[stores.size() - 1].get());
         } else if (CE) {
             if (llvm::isa<llvm::GetElementPtrInst>(CE->getAsInstruction())) {
                 vars.push_back(std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone()));
                 stores.push_back(std::make_unique<AssignExpr>(vars[vars.size() - 1].get(), func->getExpr(arg.get())));
                 args.push_back(vars[vars.size() - 1].get());
 
-                expressions.push_back(vars[vars.size() - 1].get());
-                expressions.push_back(stores[stores.size() - 1].get());
+                addExpr(vars[vars.size() - 1].get());
+                addExpr(stores[stores.size() - 1].get());
             } else {
                 args.push_back(func->getExpr(arg.get()));
             }
@@ -673,7 +673,7 @@ void Block::parseInlineASM(const llvm::Instruction& ins) {
     }
 
     func->createExpr(&ins, std::make_unique<AsmExpr>(asmString, output, input, usedReg));
-    expressions.push_back(func->getExpr(&ins));
+    addExpr(func->getExpr(&ins));
 }
 
 void Block::parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {

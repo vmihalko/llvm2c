@@ -249,6 +249,10 @@ private:
 public:
     std::string blockName;
 
+    void addExpr(Expr *expr) {
+        expressions.push_back(expr);
+    }
+
     /**
      * @brief Block Constructor for Block.
      * @param blockName Name of the block
