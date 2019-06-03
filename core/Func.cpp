@@ -157,7 +157,6 @@ void Func::parseFunction() {
     for (auto& phiEntry : phiEntries) {
         auto* block = blockMap[phiEntry.inBlock].get();
         auto* lhs = getExpr(phiEntry.phi);
-        // create variable that holds the incoming value
         auto *rhs = getExpr(phiEntry.inValue);
 
         assert(lhs);
