@@ -158,9 +158,10 @@ void Func::parseFunction() {
         auto* block = blockMap[phiEntry.inBlock].get();
         auto* lhs = getExpr(phiEntry.phi);
         // create variable that holds the incoming value
-        createExpr(phiEntry.inValue, std::make_unique<Value>(getVarName(), getType(phiEntry.inValue->getType())));
-        auto* rhs = getExpr(phiEntry.inValue);
+        auto *rhs = getExpr(phiEntry.inValue);
 
+        assert(lhs);
+        assert(rhs);
         block->addPhiAssignment(std::make_unique<AssignExpr>(lhs, rhs));
     }
 }

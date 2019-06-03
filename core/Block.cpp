@@ -423,6 +423,10 @@ void Block::parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
         auto* inBlock = phi->getIncomingBlock(i);
         auto* inValue = phi->getIncomingValue(i);
+        
+        if (!func->getExpr(inValue)) {
+            createConstantValue(inValue);
+        }
 
         // at the end of @inBlock (just before br instruction), append an assignment @value = @inValue
         func->addPhiAssignment(value, inBlock, inValue);
