@@ -20,3 +20,5 @@ echo
 ./run_statements
 echo
 ./run_standard_lib
+echo
+./run_phi
