@@ -146,17 +146,24 @@ void Block::parseAllocaInstruction(const llvm::Instruction& ins, bool isConstExp
 }
 
 void Block::parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {
+    auto* v = isConstExpr ? val : &ins;
+
     if (!func->getExpr(ins.getOperand(0))) {
         createConstantValue(ins.getOperand(0));
     }
 
     //create new variable for every load instruction
-    loadDerefs.push_back(std::make_unique<DerefExpr>(func->getExpr(ins.getOperand(0))));
-    func->createExpr(isConstExpr ? val : &ins, std::make_unique<Value>(func->getVarName(), loadDerefs[loadDerefs.size() - 1]->getType()->clone()));
-    stores.push_back(std::make_unique<AssignExpr>(func->getExpr(isConstExpr ? val : &ins), loadDerefs[loadDerefs.size() - 1].get()));
+    auto deref = std::make_unique<DerefExpr>(func->getExpr(ins.getOperand(0)));
+    auto var = std::make_unique<Value>(func->getVarName(), deref->getType()->clone());
+    auto assign = std::make_unique<AssignExpr>(var.get(), deref.get());
 
-    addExpr(func->getExpr(isConstExpr ? val : &ins));
-    addExpr(stores[stores.size() - 1].get());
+    addExpr(var.get());
+    addExpr(assign.get());
+
+    func->createExpr(v, std::move(var));
+
+    loadDerefs.push_back(std::move(deref));
+    stores.push_back(std::move(assign));
 }
 
 void Block::parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {
