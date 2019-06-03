@@ -47,6 +47,9 @@ private:
     std::vector<std::unique_ptr<Expr>> callExprMap; //Vector of CallExpr used in parsing call instruction
     std::vector<std::unique_ptr<Expr>> callValueMap; //Vector of EqualsExpr used in parsing call instruction
 
+    // instructions to be appended at the end of the block (e.g. assignments of variables for phi nodes)
+    std::vector<std::unique_ptr<Expr>> suffix;
+
     /**
      * @brief parseAllocaInstruction Parses alloca instruction into Value and RefExpr.
      * @param ins alloca instruction
@@ -94,6 +97,8 @@ private:
      * @param val pointer to the original ConstantExpr (ins contains ConstantExpr as instruction)
      */
     void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val);
+
+    void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value *val);
 
     /**
      * @brief parseRetInstruction Parses ret instruction into RetExpr.
@@ -245,6 +250,11 @@ private:
      * @brief unsetAllInit Unsets the init flag in every Value in abstractSyntaxTree. Used for repeated calling of print or saveFile.
      */
     void unsetAllInit();
+
+    /**
+     * @brief addToSuffix Adds expr to the suffix of the block. That means it will be executed before the block is left.
+     */
+    void addToSuffix(std::unique_ptr<Expr> expr);
 
 public:
     std::string blockName;

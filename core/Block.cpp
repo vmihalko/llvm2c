@@ -64,7 +64,18 @@ void Block::parseLLVMBlock() {
 
 void Block::output(std::ostream& stream) {
     unsetAllInit();
-    for (const auto expr : expressions) {
+    const auto last = expressions.end()-1;
+    for (auto it = expressions.begin(); it != expressions.end(); ++it) {
+        if (it == last) {
+            for (const auto& expr : suffix) {
+                stream << "    ";
+                stream << expr->toString();
+                stream << "\n";
+            }
+        }
+
+        const auto expr = *it;
+
         if (auto V = dynamic_cast<Value*>(expr)) {
             stream << "    ";
             if (!V->init) {
@@ -397,6 +408,24 @@ void Block::parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
 
     if (!isConstExpr) {
         addExpr(func->getExpr(&ins));
+    }
+}
+
+void Block::parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value *val) {
+    const llvm::Value* value = isConstExpr ? val : &ins;
+    const auto* phi = llvm::cast<const llvm::PHINode>(&ins);
+    assert(phi != nullptr && "instruction is not a phi node or is null");
+
+    // create variable for phi
+    func->createPhi(value);
+
+    // for all incoming blocks:
+    for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
+        auto* inBlock = phi->getIncomingBlock(i);
+        auto* inValue = phi->getIncomingValue(i);
+
+        // at the end of @inBlock (just before br instruction), append an assignment @value = @inValue
+        func->addPhiAssignment(value, inBlock, inValue);
     }
 }
 
@@ -836,6 +865,9 @@ void Block::parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr,
     case llvm::Instruction::Ret:
         parseRetInstruction(ins, isConstExpr, val);
         break;
+    case llvm::Instruction::PHI:
+        parsePhiInstruction(ins, isConstExpr, val);
+        break;
     case llvm::Instruction::Switch:
         parseSwitchInstruction(ins, isConstExpr, val);
         break;
@@ -1199,4 +1231,8 @@ std::string Block::toRawString(const std::string& str) const {
 
 bool Block::isCMath(const std::string& func) {
     return C_MATH.find(func) != C_MATH.end();
+}
+
+void Block::addToSuffix(std::unique_ptr<Expr> expr) {
+    suffix.push_back(std::move(expr));
 }

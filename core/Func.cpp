@@ -153,6 +153,16 @@ void Func::parseFunction() {
     for (const auto& block : *function) {
         blockMap[&block]->parseLLVMBlock();
     }
+
+    for (auto& phiEntry : phiEntries) {
+        auto* block = blockMap[phiEntry.inBlock].get();
+        auto* lhs = getExpr(phiEntry.phi);
+        // create variable that holds the incoming value
+        createExpr(phiEntry.inValue, std::make_unique<Value>(getVarName(), getType(phiEntry.inValue->getType())));
+        auto* rhs = getExpr(phiEntry.inValue);
+
+        block->addToSuffix(std::make_unique<AssignExpr>(lhs, rhs));
+    }
 }
 
 void Func::getMetadataNames() {
@@ -253,6 +263,15 @@ void Func::output(std::ostream& stream) {
 
     stream << " {\n";
 
+    // start with initial variables (i.e. from PHI nodes)
+    for (const auto& var : initVariables) {
+        stream << "    ";
+        stream << var->getType()->toString();
+        stream << " ";
+        stream << var->toString();
+        stream << ";\n";
+    }
+
     first = true;
     for (const auto& block : *function) {
         if (!first) {
@@ -310,4 +329,13 @@ bool Func::isPthreadFunc(const std::string& func) {
     return PTHREAD_FUNCTIONS.find(func) != PTHREAD_FUNCTIONS.end();
 }
 
+void Func::createPhi(const llvm::Value* phi) {
+    auto var = std::make_unique<Value>(getVarName() + "_phi", getType(phi->getType()));
+    initVariables.push_back(var.get());
 
+    createExpr(phi, std::move(var));
+}
+
+void Func::addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue) {
+    phiEntries.push_back(PhiEntry{phi, inBlock, inValue});
+}

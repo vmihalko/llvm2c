@@ -20,6 +20,15 @@ class Program;
 class Func {
 friend class Block;
 friend class Program;
+
+struct PhiEntry {
+    const llvm::Value* phi;
+    const llvm::BasicBlock *inBlock;
+    const llvm::Value* inValue;
+
+    PhiEntry(const llvm::Value* phi, const llvm::BasicBlock *inBlock, const llvm::Value *inValue) : phi(phi), inBlock(inBlock), inValue(inValue) {}
+};
+
 private:
     std::unique_ptr<Type> returnType;
 
@@ -31,6 +40,12 @@ private:
 
     //set containing metadata names of variables (and names of global variables) that are in "var[0-9]+" format, used in creating variable names
     std::set<std::string> metadataVarNames;
+
+    // phi entries of all blocks in this function
+    std::vector<PhiEntry> phiEntries;
+
+    // variables that need to be declared before any block of the function
+    std::vector<Value*> initVariables;
 
     //variables used for creating names for variables and blocks
     unsigned varCount = 0;
@@ -109,6 +124,16 @@ private:
      * @brief getMetadataNames Parses variable medatada in function and saves the variable names into the metadataVarNames set.
      */
     void getMetadataNames();
+
+    /**
+     * @brief createPhi Creates a new variable for @phi.
+     */
+    void createPhi(const llvm::Value* phi);
+
+    /**
+     * @brief addPhiAssignment Appends an assignment @phi = @inValue at the end of @inBlock
+     */
+    void addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue);
 
 public:
     /**
