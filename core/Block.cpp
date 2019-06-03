@@ -274,13 +274,13 @@ void Block::parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
         AE->addOutputExpr(val1, 0);
         return;
     }
+    auto v = isConstExpr ? val : &ins;
+    auto assign = std::make_unique<AssignExpr>(derefs[val1].get(), val0);
 
     if (!isConstExpr) {
-        func->createExpr(&ins, std::make_unique<AssignExpr>(derefs[val1].get(), val0));
-        addExpr(func->getExpr(&ins));
-    } else {
-        func->createExpr(val, std::make_unique<AssignExpr>(derefs[val1].get(), val0));
+        addExpr(assign.get());
     }
+    func->createExpr(v, std::move(assign));
 }
 
 void Block::parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val) {
@@ -430,7 +430,7 @@ void Block::parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
         auto* inBlock = phi->getIncomingBlock(i);
         auto* inValue = phi->getIncomingValue(i);
-        
+
         if (!func->getExpr(inValue)) {
             createConstantValue(inValue);
         }
