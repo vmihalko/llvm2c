@@ -115,9 +115,12 @@ void Program::parseGlobalVar(const llvm::GlobalVariable &gvar) {
     }
 
     llvm::PointerType* PT = llvm::cast<llvm::PointerType>(gvar.getType());
-    globalVars.push_back(std::make_unique<GlobalValue>(gvarName, value, getType(PT->getElementType())));
-    globalVars.at(globalVars.size() - 1)->getType()->isStatic = gvar.hasInternalLinkage();
-    globalRefs[&gvar] = std::make_unique<RefExpr>(globalVars.at(globalVars.size() - 1).get());
+
+    auto var = std::make_unique<GlobalValue>(gvarName, value, getType(PT->getElementType()));
+    var->getType()->isStatic = gvar.hasInternalLinkage();
+
+    globalRefs[&gvar] = std::make_unique<RefExpr>(var.get());
+    globalVars.push_back(std::move(var));
 }
 
 std::string Program::getStructVarName() {
