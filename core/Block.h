@@ -47,8 +47,8 @@ private:
     std::vector<std::unique_ptr<Expr>> callExprMap; //Vector of CallExpr used in parsing call instruction
     std::vector<std::unique_ptr<Expr>> callValueMap; //Vector of EqualsExpr used in parsing call instruction
 
-    // instructions to be appended at the end of the block (e.g. assignments of variables for phi nodes)
-    std::vector<std::unique_ptr<Expr>> suffix;
+    // assignments of values to variables for phi nodes
+    std::vector<std::unique_ptr<Expr>> phiAssignments;
 
     /**
      * @brief parseAllocaInstruction Parses alloca instruction into Value and RefExpr.
@@ -252,9 +252,9 @@ private:
     void unsetAllInit();
 
     /**
-     * @brief addToSuffix Adds expr to the suffix of the block. That means it will be executed before the block is left.
+     * @brief addPhiAssignment Adds assignment @expr to the end of block (just before the last br)
      */
-    void addToSuffix(std::unique_ptr<Expr> expr);
+    void addPhiAssignment(std::unique_ptr<Expr> expr);
 
 public:
     std::string blockName;

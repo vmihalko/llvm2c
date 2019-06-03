@@ -161,7 +161,7 @@ void Func::parseFunction() {
         createExpr(phiEntry.inValue, std::make_unique<Value>(getVarName(), getType(phiEntry.inValue->getType())));
         auto* rhs = getExpr(phiEntry.inValue);
 
-        block->addToSuffix(std::make_unique<AssignExpr>(lhs, rhs));
+        block->addPhiAssignment(std::make_unique<AssignExpr>(lhs, rhs));
     }
 }
 
@@ -263,8 +263,8 @@ void Func::output(std::ostream& stream) {
 
     stream << " {\n";
 
-    // start with initial variables (i.e. from PHI nodes)
-    for (const auto& var : initVariables) {
+    // start with variables from phi nodes
+    for (const auto& var : phiVariables) {
         stream << "    ";
         stream << var->getType()->toString();
         stream << " ";
@@ -329,9 +329,9 @@ bool Func::isPthreadFunc(const std::string& func) {
     return PTHREAD_FUNCTIONS.find(func) != PTHREAD_FUNCTIONS.end();
 }
 
-void Func::createPhi(const llvm::Value* phi) {
+void Func::createPhiVariable(const llvm::Value* phi) {
     auto var = std::make_unique<Value>(getVarName() + "_phi", getType(phi->getType()));
-    initVariables.push_back(var.get());
+    phiVariables.push_back(var.get());
 
     createExpr(phi, std::move(var));
 }

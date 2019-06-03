@@ -67,7 +67,7 @@ void Block::output(std::ostream& stream) {
     const auto last = expressions.end()-1;
     for (auto it = expressions.begin(); it != expressions.end(); ++it) {
         if (it == last) {
-            for (const auto& expr : suffix) {
+            for (const auto& expr : phiAssignments) {
                 stream << "    ";
                 stream << expr->toString();
                 stream << "\n";
@@ -417,7 +417,7 @@ void Block::parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     assert(phi != nullptr && "instruction is not a phi node or is null");
 
     // create variable for phi
-    func->createPhi(value);
+    func->createPhiVariable(value);
 
     // for all incoming blocks:
     for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
@@ -1233,6 +1233,6 @@ bool Block::isCMath(const std::string& func) {
     return C_MATH.find(func) != C_MATH.end();
 }
 
-void Block::addToSuffix(std::unique_ptr<Expr> expr) {
-    suffix.push_back(std::move(expr));
+void Block::addPhiAssignment(std::unique_ptr<Expr> expr) {
+    phiAssignments.push_back(std::move(expr));
 }

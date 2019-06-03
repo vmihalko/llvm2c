@@ -44,8 +44,8 @@ private:
     // phi entries of all blocks in this function
     std::vector<PhiEntry> phiEntries;
 
-    // variables that need to be declared before any block of the function
-    std::vector<Value*> initVariables;
+    // variables that correspond to phi nodes and will be declared at the beginning of the function
+    std::vector<Value*> phiVariables;
 
     //variables used for creating names for variables and blocks
     unsigned varCount = 0;
@@ -126,9 +126,9 @@ private:
     void getMetadataNames();
 
     /**
-     * @brief createPhi Creates a new variable for @phi.
+     * @brief createPhiVariable Creates a new variable for @phi.
      */
-    void createPhi(const llvm::Value* phi);
+    void createPhiVariable(const llvm::Value* phi);
 
     /**
      * @brief addPhiAssignment Appends an assignment @phi = @inValue at the end of @inBlock
