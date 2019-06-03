@@ -144,7 +144,7 @@ std::string Program::getInitValue(const llvm::Constant* val) {
             std::replace(name.begin(), name.end(), '.', '_');
         }
 
-        if (val->getName().str().empty()) {
+        if (name.empty()) {
             return "0";
         }
 
