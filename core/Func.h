@@ -21,6 +21,7 @@ class Func {
 friend class Block;
 friend class Program;
 
+public:
 struct PhiEntry {
     const llvm::Value* phi;
     const llvm::BasicBlock *inBlock;
@@ -29,14 +30,17 @@ struct PhiEntry {
     PhiEntry(const llvm::Value* phi, const llvm::BasicBlock *inBlock, const llvm::Value *inValue) : phi(phi), inBlock(inBlock), inValue(inValue) {}
 };
 
-private:
     std::unique_ptr<Type> returnType;
 
     const llvm::Function* function;
     Program* program;
 
-    llvm::DenseMap<const llvm::BasicBlock*, std::unique_ptr<Block>> blockMap; //DenseMap used for mapping llvm::BasicBlock to Block
+    std::map<const llvm::BasicBlock*, std::unique_ptr<Block>> blockMap; //DenseMap used for mapping llvm::BasicBlock to Block
     llvm::DenseMap<const llvm::Value*, std::unique_ptr<Expr>> exprMap; // DenseMap used for mapping llvm::Value to Expr
+
+    std::string name;
+
+    std::vector<Value*> parameters;
 
     //set containing metadata names of variables (and names of global variables) that are in "var[0-9]+" format, used in creating variable names
     std::set<std::string> metadataVarNames;
@@ -57,6 +61,19 @@ private:
 
     Expr* lastArg; //last argument before variable arguments
 
+
+    /**
+     * @brief createNewUnnamedStruct
+     * @param strct
+     */
+    void createNewUnnamedStruct(const llvm::StructType* strct);
+
+    /**
+     * @brief getMetadataNames Parses variable medatada in function and saves the variable names into the metadataVarNames set.
+     */
+    void getMetadataNames();
+
+public:
     /**
      * @brief getBlockName Returns name of the block if the block already has an assigned name.
      * Otherwise assigns new name for the block in form of string containing block + blockCount,
@@ -67,93 +84,12 @@ private:
     std::string getBlockName(const llvm::BasicBlock* block); //RENAME
 
     /**
-     * @brief getExpr Finds Expr in exprMap or globalRefs with key val. If val is function, creates Value containing refference to the function and returns pointer to this Value.
-     * @param val Key of the Expr
-     * @return Pointer to the Expr if val is found, nullptr otherwise.
-     */
-    Expr* getExpr(const llvm::Value* val);
-
-    /**
-     * @brief createExpr Inserts expr into the exprMap using val as a key.
-     * @param val Key
-     * @param expr Mapped Value
-     */
-    void createExpr(const llvm::Value* val, std::unique_ptr<Expr> expr);
-
-    /**
-     * @brief getVarName Creates a new name for a variable in form of string containing "var" + varCount.
-     * @return String containing a variable name.
-     */
-    std::string getVarName();
-
-    /**
-     * @brief createNewUnnamedStruct
-     * @param strct
-     */
-    void createNewUnnamedStruct(const llvm::StructType* strct);
-
-    /**
-     * @brief isStdLibFunc Checks whether the function is part of stdlib.h
-     * @param func Function name
-     * @return True if function is part of stdlib.h, false otherwise
-     */
-    bool isStdLibFunc(const std::string& func);
-
-    /**
-     * @brief isStringFunc Checks whether the function is part of string.h
-     * @param func Function name
-     * @return True if function is part of string.h, false otherwise
-     */
-    bool isStringFunc(const std::string& func);
-
-    /**
-     * @brief isStdioFunc Checks whether the function is part of stdio.h
-     * @param func Function name
-     * @return True if function is part of stdio.h, false otherwise
-     */
-    bool isStdioFunc(const std::string& func);
-
-    /**
-     * @brief isPthreadFunc Checks whether the function is part of pthread.h
-     * @param func Function name
-     * @return True if function is part of pthread.h, false otherwise
-     */
-    bool isPthreadFunc(const std::string& func);
-
-    /**
-     * @brief getMetadataNames Parses variable medatada in function and saves the variable names into the metadataVarNames set.
-     */
-    void getMetadataNames();
-
-    /**
-     * @brief createPhiVariable Creates a new variable for @phi.
-     */
-    void createPhiVariable(const llvm::Value* phi);
-
-    /**
-     * @brief addPhiAssignment Appends an assignment @phi = @inValue at the end of @inBlock
-     */
-    void addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue);
-
-public:
-    /**
      * @brief Func Constructor for Func.
      * @param func llvm::Function for parsing
      * @param program Program to which function belongs
      * @param isDeclaration function is only being declared
      */
     Func(const llvm::Function* func, Program* program, bool isDeclaration);
-
-    /**
-     * @brief parseFunction Parses blocks of the llvm::Function.
-     */
-    void parseFunction();
-
-    /**
-     * @brief output Outputs the translated function to the given stream.
-     * @param stream Stream for output
-     */
-    void output(std::ostream& stream);
 
     /**
      * @brief getStruct Returns pointer to the Struct corresponding to the given LLVM StructType.
@@ -177,12 +113,6 @@ public:
     RefExpr* getGlobalVar(llvm::Value* val) const;
 
     /**
-     * @brief addDeclaration Adds new declaration of given function.
-     * @param func LLVM Function
-     */
-    void addDeclaration(llvm::Function* func);
-
-    /**
      * @brief stackIgnored Indicated that intrinsic stacksave/stackrestore was ignored.
      */
     void stackIgnored();
@@ -193,4 +123,59 @@ public:
      * @return unique_ptr to corresponding Type object
      */
     std::unique_ptr<Type> getType(const llvm::Type* type);
+
+    /**
+     * @brief createBlockIfNotExist Creates a new block inside of this function that corresponds to @block
+     * @param block LLVM BasicBlock to create a new block for
+     */
+    Block* createBlockIfNotExist(const llvm::BasicBlock* block);
+
+    /**
+     * @brief getExpr Finds Expr in exprMap or globalRefs with key val. If val is function, creates Value containing refference to the function and returns pointer to this Value.
+     * @param val Key of the Expr
+     * @return Pointer to the Expr if val is found, nullptr otherwise.
+     */
+    Expr* getExpr(const llvm::Value* val);
+
+    /**
+     * @brief createExpr Inserts expr into the exprMap using val as a key.
+     * @param val Key
+     * @param expr Mapped Value
+     */
+    void createExpr(const llvm::Value* val, std::unique_ptr<Expr> expr);
+
+    /**
+     * @brief getBlock Obtains a block from this function that corresponds to the specified LLVM block
+     * @param block LLVM basic block
+     * @return Pointer to the block if found, nullptr otherwise.
+     */
+    Block* getBlock(const llvm::BasicBlock* block);
+
+    /**
+     * @brief getVarName Creates a new name for a variable in form of string containing "var" + varCount.
+     * @return String containing a variable name.
+     */
+    std::string getVarName();
+
+    void setVarArg(bool va);
+
+    template< typename T >
+    void fillMetadataVarNames(const T& globalVarNames) {
+        metadataVarNames.insert(globalVarNames.begin(), globalVarNames.end());
+    }
+
+    void addMetadataVarName(const std::string& varName);
+
+    /**
+     * @brief createPhiVariable Creates a new variable for @phi.
+     */
+    void createPhiVariable(const llvm::Value* phi);
+
+    /**
+     * @brief addPhiAssignment Appends an assignment @phi = @inValue at the end of @inBlock
+     */
+    void addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue);
+
+    void output(std::ostream& out);
+
 };

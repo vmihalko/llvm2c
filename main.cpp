@@ -1,9 +1,11 @@
 #include "core/Program.h"
+#include "parser/ProgramParser.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 
 #include <iostream>
+#include <fstream>
 #include <string>
 
 using namespace llvm;
@@ -26,15 +28,21 @@ int main(int argc, char** argv) {
     }
 
     try {
-        Program program(Input, Includes, Casts);
+        ProgramParser parser;
+        auto program = parser.parse(Input);
 
-        if (Print) {
-            program.print();
-        }
+        if (Print)
+            program.output(std::cout);
 
         if (!Output.empty()) {
-            program.saveFile(Output);
+            std::ofstream file;
+            file.open(Output);
+            if (!file.is_open()) {
+                throw std::invalid_argument("Output file cannot be opened!");
+            }
+            program.output(file);
         }
+
     } catch (std::invalid_argument& e) {
         std::cerr << e.what();
         return 1;

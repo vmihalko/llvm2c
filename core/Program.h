@@ -11,16 +11,17 @@
 #include "../expr/Expr.h"
 #include "../type/TypeHandler.h"
 
+class ProgramParser;
+
 /**
  * @brief The Program class represents the whole parsed LLVM program.
  */
 class Program {
 friend class TypeHandler;
 friend class Func;
-private:
-    llvm::LLVMContext context;
-    llvm::SMDiagnostic error;
-    std::unique_ptr<llvm::Module> module;
+friend class ProgramParser;
+public:
+    //std::unique_ptr<llvm::Module> module;
 
     TypeHandler typeHandler;
 
@@ -38,12 +39,6 @@ private:
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
     unsigned anonStructCount = 0;
-
-    /**
-     * @brief getVarName Creates a new name for a variable in form of string containing "var" + structVarCount.
-     * @return String containing a new variable name.
-     */
-    std::string getStructVarName();
 
     /**
      * @brief getAnonStructName Creates new name for anonymous struct.
@@ -78,32 +73,6 @@ private:
     void printStruct(Struct* strct);
 
     /**
-     * @brief parseProgram Parses the whole program (structs, functions and global variables).
-     */
-    void parseProgram();
-
-    /**
-     * @brief parseStructs Parses structures into Struct expression.
-     */
-    void parseStructs();
-
-    /**
-     * @brief parseFunctions Parses functions into corresponding expressions.
-     */
-    void parseFunctions();
-
-    /**
-     * @brief parseGlobalVars Parses all global variables.
-     */
-    void parseGlobalVars();
-
-    /**
-     * @brief parseGlobalVar Parses global variable.
-     * @param gvar LLVM GlobalVariable
-     */
-    void parseGlobalVar(const llvm::GlobalVariable& gvar);
-
-    /**
      * @brief getIncludeString Returns string containing all includes program uses.
      * @return String containing includes;
      */
@@ -121,6 +90,8 @@ private:
      * @param stream Stream for output
      */
     void outputStruct(Struct* strct, std::ostream& stream);
+
+    void createNewUnnamedStruct(const llvm::StructType *strct);
 
 public:
     bool stackIgnored = false; //instruction stacksave was ignored
@@ -140,18 +111,8 @@ public:
      * @param includes Program uses includes instead of declarations.
      * @param casts Program removes function call casts.
      */
-    Program(const std::string& file, bool includes, bool casts);
-
-    /**
-     * @brief print Prints the translated program in the llvm::outs() stream.
-     */
-    void print();
-
-    /**
-     * @brief saveFile Saves the translated program to the file with given name.
-     * @param fileName Name of the file.
-     */
-    void saveFile(const std::string& fileName);
+    //Program(const std::string& file, bool includes, bool casts);
+    Program();
 
     /**
      * @brief getStruct Returns pointer to the Struct corresponding to the given LLVM StructType.
@@ -175,16 +136,17 @@ public:
     RefExpr* getGlobalVar(const llvm::Value* val);
 
     /**
+     * @brief getFunction Returns corresponding function to LLVM function.
+     * @param f llvm function pointer
+     * @return Func function or nullptr
+     */
+    Func* getFunction(const llvm::Function* f);
+
+    /**
      * @brief addDeclaration Adds new declaration of given function.
      * @param func LLVM Function
      */
-    void addDeclaration(llvm::Function* func);
-
-    /**
-     * @brief createNewUnnamedStruct Adds new unnamed struct to the unnamedStructs map.
-     * @param strct Unnamed struct
-     */
-    void createNewUnnamedStruct(const llvm::StructType* strct);
+    void addDeclaration(const llvm::Function* func, std::unique_ptr<Func> decl);
 
     /**
      * @brief getType Transforms llvm::Type into corresponding Type object
@@ -192,4 +154,22 @@ public:
      * @return unique_ptr to corresponding Type object
      */
     std::unique_ptr<Type> getType(const llvm::Type* type);
+
+    RefExpr* getGlobalRef(const llvm::GlobalVariable* gv);
+
+    void addFunction(const llvm::Function* llvmFunc, std::unique_ptr<Func> func);
+
+    bool isFunctionDeclared(const llvm::Function* func) const;
+
+    /**
+     * @brief getVarName Creates a new name for a variable in form of string containing "var" + structVarCount.
+     * @return String containing a new variable name.
+     */
+    std::string getStructVarName();
+
+    void addStruct(std::unique_ptr<Struct> strct);
+
+    const std::set<std::string>& getGlobalVarNames() const;
+
+    Func* getDeclaration(const llvm::Function* func);
 };
