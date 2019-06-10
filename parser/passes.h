@@ -16,3 +16,5 @@ void parseMetadataTypes(const llvm::Module* module, Program& program);
 void createExpressions(const llvm::Module* module, Program& program);
 void findDeclaredFunctions(const llvm::Module* module, Program& program);
 void nameFunctions(const llvm::Module* module, Program& program);
+void parseBreaks(const llvm::Module* module, Program& program);
+void addPhis(const llvm::Module* module, Program& program);

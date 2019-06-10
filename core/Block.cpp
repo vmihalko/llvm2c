@@ -28,13 +28,14 @@ Block::Block(const std::string &blockName, const llvm::BasicBlock* block, Func* 
 	func(func),
 	blockName(blockName) { }
 
-	void Block::unsetAllInit() {
-		for (auto expr : expressions) {
-			if (Value* val = dynamic_cast<Value*>(expr)) {
-				val->init = false;
-			}
-		}
-	}
+void Block::unsetAllInit() {
+    for (auto expr : expressions) {
+        if (Value* val = dynamic_cast<Value*>(expr)) {
+            val->init = false;
+        }
+    }
+}
+
 bool Block::isVoidType(llvm::DITypeRef type) {
 	if (llvm::DIDerivedType* dtype = llvm::dyn_cast<llvm::DIDerivedType>(type)) {
 		if (!dtype->getBaseType()) {
@@ -55,10 +56,6 @@ bool Block::isVoidType(llvm::DITypeRef type) {
 	return false;
 }
 
-void Block::addPhiAssignment(std::unique_ptr<Expr> expr) {
-	phiAssignments.push_back(std::move(expr));
-}
-
 void Block::insertValue(const llvm::Value* value, std::unique_ptr<Value> expr) {
 	valueMap[value] = std::move(expr);
 }
@@ -73,17 +70,7 @@ void Block::addValue(std::unique_ptr<Value> value) {
 
 void Block::output(std::ostream& stream) {
 	unsetAllInit();
-	const auto last = expressions.end()-1;
-	for (auto it = expressions.begin(); it != expressions.end(); ++it) {
-		if (it == last) {
-			for (const auto& expr : phiAssignments) {
-				stream << "    ";
-				stream << expr->toString();
-				stream << "\n";
-			}
-		}
-
-		const auto expr = *it;
+	for (const auto& expr : expressions) {
 
 		if (auto V = dynamic_cast<Value*>(expr)) {
 			stream << "    ";

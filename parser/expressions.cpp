@@ -1,6 +1,7 @@
 #include "../core/Program.h"
 #include "../core/Func.h"
 #include "../core/Block.h"
+#include "constval.h"
 #include "cfunc.h"
 
 #include <llvm/IR/Instruction.h>
@@ -9,63 +10,8 @@
 
 using CaseHandle = const llvm::SwitchInst::CaseHandleImpl<const llvm::SwitchInst, const llvm::ConstantInt, const llvm::BasicBlock>*;
 
-static void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
+void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
-
-static void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
-    //undefined value is translated as zero, only for experimental purposes (this value cannot occur in LLVM generated from C)
-    if (llvm::isa<llvm::UndefValue>(val)) {
-        func->createExpr(val, std::make_unique<Value>("0", func->getType(val->getType())));
-        return;
-    }
-
-    if (auto CPN = llvm::dyn_cast<llvm::ConstantPointerNull>(val)) {
-        func->createExpr(val, std::make_unique<Value>("0", func->getType(CPN->getType())));
-        return;
-    }
-
-    if (auto CI = llvm::dyn_cast<llvm::ConstantInt>(val)) {
-        std::string value;
-        if (CI->getBitWidth() > 64) {
-            const llvm::APInt& API = CI->getValue();
-            value = std::to_string(API.getLimitedValue());
-        } else if (CI->getBitWidth() == 1) { //bool in LLVM
-            value = std::to_string(-1 * CI->getSExtValue());
-        } else {
-            value = std::to_string(CI->getSExtValue());
-        }
-
-        func->createExpr(val, std::make_unique<Value>(value, std::make_unique<IntType>(false)));
-        return;
-    }
-
-    if (auto CFP = llvm::dyn_cast<llvm::ConstantFP>(val)) {
-        if (CFP->isInfinity()) {
-            func->createExpr(val, std::make_unique<Value>("__builtin_inff ()", std::make_unique<FloatType>()));
-        } else if (CFP->isNaN()){
-            func->createExpr(val, std::make_unique<Value>("__builtin_nanf (\"\")", std::make_unique<FloatType>()));
-        } else {
-            std::string CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
-            if (CFPvalue.compare("-nan") == 0) {
-                CFPvalue = "-(__builtin_nanf (\"\"))";
-            } else {
-                llvm::SmallVector<char, 32> string;
-                CFPvalue = "";
-                CFP->getValueAPF().toString(string, 32, 0);
-                for (unsigned i = 0; i < string.size(); i++) {
-                    CFPvalue += string[i];
-                }
-            }
-
-            func->createExpr(val, std::make_unique<Value>(CFPvalue, std::make_unique<FloatType>()));
-        }
-        return;
-    }
-
-    if (auto CE = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
-        parseLLVMInstruction(*CE->getAsInstruction(), true, val, func, block);
-    }
-}
 
 static void createFuncCallParam(const llvm::Use& param, Func* func, Block* block) {
     if (llvm::PointerType* PT = llvm::dyn_cast<llvm::PointerType>(param->getType())) {
@@ -294,55 +240,6 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
 }
 
 
-static void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value *val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
-    const auto* phi = llvm::cast<const llvm::PHINode>(&ins);
-    assert(phi != nullptr && "instruction is not a phi node or is null");
-
-    // create variable for phi
-    func->createPhiVariable(value);
-
-    // for all incoming blocks:
-    for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
-        auto* inBlock = phi->getIncomingBlock(i);
-        auto* inValue = phi->getIncomingValue(i);
-
-        if (!func->getExpr(inValue)) {
-            createConstantValue(inValue, func, block);
-        }
-
-        // at the end of @inBlock (just before br instruction), append an assignment @value = @inValue
-        auto* myBlock = func->getBlock(inBlock);
-        myBlock->addPhiAssignment(std::make_unique<AssignExpr>(func->getExpr(value), func->getExpr(inValue)));
-    }
-}
-
-static void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
-
-    //no condition
-    if (ins.getNumOperands() == 1) {
-        std::string trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0))->blockName;
-        func->createExpr(value, std::make_unique<IfExpr>(trueBlock));
-
-        if (!isConstExpr) {
-            block->addExpr(func->getExpr(&ins));
-        }
-        return;
-    }
-
-    Expr* cmp = func->getExpr(ins.getOperand(0));
-
-    std::string falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1))->blockName;
-    std::string trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2))->blockName;
-
-    func->createExpr(value, std::make_unique<IfExpr>(cmp, trueBlock, falseBlock));
-
-    if (!isConstExpr) {
-        block->addExpr(func->getExpr(&ins));
-    }
-}
-
 static void parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     auto* v = isConstExpr ? val : &ins;
 
@@ -416,23 +313,6 @@ static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExp
     }
 
     func->createExpr(value, std::move(expr));
-}
-
-static void parseRetInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
-
-    if (ins.getNumOperands() == 0) {
-        func->createExpr(value, std::make_unique<RetExpr>());
-    } else {
-        if (func->getExpr(ins.getOperand(0)) == nullptr) {
-            createConstantValue(ins.getOperand(0), func, block);
-        }
-        Expr* expr = func->getExpr(ins.getOperand(0));
-
-        func->createExpr(value, std::make_unique<RetExpr>(expr));
-    }
-
-    block->addExpr(func->getExpr(&ins));
 }
 
 static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
@@ -968,7 +848,7 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     func->createExpr(isConstExpr ? val : &ins, std::make_unique<RefExpr>(block->geps[block->geps.size() -1].get()));
 }
 
-static void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block) {
+void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block) {
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
     case llvm::Instruction::FAdd:
@@ -996,15 +876,6 @@ static void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr,
     case llvm::Instruction::ICmp:
     case llvm::Instruction::FCmp:
         parseCmpInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Br:
-        parseBrInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Ret:
-        parseRetInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::PHI:
-        parsePhiInstruction(ins, isConstExpr, val, func, block);
         break;
     case llvm::Instruction::Switch:
         parseSwitchInstruction(ins, isConstExpr, val, func, block);
@@ -1048,6 +919,11 @@ static void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr,
         llvm::outs() << "Alloca instructions should be removed by now!\n";
         llvm::outs() << "But this instruction was found: '" << ins << "'\n";
         throw std::invalid_argument("Alloca instructions should be removed by now!");
+        break;
+    case llvm::Instruction::PHI:
+    case llvm::Instruction::Br:
+    case llvm::Instruction::Ret:
+        // leave these for later
         break;
     default:
         llvm::outs() << "File contains unsupported instruction!\n";

@@ -29,6 +29,8 @@ Program ProgramParser::parse(const std::string& file) {
     createAllocas(mod, result);
     parseMetadataTypes(mod, result);
     createExpressions(mod, result);
+    addPhis(mod, result);
+    parseBreaks(mod, result);
 
     return result;
 }
