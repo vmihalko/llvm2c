@@ -38,7 +38,7 @@ public:
  */
 class FunctionPointerType : public Type {
 friend class TypeHandler;
-private:
+public:
     //type is split into two string so the name can be printed separately
     std::string type;
     std::string name;

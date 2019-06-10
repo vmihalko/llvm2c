@@ -1,7 +1,7 @@
 project(llvm2c)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
-set(FILES core/Func.h core/Func.cpp core/Block.h core/Block.cpp core/Program.h core/Program.cpp type/Type.h type/Type.cpp type/TypeHandler.h type/TypeHandler.cpp expr/Expr.h expr/Expr.cpp expr/BinaryExpr.h expr/BinaryExpr.cpp expr/UnaryExpr.h expr/UnaryExpr.cpp parser/ProgramParser.h parser/cfunc.h parser/passes.h parser/allocas.cpp parser/blocks.cpp parser/declarations.cpp parser/expressions.cpp parser/functionParameters.cpp parser/functions.cpp parser/globalVars.cpp parser/includes.cpp parser/metadataNames.cpp parser/metadataTypes.cpp parser/structs.cpp parser/nameFunctions.cpp parser/breaks.cpp parser/phis.cpp parser/constval.cpp parser/ProgramParser.cpp )
+set(FILES core/Func.h core/Func.cpp core/Block.h core/Block.cpp core/Program.h core/Program.cpp type/Type.h type/Type.cpp type/TypeHandler.h type/TypeHandler.cpp expr/Expr.h expr/Expr.cpp expr/BinaryExpr.h expr/BinaryExpr.cpp expr/UnaryExpr.h expr/UnaryExpr.cpp parser/ProgramParser.h parser/cfunc.h parser/passes.h parser/allocas.cpp parser/blocks.cpp parser/declarations.cpp parser/expressions.cpp parser/functionParameters.cpp parser/functions.cpp parser/globalVars.cpp parser/includes.cpp parser/metadataNames.cpp parser/metadataTypes.cpp parser/structs.cpp parser/nameFunctions.cpp parser/breaks.cpp parser/phis.cpp parser/constval.cpp parser/ProgramParser.cpp writer/CWriter.cpp writer/Writer.cpp)
 add_executable(llvm2c ${SRC_LIST} ${FILES})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -fpermissive")
 

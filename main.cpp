@@ -1,5 +1,6 @@
 #include "core/Program.h"
 #include "parser/ProgramParser.h"
+#include "writer/Writer.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
@@ -31,8 +32,10 @@ int main(int argc, char** argv) {
         ProgramParser parser;
         auto program = parser.parse(Input);
 
-        if (Print)
-            program.output(std::cout);
+        if (Print) {
+            Writer wr{ std::cout, Includes };
+            wr.writeProgram(program);
+        }
 
         if (!Output.empty()) {
             std::ofstream file;
@@ -40,7 +43,8 @@ int main(int argc, char** argv) {
             if (!file.is_open()) {
                 throw std::invalid_argument("Output file cannot be opened!");
             }
-            program.output(file);
+            Writer wr{ file, Includes };
+            wr.writeProgram(program);
         }
 
     } catch (std::invalid_argument& e) {
