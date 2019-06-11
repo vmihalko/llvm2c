@@ -36,10 +36,19 @@ void CWriter::defineType(StrRef ty, StrRef alias, StrRef end) {
 }
 
 void CWriter::startFunction(StrRef ret, StrRef name) {
-    out << ret << " " << name << "(";
+    out << ret << " " << name;
 }
+
+void CWriter::startArrayFunction(StrRef ty, size_t levels, StrRef name) {
+    out << ty << " (";
+    for (auto i = 0; i < levels; ++i) {
+        out << "*";
+    }
+    out << name;
+}
+
 void CWriter::endFunctionDecl() {
-    out << ");" << std::endl;
+    out << ";" << std::endl;
 }
 
 void CWriter::functionParam(StrRef type, StrRef name) {
@@ -48,4 +57,28 @@ void CWriter::functionParam(StrRef type, StrRef name) {
 
 void CWriter::nextFunctionParam() {
     out << ", ";
+}
+
+void CWriter::raw(StrRef text) {
+    out << text;
+}
+
+void CWriter::line(StrRef line) {
+    out << line << std::endl;
+}
+
+void CWriter::functionVarArgs() {
+    out << "...";
+}
+
+void CWriter::startFunctionBody() {
+    out << ") {" << std::endl;
+}
+
+void CWriter::startFunctionParams() {
+    out << "(";
+}
+
+void CWriter::endFunctionParams() {
+    out << ")";
 }

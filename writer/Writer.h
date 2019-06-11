@@ -26,6 +26,8 @@ private:
     void functionDefinitions(const Program& program);
     void typedefs(const Program& program);
     void structDefinition(const Struct* strct);
+    bool isFunctionPrinted(const Func* func) const;
+    void functionHead(const Func* func);
 
 
 public:

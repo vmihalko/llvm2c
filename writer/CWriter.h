@@ -22,7 +22,14 @@ public:
     void structItem(StrRef ty, StrRef name);
     void defineType(StrRef ty, StrRef alias, StrRef end);
     void startFunction(StrRef ret, StrRef name);
+    void startArrayFunction(StrRef ret, size_t levels, StrRef name);
     void endFunctionDecl();
     void functionParam(StrRef ty, StrRef name);
     void nextFunctionParam();
+    void raw(StrRef line);
+    void line(StrRef line);
+    void functionVarArgs();
+    void startFunctionBody();
+    void startFunctionParams();
+    void endFunctionParams();
 };
