@@ -27,6 +27,9 @@ void Writer::writeProgram(const Program& program) {
 }
 
 void Writer::includes(const Program& program) {
+    if (!useIncludes)
+        return;
+
     wr.comment("includes");
     if (program.hasVarArg)
         wr.include("stdarg.h");
@@ -120,7 +123,7 @@ void Writer::anonymousStructDeclarations(const Program& program) {
 void Writer::globalVars(const Program& program) {
     wr.comment("global variable declarations");
     for (const auto& gvar : program.globalVars) {
-        if (hideStreams && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
+        if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
             continue;
         }
         wr.line(gvar->declToString());
@@ -130,10 +133,11 @@ void Writer::globalVars(const Program& program) {
 void Writer::globalVarDefinitions(const Program& program) {
     wr.comment("global variable definitions");
     for (const auto& gvar : program.globalVars) {
-        if (hideStreams && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
+        if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
             continue;
         }
-        wr.line(gvar->toString());
+
+        // TODO: wr.line(gvar->toInitString());
     }
 }
 
@@ -173,6 +177,10 @@ void Writer::functionDeclarations(const Program& program) {
     wr.comment("function declarations");
     for (const auto& decl : program.declarations) {
         auto& func = decl.second;
+        if (!isFunctionPrinted(func.get())) {
+            continue;
+        }
+
         functionHead(func.get());
 
         wr.endFunctionDecl();
@@ -218,7 +226,7 @@ bool Writer::isFunctionPrinted(const Func* func) const {
         return false;
     }
 
-    if (hideStreams) {
+    if (useIncludes) {
         if (isStdLibFunc(func->name) || isStringFunc(func->name) || isStdioFunc(func->name) || isPthreadFunc(func->name)) {
             return false;
         }
@@ -231,6 +239,67 @@ bool Writer::isFunctionPrinted(const Func* func) const {
     return true;
 }
 
+void Writer::writeBlock(const Block* block, bool first) {
+    std::unordered_set<Value*> initialized;
+
+    if (!first) {
+        wr.startBlock(block->blockName);
+    }
+
+    for (const auto& expr : block->expressions) {
+        if (auto V = dynamic_cast<Value*>(expr)) {
+            wr.indent(1);
+            if (initialized.insert(V).second) {
+                wr.declareVar(expr->getType()->toString(), V->toString());
+            }
+            continue;
+        }
+
+        if (auto CE = dynamic_cast<CallExpr*>(expr)) {
+            if (noFuncCasts) {
+                auto call = CE->funcValue;
+                bool hasCast = false;
+                while (auto CAST = dynamic_cast<CastExpr*>(call)) {
+                    hasCast = true;
+                    call = CAST->expr;
+                }
+
+                if (hasCast) {
+                    wr.indent(1);
+                    wr.raw(call->toString().substr(1, call->toString().size() - 1));
+                    wr.line("(" + CE->paramsToString() + ");");
+                    continue;
+                }
+            }
+        }
+
+        if (auto EE = dynamic_cast<AssignExpr*>(expr)) {
+            if (noFuncCasts) {
+                if (auto CE = dynamic_cast<CallExpr*>(EE->right)) {
+                    auto call = CE->funcValue;
+                    bool hasCast = false;
+                    while (auto CAST = dynamic_cast<CastExpr*>(call)) {
+                        hasCast = true;
+                        call = CAST->expr;
+                    }
+
+                    if (hasCast) {
+                        wr.raw("    (");
+                        wr.raw(EE->left->toString());
+                        wr.raw(") = ");
+                        wr.raw(call->toString().substr(1, call->toString().size() - 1));
+                        wr.line("(" + CE->paramsToString() + ");");
+                        continue;
+                    }
+                }
+            }
+        }
+
+        wr.indent(1);
+        wr.line(expr->toString());
+    }
+}
+
 void Writer::functionDefinitions(const Program& program) {
     for (const auto& pair : program.functions) {
         const auto* func = pair.second.get();
@@ -240,5 +309,21 @@ void Writer::functionDefinitions(const Program& program) {
 
         functionHead(func);
         wr.startFunctionBody();
+
+        // start with phi variables
+        // TODO: prepend phi variables of function to the first block instead of this hack
+        for (const auto& var : func->phiVariables) {
+            wr.indent(1);
+            wr.declareVar(var->getType()->toString(), var->toString());
+        }
+
+        bool first = true;
+        for (const auto& blockEntry : func->blockMap) {
+            const auto* block = blockEntry.second.get();
+            writeBlock(block, first);
+            first = false;
+        }
+
+        wr.endFunctionBody();
     }
 }

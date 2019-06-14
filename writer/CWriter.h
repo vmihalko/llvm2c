@@ -26,10 +26,18 @@ public:
     void endFunctionDecl();
     void functionParam(StrRef ty, StrRef name);
     void nextFunctionParam();
+
+    // TODO: get rid of raw
     void raw(StrRef line);
+
+    // TODO: get rid of line
     void line(StrRef line);
+
     void functionVarArgs();
-    void startFunctionBody();
     void startFunctionParams();
     void endFunctionParams();
+    void startFunctionBody();
+    void endFunctionBody();
+    void declareVar(StrRef ty, StrRef name);
+    void startBlock(StrRef label);
 };

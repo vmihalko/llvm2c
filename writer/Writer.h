@@ -13,7 +13,8 @@ class Writer
 private:
     CWriter wr;
 
-    bool hideStreams;
+    bool useIncludes;
+    bool noFuncCasts;
 
     void includes(const Program& program);
     void structDeclarations(const Program& program);
@@ -28,9 +29,10 @@ private:
     void structDefinition(const Struct* strct);
     bool isFunctionPrinted(const Func* func) const;
     void functionHead(const Func* func);
+    void writeBlock(const Block* block, bool first);
 
 
 public:
-    Writer(std::ostream& stream, bool hideStreams) : wr(CWriter(stream)), hideStreams(hideStreams) {}
+    Writer(std::ostream& stream, bool useIncludes) : wr(CWriter(stream)), useIncludes(useIncludes), noFuncCasts(true) {}
     void writeProgram(const Program& program);
 };

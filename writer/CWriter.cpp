@@ -72,8 +72,13 @@ void CWriter::functionVarArgs() {
 }
 
 void CWriter::startFunctionBody() {
-    out << ") {" << std::endl;
+    out << "{" << std::endl;
 }
+
+void CWriter::endFunctionBody() {
+    out << "}" << std::endl;
+}
+
 
 void CWriter::startFunctionParams() {
     out << "(";
@@ -81,4 +86,12 @@ void CWriter::startFunctionParams() {
 
 void CWriter::endFunctionParams() {
     out << ")";
+}
+
+void CWriter::declareVar(StrRef ty, StrRef name) {
+    out << ty << " " << name << ";" << std::endl;
+}
+
+void CWriter::startBlock(StrRef label) {
+    out << label << ": ;" << std::endl;
 }
