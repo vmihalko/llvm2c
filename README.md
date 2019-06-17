@@ -4,23 +4,30 @@ Translation of LLVM bitcode to C
 
 ## Dependencies
 
-| Name | Version | 
-| ---- | ------- |
-| CMake | 2.8+ |
-| LLVM | 6.0 - 7.0 |
-| Clang | 6.0 - 7.0 |
-
+The only requirements are cmake in version at least 2.8 and LLVM 6 or 7.
 The project should be compilable also on older LLVM's, but it is not tested on these versions (patches are welcome :)
 
-## Installation
+## Building
 
-    git clone https://github.com/staticafi/llvm2c
-    cd llvm2c
-    mkdir build
-    cd build
-    cmake .. -DCMAKE_INSTALL_PREFIX=../
-    make
-    make install
+```
+git clone https://github.com/staticafi/llvm2c
+cd llvm2c
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=installation/path/
+make
+```
+    
+## Testing
+
+Copy the built `llvm2c` binary into test directory and run `./run` script
+
+## Unsupported features
+
+- vector instructions
+- atomic operations
+- some special intrinsics
+- the code generation is currently fitted to x86_64 bitcode
 
 ## Authors
 
