@@ -26,6 +26,10 @@ std::string AddExpr::toString() const {
     return "(" + left->toString() + ") + (" + right->toString() + ")";
 }
 
+void AddExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 SubExpr::SubExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -35,6 +39,10 @@ void SubExpr::print() const {
 
 std::string SubExpr::toString() const {
     return "(" + left->toString() + ") - (" + right->toString() + ")";
+}
+
+void SubExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 AssignExpr::AssignExpr(Expr* l, Expr* r) :
@@ -48,6 +56,10 @@ std::string AssignExpr::toString() const {
     return left->toString() + " = " + right->toString() + ";";
 }
 
+void AssignExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 MulExpr::MulExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -57,6 +69,10 @@ void MulExpr::print() const {
 
 std::string MulExpr::toString() const {
     return "(" + left->toString() + ") * (" + right->toString() + ")";
+}
+
+void MulExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 DivExpr::DivExpr(Expr* l, Expr* r) :
@@ -70,6 +86,10 @@ std::string DivExpr::toString() const {
     return "(" + left->toString() + ") / (" + right->toString() + ")";
 }
 
+void DivExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 RemExpr::RemExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -79,6 +99,10 @@ void RemExpr::print() const {
 
 std::string RemExpr::toString() const {
     return "(" + left->toString() + ") % (" + right->toString() + ")";
+}
+
+void RemExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 AndExpr::AndExpr(Expr* l, Expr* r) :
@@ -92,6 +116,10 @@ std::string AndExpr::toString() const {
     return "(" + left->toString() + ") & (" + right->toString() + ")";
 }
 
+void AndExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 OrExpr::OrExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -103,6 +131,10 @@ std::string OrExpr::toString() const {
     return "(" + left->toString() + ") | (" + right->toString() + ")";
 }
 
+void OrExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 XorExpr::XorExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -112,6 +144,10 @@ void XorExpr::print() const {
 
 std::string XorExpr::toString() const {
     return "(" + left->toString() + ") ^ (" + right->toString() + ")";
+}
+
+void XorExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 CmpExpr::CmpExpr(Expr* l, Expr* r, const std::string& cmp, bool isUnsigned) :
@@ -137,6 +173,10 @@ std::string CmpExpr::toString() const {
     return "(" + left->toString() + ") " + comparsion + " (" + right->toString() + ")";
 }
 
+void CmpExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 AshrExpr::AshrExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -146,6 +186,10 @@ void AshrExpr::print() const {
 
 std::string AshrExpr::toString() const {
     return "(" + left->toString() + ") >> (" + right->toString() + ")";
+}
+
+void AshrExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 LshrExpr::LshrExpr(Expr* l, Expr* r) :
@@ -166,6 +210,10 @@ std::string LshrExpr::toString() const {
     return ret + left->toString() + ") >> (" + right->toString() + ")";
 }
 
+void LshrExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 ShlExpr::ShlExpr(Expr* l, Expr* r) :
     BinaryExpr(l, r) { }
 
@@ -175,4 +223,8 @@ void ShlExpr::print() const {
 
 std::string ShlExpr::toString() const {
     return "(" + left->toString() + ") << (" + right->toString() + ")";
+}
+
+void ShlExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }

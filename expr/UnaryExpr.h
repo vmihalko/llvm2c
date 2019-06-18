@@ -23,6 +23,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -34,6 +36,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -46,6 +50,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -57,4 +63,6 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };

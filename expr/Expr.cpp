@@ -66,6 +66,10 @@ void Struct::addItem(std::unique_ptr<Type> type, const std::string& name) {
     items.push_back(std::make_pair(std::move(type), name));
 }
 
+void Struct::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 StructElement::StructElement(Struct* strct, Expr* expr, unsigned element)
     : strct(strct),
       expr(expr),
@@ -83,6 +87,10 @@ std::string StructElement::toString() const {
     }
 
     return "(" + expr->toString() + ")." + strct->items[element].second;
+}
+
+void StructElement::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 ArrayElement::ArrayElement(Expr* expr, Expr* elem)
@@ -106,6 +114,10 @@ std::string ArrayElement::toString() const {
     return "(" + expr->toString() + ")[" + element->toString() + "]";
 }
 
+void ArrayElement::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 ExtractValueExpr::ExtractValueExpr(std::vector<std::unique_ptr<Expr>>& indices) {
     for (auto& idx : indices) {
         this->indices.push_back(std::move(idx));
@@ -120,6 +132,10 @@ void ExtractValueExpr::print() const {
 
 std::string ExtractValueExpr::toString() const {
     return indices[indices.size() - 1]->toString();
+}
+
+void ExtractValueExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 Value::Value(const std::string& valueName, std::unique_ptr<Type> type) {
@@ -171,6 +187,10 @@ std::string Value::toString() const {
     }
 
     return valueName;
+}
+
+void Value::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 GlobalValue::GlobalValue(const std::string& varName, const std::string& value, std::unique_ptr<Type> type)
@@ -263,6 +283,10 @@ std::string GlobalValue::declToString() const {
     return ret + ";";
 }
 
+void GlobalValue::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 IfExpr::IfExpr(Expr* cmp, const std::string& trueBlock, const std::string& falseBlock)
     : cmp(cmp),
       trueBlock(trueBlock),
@@ -283,6 +307,10 @@ std::string IfExpr::toString() const {
     }
 
     return "goto " + trueBlock + ";";
+}
+
+void IfExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 SwitchExpr::SwitchExpr(Expr* cmp, const std::string &def, std::map<int, std::string> cases)
@@ -313,6 +341,10 @@ std::string SwitchExpr::toString() const {
     }
 
     return ret + "    }";
+}
+
+void SwitchExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 AsmExpr::AsmExpr(const std::string& inst, const std::vector<std::pair<std::string, Expr*>>& output, const std::vector<std::pair<std::string, Expr*>>& input, const std::string& clobbers)
@@ -374,6 +406,10 @@ void AsmExpr::addOutputExpr(Expr* expr, unsigned pos) {
     }
 }
 
+void AsmExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 CallExpr::CallExpr(Expr* funcValue, const std::string &funcName, std::vector<Expr*> params, std::unique_ptr<Type> type)
     : funcName(funcName),
       params(params),
@@ -430,6 +466,10 @@ std::string CallExpr::paramsToString() const {
     return ret;
 }
 
+void CallExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 PointerShift::PointerShift(std::unique_ptr<Type> ptrType, Expr* pointer, Expr* move)
     : ptrType(std::move(ptrType)),
       pointer(pointer),
@@ -465,6 +505,10 @@ std::string PointerShift::toString() const {
     return ret + ")(" + pointer->toString() + ")) + (" + move->toString() + "))";
 }
 
+void PointerShift::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 GepExpr::GepExpr(std::vector<std::unique_ptr<Expr>>& indices) {
     for (auto& index : indices) {
         this->indices.push_back(std::move(index));
@@ -479,6 +523,10 @@ void GepExpr::print() const {
 
 std::string GepExpr::toString() const {
     return indices[indices.size() - 1]->toString();
+}
+
+void GepExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
@@ -496,3 +544,6 @@ std::string SelectExpr::toString() const {
     return "(" + comp->toString() + ") ? " + left->toString() + " : " + right->toString();
 }
 
+void SelectExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}

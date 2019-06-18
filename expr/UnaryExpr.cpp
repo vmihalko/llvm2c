@@ -26,6 +26,10 @@ std::string RefExpr::toString() const {
     return "&(" + expr->toString() + ")";
 }
 
+void RefExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
 DerefExpr::DerefExpr(Expr* expr) :
     UnaryExpr(expr) {
     if (auto PT = dynamic_cast<PointerType*>(expr->getType())) {
@@ -43,6 +47,10 @@ std::string DerefExpr::toString() const {
     }
 
     return "*(" + expr->toString() + ")";
+}
+
+void DerefExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 RetExpr::RetExpr(Expr* ret)
@@ -64,6 +72,10 @@ std::string RetExpr::toString() const {
     }
 
     return ret + ";";
+}
+
+void RetExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
 }
 
 CastExpr::CastExpr(Expr* expr, std::unique_ptr<Type> type)
@@ -88,3 +100,8 @@ std::string CastExpr::toString() const {
     }
     return ret + ")" + "(" + expr->toString() + ")";
 }
+
+void CastExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+

@@ -8,6 +8,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "../type/Type.h"
+#include "ExprVisitor.h"
 
 /**
  * @brief The Expr class is an abstract class for all expressions.
@@ -15,6 +16,7 @@
 class Expr {
 public:
     virtual ~Expr() = default;
+    virtual void accept(ExprVisitor& visitor) = 0;
     virtual void print() const = 0;
     virtual std::string toString() const = 0;
     virtual const Type* getType() const = 0;
@@ -64,6 +66,8 @@ public:
      * @param name Name of the element
      */
     void addItem(std::unique_ptr<Type> type, const std::string& name);
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -80,6 +84,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -96,6 +102,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -110,6 +118,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -124,6 +134,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -146,6 +158,8 @@ public:
      * @return String containing declaration of the global variable;
      */
     std::string declToString() const;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -163,6 +177,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -179,6 +195,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -203,6 +221,8 @@ public:
      * @param pos Position in vector
      */
     void addOutputExpr(Expr* expr, unsigned pos);
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -231,6 +251,8 @@ public:
      * @return String with parameters.
      */
     std::string paramsToString() const;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -247,6 +269,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -261,6 +285,8 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
 
 /**
@@ -277,4 +303,6 @@ public:
 
     void print() const override;
     std::string toString() const override;
+
+    void accept(ExprVisitor& visitor) override;
 };
