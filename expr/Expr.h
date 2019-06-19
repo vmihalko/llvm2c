@@ -239,3 +239,15 @@ public:
 
     void accept(ExprVisitor& visitor) override;
 };
+
+class StackAlloc : public ExprBase {
+public:
+    Value* value;
+
+    StackAlloc(Value*);
+
+    void accept(ExprVisitor& visitor) override;
+
+    const Type* getType() const override;
+    Type* getType() override;
+};

@@ -47,6 +47,7 @@ public:
     void visit(AshrExpr& expr) override;
     void visit(LshrExpr& expr) override;
     void visit(ShlExpr& expr) override;
+    void visit(StackAlloc& expr) override;
 
     virtual ~ExprWriter() = default;
 };

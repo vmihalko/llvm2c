@@ -25,6 +25,8 @@ public:
     // a sequence of expression forming this basic block
     std::vector<Expr*> expressions;
 
+    std::vector<std::unique_ptr<StackAlloc>> allocas;
+
     //getelementptr expressions
     std::vector<std::unique_ptr<GepExpr>> geps; //GepExpr vector used in getelementptr parsing
     std::vector<std::unique_ptr<Expr>> casts; //Vector of casted values used in parsing getelementptr and store instruction

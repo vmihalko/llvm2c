@@ -30,6 +30,7 @@ class CmpExpr;
 class AshrExpr;
 class LshrExpr;
 class ShlExpr;
+class StackAlloc;
 
 class ExprVisitor {
 public:
@@ -63,5 +64,6 @@ public:
     virtual void visit(AshrExpr& expr) {}
     virtual void visit(LshrExpr& expr) {}
     virtual void visit(ShlExpr& expr) {}
+    virtual void visit(StackAlloc& expr) {}
     virtual ~ExprVisitor() = default;
 };

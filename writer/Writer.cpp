@@ -249,22 +249,11 @@ bool Writer::isFunctionPrinted(const Func* func) const {
 }
 
 void Writer::writeBlock(const Block* block, bool first) {
-    std::unordered_set<Value*> initialized;
-
     if (!first) {
         wr.startBlock(block->blockName);
     }
 
     for (const auto& expr : block->expressions) {
-        // TODO: introduce StackAlloc expression to use instead of this
-        if (auto V = dynamic_cast<Value*>(expr)) {
-            wr.indent(1);
-            if (initialized.insert(V).second) {
-                wr.declareVar(expr->getType()->toString(), V->getType()->surroundName(V->valueName));
-            }
-            continue;
-        }
-
         wr.indent(1);
         expr->accept(ew);
         wr.line(";");

@@ -406,3 +406,9 @@ void ExprWriter::visit(ShlExpr& expr) {
     expr.right->accept(*this);
     ss << ")";
 }
+
+void ExprWriter::visit(StackAlloc& expr) {
+    ss << expr.getType()->toString();
+    ss << " ";
+    ss << expr.getType()->surroundName(expr.value->valueName);
+}

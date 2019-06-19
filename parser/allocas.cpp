@@ -14,11 +14,13 @@ void createAllocas(const llvm::Module* module, Program& program) {
 
                     const auto allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
 
-                    auto myExpr = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
+                    auto theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
+                    auto alloc = std::make_unique<StackAlloc>(theVariable.get());
 
-                    myBlock->addExpr(myExpr.get());
+                    myBlock->addExpr(alloc.get());
 
-                    myBlock->insertValue(&ins, std::move(myExpr));
+                    myBlock->insertValue(&ins, std::move(theVariable));
+                    myBlock->allocas.push_back(std::move(alloc));
                 }
             }
 

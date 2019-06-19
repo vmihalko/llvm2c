@@ -200,3 +200,19 @@ SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
 void SelectExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
+
+StackAlloc::StackAlloc(Value* var): value(var) {
+    setType(var->getType()->clone());
+}
+
+void StackAlloc::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+Type* StackAlloc::getType() {
+    return value->getType();
+}
+
+const Type* StackAlloc::getType() const {
+    return value->getType();
+}

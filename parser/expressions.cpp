@@ -250,15 +250,18 @@ static void parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr,
     //create new variable for every load instruction
     auto deref = std::make_unique<DerefExpr>(func->getExpr(ins.getOperand(0)));
     auto var = std::make_unique<Value>(func->getVarName(), deref->getType()->clone());
+    auto alloca = std::make_unique<StackAlloc>(var.get());
+
     auto assign = std::make_unique<AssignExpr>(var.get(), deref.get());
 
-    block->addExpr(var.get());
+    block->addExpr(alloca.get());
     block->addExpr(assign.get());
 
     func->createExpr(v, std::move(var));
 
     block->loadDerefs.push_back(std::move(deref));
     block->stores.push_back(std::move(assign));
+    block->allocas.push_back(std::move(alloca));
 }
 
 static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
@@ -606,13 +609,17 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
     } else {
         block->callExprMap.push_back(std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
 
-        func->createExpr(value, std::make_unique<Value>(func->getVarName(), type->clone()));
-        block->callValueMap.push_back(std::make_unique<AssignExpr>(func->getExpr(value), block->callExprMap[block->callExprMap.size() - 1].get()));
+        auto newVariable = std::make_unique<Value>(func->getVarName(), type->clone());
+        auto alloca = std::make_unique<StackAlloc>(newVariable.get());
+        block->callValueMap.push_back(std::make_unique<AssignExpr>(newVariable.get(), block->callExprMap[block->callExprMap.size() - 1].get()));
 
         if (!isConstExpr) {
-            block->addExpr(func->getExpr(&ins));
+            block->addExpr(alloca.get());
             block->addExpr(block->callValueMap[block->callValueMap.size() - 1].get());
         }
+
+        func->createExpr(value, std::move(newVariable));
+        block->allocas.push_back(std::move(alloca));
     }
 }
 
