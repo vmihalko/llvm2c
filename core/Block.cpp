@@ -26,7 +26,7 @@
 Block::Block(const std::string &blockName, const llvm::BasicBlock* block, Func* func)
 	: block(block),
 	func(func),
-	blockName(blockName) { }
+	blockName(blockName), doInline(false) { }
 
 void Block::unsetAllInit() {
     /* for (auto expr : expressions) { */

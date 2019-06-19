@@ -14,6 +14,8 @@ private:
     std::ostream& ss;
     bool noFuncCasts;
 
+    void gotoOrInline(Block* block);
+
 public:
     ExprWriter(std::ostream& os, bool noFuncCasts);
 

@@ -26,6 +26,7 @@ Program ProgramParser::parse(const std::string& file) {
     nameFunctions(mod, result);
     createFunctionParameters(mod, result);
     createBlocks(mod, result);
+    identifyInlinableBlocks(mod, result);
     createAllocas(mod, result);
     parseMetadataTypes(mod, result);
     createExpressions(mod, result);

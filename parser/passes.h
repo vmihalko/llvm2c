@@ -18,3 +18,4 @@ void findDeclaredFunctions(const llvm::Module* module, Program& program);
 void nameFunctions(const llvm::Module* module, Program& program);
 void parseBreaks(const llvm::Module* module, Program& program);
 void addPhis(const llvm::Module* module, Program& program);
+void identifyInlinableBlocks(const llvm::Module* module, Program& program);

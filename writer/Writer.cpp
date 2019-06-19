@@ -280,7 +280,8 @@ void Writer::functionDefinitions(const Program& program) {
         bool first = true;
         for (const auto& blockEntry : func->blockMap) {
             const auto* block = blockEntry.second.get();
-            writeBlock(block, first);
+            if (!block->doInline || first)
+                writeBlock(block, first);
             first = false;
         }
 

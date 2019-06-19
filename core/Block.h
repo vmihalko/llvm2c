@@ -52,6 +52,9 @@ public:
     // assignments of values to variables for phi nodes
     std::vector<std::unique_ptr<Expr>> phiAssignments;
 
+    // instead of `goto block`, the block will be outputed in place
+    bool doInline;
+
     /**
      * @brief createConstantValue Creates Value for given ConstantInt or ConstantFP and inserts it into exprMap.
      * @param val constant value

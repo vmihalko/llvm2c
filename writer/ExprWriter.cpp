@@ -87,12 +87,12 @@ void ExprWriter::visit(IfExpr& expr) {
         ss << "if (";
         expr.cmp->accept(*this);
         ss << ") {" << std::endl;
-        ss << "        goto " << expr.trueBlock->blockName << ";" << std::endl;
+        gotoOrInline(expr.trueBlock);
         ss << "    } else {" << std::endl;
-        ss << "        goto " << expr.falseBlock->blockName << ";" << std::endl;
+        gotoOrInline(expr.falseBlock);
         ss << "    }" << std::endl;
     } else {
-        ss << "goto " + expr.trueBlock->blockName << ";" << std::endl;
+        gotoOrInline(expr.trueBlock);
     }
 }
 
@@ -106,12 +106,12 @@ void ExprWriter::visit(SwitchExpr& expr) {
         const auto& block = lb_block.second;
 
         ss << "    case " << label << ": ";
-        ss << "goto " << block->blockName << ";" << std::endl;
+        gotoOrInline(block);
     }
 
     if (expr.def) {
         ss << "    default:" << std::endl;
-        ss << "        goto " << expr.def->blockName << ";" << std::endl;
+        gotoOrInline(expr.def);
     }
 
     ss << "}" << std::endl;
@@ -269,7 +269,6 @@ void ExprWriter::visit(RetExpr& ret) {
         ss << " ";
         ret.expr->accept(*this);
     }
-    ss << ";";
 }
 
 void ExprWriter::visit(CastExpr& cast) {
@@ -413,4 +412,18 @@ void ExprWriter::visit(StackAlloc& expr) {
     ss << expr.getType()->toString();
     ss << " ";
     ss << expr.getType()->surroundName(expr.value->valueName);
+}
+
+void ExprWriter::gotoOrInline(Block* block) {
+    if (block->doInline) {
+        ss << "{ // " << block->blockName << std::endl;
+        for (const auto& expr : block->expressions) {
+            ss << "    ";
+            expr->accept(*this);
+            ss << ";" << std::endl;
+        }
+        ss << "}" << std::endl;
+    } else {
+        ss << "goto " << block->blockName << ";" << std::endl;
+    }
 }
