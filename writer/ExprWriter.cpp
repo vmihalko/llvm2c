@@ -50,21 +50,20 @@ void ExprWriter::visit(Struct& expr) {
 }
 
 void ExprWriter::visit(StructElement& elem) {
+    parensIfNotSimple(elem.expr);
+
     if (dynamic_cast<PointerType*>(elem.expr->getType())) {
-        ss << "(";
-        elem.expr->accept(*this);
-        ss << ")->" << elem.strct->items[elem.element].second;
+        ss << "->";
     } else {
-        ss << "(";
-        elem.expr->accept(*this);
-        ss << ")." << elem.strct->items[elem.element].second;
+        ss << ".";
     }
+
+    ss << elem.strct->items[elem.element].second;
 }
 
 void ExprWriter::visit(ArrayElement& ae) {
-    ss << "(";
-    ae.expr->accept(*this);
-    ss << ")[";
+    parensIfNotSimple(ae.expr);
+    ss << "[";
     ae.element->accept(*this); 
     ss << "]";
 }
@@ -229,9 +228,9 @@ void ExprWriter::visit(PointerShift& expr) {
 
     ss << ")(";
     expr.pointer->accept(*this);
-    ss << ")) + (";
-    expr.move->accept(*this);
-    ss << "))";
+    ss << ")) + ";
+    parensIfNotSimple(expr.move);
+    ss << ")";
 }
 
 void ExprWriter::visit(GepExpr& expr) {
@@ -239,28 +238,21 @@ void ExprWriter::visit(GepExpr& expr) {
 }
 
 void ExprWriter::visit(SelectExpr& expr) {
-    ss << "(";
-    expr.comp->accept(*this);
-    ss << ") ? ";
-    expr.left->accept(*this);
+    parensIfNotSimple(expr.comp);
+    ss << " ? ";
+    parensIfNotSimple(expr.left);
     ss << " : ";
-    expr.right->accept(*this);
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(RefExpr& ref) {
-    ss << "&(";
-    ref.expr->accept(*this);
-    ss << ")";
+    ss << "&";
+    parensIfNotSimple(ref.expr);
 }
 
 void ExprWriter::visit(DerefExpr& deref) {
-    if (auto refExpr = dynamic_cast<RefExpr*>(deref.expr)) {
-        refExpr->expr->accept(*this);
-    } else {
-        ss << "*(";
-        deref.expr->accept(*this);
-        ss << ")";
-    }
+    ss << "*";
+    parensIfNotSimple(deref.expr);
 }
 
 void ExprWriter::visit(RetExpr& ret) {
@@ -282,80 +274,62 @@ void ExprWriter::visit(CastExpr& cast) {
             ss << ")" + PT->sizes;
         }
     }
-    ss << ")" << "(";
-    cast.expr->accept(*this);
     ss << ")";
+    parensIfNotSimple(cast.expr);
 }
 
 void ExprWriter::visit(AddExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") + (";
-    expr.right->accept(*this);
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " + ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(SubExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") - (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " - ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(AssignExpr& expr) {
-    expr.left->accept(*this); 
+    parensIfNotSimple(expr.left);
     ss << " = ";
-    expr.right->accept(*this);
-    /* ss << ";"; */
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(MulExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") * (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " * ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(DivExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") / (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " / ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(RemExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") % (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " % ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(AndExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") & (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " & ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(OrExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") | (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " | ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(XorExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") ^ (";
-    expr.right->accept(*this); 
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " ^ ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(CmpExpr& expr) {
@@ -372,19 +346,15 @@ void ExprWriter::visit(CmpExpr& expr) {
             return;
         }
     }
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") " << expr.comparsion << " (";
-    expr.right->accept(*this);
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " " << expr.comparsion << " ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(AshrExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") >> (";
-    expr.right->accept(*this);
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " >> ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(LshrExpr& expr) {
@@ -401,11 +371,9 @@ void ExprWriter::visit(LshrExpr& expr) {
 }
 
 void ExprWriter::visit(ShlExpr& expr) {
-    ss << "(";
-    expr.left->accept(*this);
-    ss << ") << (";
-    expr.right->accept(*this);
-    ss << ")";
+    parensIfNotSimple(expr.left);
+    ss << " << ";
+    parensIfNotSimple(expr.right);
 }
 
 void ExprWriter::visit(StackAlloc& expr) {
@@ -425,5 +393,17 @@ void ExprWriter::gotoOrInline(Block* block) {
         ss << "}" << std::endl;
     } else {
         ss << "goto " << block->blockName << ";" << std::endl;
+    }
+}
+
+void ExprWriter::parensIfNotSimple(Expr* expr) {
+    if (!expr->isSimple()) {
+        ss << "(";
+    }
+
+    expr->accept(*this);
+
+    if (!expr->isSimple()) {
+        ss << ")";
     }
 }

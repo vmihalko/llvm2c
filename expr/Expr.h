@@ -23,6 +23,7 @@ public:
     virtual Type* getType() = 0;
     virtual void setType(std::unique_ptr<Type>) = 0;
     virtual bool isZero() const = 0;
+    virtual bool isSimple() const = 0;
 };
 
 /**
@@ -46,6 +47,10 @@ public:
     }
 
     bool isZero() const override {
+        return false;
+    }
+
+    bool isSimple() const override {
         return false;
     }
 };
@@ -122,6 +127,8 @@ public:
     void accept(ExprVisitor& visitor) override;
 
     bool isZero() const override;
+
+    bool isSimple() const override;
 };
 
 /**
@@ -136,6 +143,8 @@ public:
     bool isDefined = false;
 
     void accept(ExprVisitor& visitor) override;
+
+    bool isSimple() const override;
 };
 
 /**

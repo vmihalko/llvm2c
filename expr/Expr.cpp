@@ -61,41 +61,6 @@ Value::Value(const std::string& valueName, std::unique_ptr<Type> type) {
     this->valueName = valueName;
 }
 
-/* static std::string valueInitToString() { */
-/*     std::string ret; */
-/*     if (auto AT = dynamic_cast<const ArrayType*>(getType())) { */
-/*         if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
-/*             ret = "("; */
-/*             for (unsigned i = 0; i < AT->pointer->levels; i++) { */
-/*                 ret += "*"; */
-/*             } */
-/*             return ret + valueName + AT->sizeToString() + ")" + AT->pointer->sizes; */
-/*         } else { */
-/*             return valueName + AT->sizeToString(); */
-/*         } */
-/*     } */
-
-/*     if (auto PT = dynamic_cast<const PointerType*>(getType())) { */
-/*         if (PT->isArrayPointer && valueName.compare("0") != 0) { */
-/*             ret = "("; */
-/*             for (unsigned i = 0; i < PT->levels; i++) { */
-/*                 ret += "*"; */
-/*             } */
-/*             ret += valueName + ")"; */
-/*         } */
-
-
-
-/*         if (PT->isArrayPointer) { */
-/*             ret = ret + PT->sizes; */
-/*         } */
-
-/*         if (!ret.empty()) { */
-/*             return ret; */
-/*         } */
-/*     } */
-/* } */
-
 void Value::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
@@ -104,12 +69,20 @@ bool Value::isZero() const {
     return valueName == "0";
 }
 
+bool Value::isSimple() const {
+    return true;
+}
+
 GlobalValue::GlobalValue(const std::string& varName, const std::string& value, std::unique_ptr<Type> type)
     : Value(varName, std::move(type)),
       value(value) { }
 
 void GlobalValue::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
+}
+
+bool GlobalValue::isSimple() const {
+    return true;
 }
 
 IfExpr::IfExpr(Expr* cmp, Block* trueBlock, Block* falseBlock)

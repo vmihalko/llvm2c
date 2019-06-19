@@ -33,5 +33,8 @@ Program ProgramParser::parse(const std::string& file) {
     addPhis(mod, result);
     parseBreaks(mod, result);
 
+    // transformations of resulting expressions
+    refDeref(mod, result);
+
     return result;
 }

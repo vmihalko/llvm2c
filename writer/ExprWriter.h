@@ -15,6 +15,7 @@ private:
     bool noFuncCasts;
 
     void gotoOrInline(Block* block);
+    void parensIfNotSimple(Expr* expr);
 
 public:
     ExprWriter(std::ostream& os, bool noFuncCasts);
