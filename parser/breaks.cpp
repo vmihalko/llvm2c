@@ -11,7 +11,7 @@ static void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
 
     //no condition
     if (ins.getNumOperands() == 1) {
-        std::string trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0))->blockName;
+        Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
         func->createExpr(value, std::make_unique<IfExpr>(trueBlock));
 
         if (!isConstExpr) {
@@ -22,8 +22,8 @@ static void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
 
     Expr* cmp = func->getExpr(ins.getOperand(0));
 
-    std::string falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1))->blockName;
-    std::string trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2))->blockName;
+    Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
+    Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
 
     func->createExpr(value, std::make_unique<IfExpr>(cmp, trueBlock, falseBlock));
 

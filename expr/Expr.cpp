@@ -112,21 +112,21 @@ void GlobalValue::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-IfExpr::IfExpr(Expr* cmp, const std::string& trueBlock, const std::string& falseBlock)
+IfExpr::IfExpr(Expr* cmp, Block* trueBlock, Block* falseBlock)
     : cmp(cmp),
       trueBlock(trueBlock),
       falseBlock(falseBlock) {}
 
-IfExpr::IfExpr(const std::string &trueBlock)
+IfExpr::IfExpr(Block* trueBlock)
     : cmp(nullptr),
       trueBlock(trueBlock),
-      falseBlock("") {}
+      falseBlock(nullptr) {}
 
 void IfExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-SwitchExpr::SwitchExpr(Expr* cmp, const std::string &def, std::map<int, std::string> cases)
+SwitchExpr::SwitchExpr(Expr* cmp, Block* def, std::map<int, Block*> cases)
     : cmp(cmp),
       def(def),
       cases(cases) {}

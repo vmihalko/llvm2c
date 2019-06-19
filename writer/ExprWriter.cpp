@@ -1,5 +1,7 @@
 #include "ExprWriter.h"
 
+#include "../core/Block.h"
+
 ExprWriter::ExprWriter(std::ostream& os, bool noFuncCasts): ss(os), noFuncCasts(noFuncCasts) { }
 
 void ExprWriter::visit(Struct& expr) {
@@ -85,12 +87,12 @@ void ExprWriter::visit(IfExpr& expr) {
         ss << "if (";
         expr.cmp->accept(*this);
         ss << ") {" << std::endl;
-        ss << "        goto " << expr.trueBlock << ";" << std::endl;
+        ss << "        goto " << expr.trueBlock->blockName << ";" << std::endl;
         ss << "    } else {" << std::endl;
-        ss << "        goto " << expr.falseBlock << ";" << std::endl;
+        ss << "        goto " << expr.falseBlock->blockName << ";" << std::endl;
         ss << "    }" << std::endl;
     } else {
-        ss << "goto " + expr.trueBlock << ";" << std::endl;
+        ss << "goto " + expr.trueBlock->blockName << ";" << std::endl;
     }
 }
 
@@ -104,12 +106,12 @@ void ExprWriter::visit(SwitchExpr& expr) {
         const auto& block = lb_block.second;
 
         ss << "    case " << label << ": ";
-        ss << "goto " << block << ";" << std::endl;
+        ss << "goto " << block->blockName << ";" << std::endl;
     }
 
-    if (!expr.def.empty()) {
+    if (expr.def) {
         ss << "    default:" << std::endl;
-        ss << "        goto " << expr.def << ";" << std::endl;
+        ss << "        goto " << expr.def->blockName << ";" << std::endl;
     }
 
     ss << "}" << std::endl;

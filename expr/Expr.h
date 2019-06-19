@@ -10,6 +10,8 @@
 #include "../type/Type.h"
 #include "ExprVisitor.h"
 
+class Block;
+
 /**
  * @brief The Expr class is an abstract class for all expressions.
  */
@@ -142,11 +144,11 @@ public:
 class IfExpr : public ExprBase {
 public:
     Expr* cmp; //expression used as a condition
-    std::string trueBlock; //goto trueBlock if condition is true
-    std::string falseBlock; //else goto falseBlock
+    Block* trueBlock; //goto trueBlock if condition is true
+    Block* falseBlock; //else goto falseBlock
 
-    IfExpr(Expr*, const std::string&, const std::string&);
-    IfExpr(const std::string& trueBlock);
+    IfExpr(Expr*, Block*, Block*);
+    IfExpr(Block* trueBlock);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -157,10 +159,10 @@ public:
 class SwitchExpr : public ExprBase {
 public:
     Expr* cmp; //expression used in switch
-    std::string def; //default
-    std::map<int, std::string> cases; //cases of switch
+    Block* def; //default
+    std::map<int, Block*> cases; //cases of switch
 
-    SwitchExpr(Expr*, const std::string&, std::map<int, std::string>);
+    SwitchExpr(Expr*, Block*, std::map<int, Block*>);
 
     void accept(ExprVisitor& visitor) override;
 };
