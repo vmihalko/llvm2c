@@ -21,9 +21,6 @@ class RefExpr : public UnaryExpr {
 public:
     RefExpr(Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -33,9 +30,6 @@ public:
 class DerefExpr : public UnaryExpr {
 public:
     DerefExpr(Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -48,9 +42,6 @@ public:
     RetExpr(Expr*);
     RetExpr();
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -60,9 +51,6 @@ public:
 class CastExpr : public UnaryExpr {
 public:
     CastExpr(Expr*, std::unique_ptr<Type>);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };

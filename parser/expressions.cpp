@@ -212,7 +212,7 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     Expr* val1 = func->getExpr(ins.getOperand(1));
 
     //storing to NULL
-    if (val1->toString().compare("0") == 0) {
+    if (val1->isZero()) {
         auto newCast = std::make_unique<CastExpr>(val1, func->getType(ins.getOperand(1)->getType()));
         val1 = newCast.get();
         block->casts.push_back(std::move(newCast));
@@ -809,7 +809,7 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     std::vector<std::unique_ptr<Expr>> indices;
 
     //if getelementptr contains null, cast it to given type
-    if (expr->toString().compare("0") == 0) {
+    if (expr->isZero()) {
         block->casts.push_back(std::make_unique<CastExpr>(expr, func->getType(prevType)));
         prevExpr = block->casts[block->casts.size() - 1].get();
     }
@@ -821,7 +821,7 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
         Expr* index = func->getExpr(it.getOperand());
 
         if (prevType->isPointerTy()) {
-            if (index->toString().compare("0") == 0) {
+            if (index->isZero()) {
                 indices.push_back(std::make_unique<DerefExpr>(prevExpr));
             } else {
                 indices.push_back(std::make_unique<PointerShift>(func->getType(prevType), prevExpr, index));

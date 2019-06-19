@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         auto program = parser.parse(Input);
 
         if (Print) {
-            Writer wr{ std::cout, Includes };
+            Writer wr{ std::cout, Includes, Casts };
             wr.writeProgram(program);
         }
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
             if (!file.is_open()) {
                 throw std::invalid_argument("Output file cannot be opened!");
             }
-            Writer wr{ file, Includes };
+            Writer wr{ file, Includes, Casts };
             wr.writeProgram(program);
         }
 

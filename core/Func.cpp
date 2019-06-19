@@ -120,93 +120,93 @@ void Func::addMetadataVarName(const std::string& varName) {
 
 void Func::output(std::ostream& stream) {
 
-	if (isCFunc(name)) {
-		if (name.compare("va_start") == 0
-			|| name.compare("va_end") == 0
-			|| name.compare("va_copy") == 0
-			|| isCMath(name)) {
-			return;
-		}
-	}
+/* 	if (isCFunc(name)) { */
+/* 		if (name.compare("va_start") == 0 */
+/* 			|| name.compare("va_end") == 0 */
+/* 			|| name.compare("va_copy") == 0 */
+/* 			|| isCMath(name)) { */
+/* 			return; */
+/* 		} */
+/* 	} */
 
-	if (true || program->includes) {
-		if (isStdLibFunc(name) || isStringFunc(name) || isStdioFunc(name) || isPthreadFunc(name)) {
-			return;
-		}
-	} else {
-		//sometimes LLVM uses these functions with more arguments than their C counterparts
-		if ((name.compare("memcpy") == 0 || name.compare("memset") == 0 || name.compare("memmove") == 0) && function->arg_size() > 3) {
-			return;
-		}
-	}
+/* 	if (true || program->includes) { */
+/* 		if (isStdLibFunc(name) || isStringFunc(name) || isStdioFunc(name) || isPthreadFunc(name)) { */
+/* 			return; */
+/* 		} */
+/* 	} else { */
+/* 		//sometimes LLVM uses these functions with more arguments than their C counterparts */
+/* 		if ((name.compare("memcpy") == 0 || name.compare("memset") == 0 || name.compare("memmove") == 0) && function->arg_size() > 3) { */
+/* 			return; */
+/* 		} */
+/* 	} */
 
-	stream << returnType->toString();
-	auto PT = dynamic_cast<PointerType*>(returnType.get());
-	if (PT && PT->isArrayPointer) {
-		stream << " (";
-		for (unsigned i = 0; i < PT->levels; i++) {
-			stream << "*";
-		}
-		stream << name << "(";
-	} else {
-		stream << " " << name << "(";
-	}
+/* 	stream << returnType->toString(); */
+/* 	auto PT = dynamic_cast<PointerType*>(returnType.get()); */
+/* 	if (PT && PT->isArrayPointer) { */
+/* 		stream << " ("; */
+/* 		for (unsigned i = 0; i < PT->levels; i++) { */
+/* 			stream << "*"; */
+/* 		} */
+/* 		stream << name << "("; */
+/* 	} else { */
+/* 		stream << " " << name << "("; */
+/* 	} */
 
-	bool first = true;
+/* 	bool first = true; */
 
-    for (auto& val : parameters) {
-		if (!first) {
-			stream << ", ";
-		}
-		first = false;
+/*     for (auto& val : parameters) { */
+/* 		if (!first) { */
+/* 			stream << ", "; */
+/* 		} */
+/* 		first = false; */
 
-		stream << val->getType()->toString();
-		stream << " ";
-		stream << val->toString();
+/* 		stream << val->getType()->toString(); */
+/* 		stream << " "; */
+/* 		stream << val->toString(); */
 
-		val->init = true;
-    }
+/* 		val->init = true; */
+/*     } */
 
-	if (isVarArg) {
-		if (!first) {
-			stream << ", ";
-		}
-		stream << "...";
-	}
+/* 	if (isVarArg) { */
+/* 		if (!first) { */
+/* 			stream << ", "; */
+/* 		} */
+/* 		stream << "..."; */
+/* 	} */
 
-	stream << ")";
+/* 	stream << ")"; */
 
-	if (PT && PT->isArrayPointer) {
-		stream << ")" + PT->sizes;
-	}
+/* 	if (PT && PT->isArrayPointer) { */
+/* 		stream << ")" + PT->sizes; */
+/* 	} */
 
-	if (isDeclaration) {
-		stream << ";\n";
-		return;
-	}
+/* 	if (isDeclaration) { */
+/* 		stream << ";\n"; */
+/* 		return; */
+/* 	} */
 
-	stream << " {\n";
+/* 	stream << " {\n"; */
 
-	// start with variables from phi nodes
-	for (const auto& var : phiVariables) {
-		stream << "    ";
-		stream << var->getType()->toString();
-		stream << " ";
-		stream << var->toString();
-		stream << ";\n";
-	}
+/* 	// start with variables from phi nodes */
+/* 	for (const auto& var : phiVariables) { */
+/* 		stream << "    "; */
+/* 		stream << var->getType()->toString(); */
+/* 		stream << " "; */
+/* 		stream << var->toString(); */
+/* 		stream << ";\n"; */
+/* 	} */
 
-	first = true;
-	for (const auto& blockEntry : blockMap) {
-		if (!first) {
-			stream << blockEntry.second->blockName;
-			stream << ":\n    ;\n";
-		}
-		blockEntry.second->output(stream);
-		first = false;
-	}
+/* 	first = true; */
+/* 	for (const auto& blockEntry : blockMap) { */
+/* 		if (!first) { */
+/* 			stream << blockEntry.second->blockName; */
+/* 			stream << ":\n    ;\n"; */
+/* 		} */
+/* 		blockEntry.second->output(stream); */
+/* 		first = false; */
+/* 	} */
 
-	stream << "}\n\n";
+/* 	stream << "}\n\n"; */
 }
 
 

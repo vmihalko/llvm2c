@@ -126,7 +126,9 @@ void Writer::globalVars(const Program& program) {
         if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
             continue;
         }
-        wr.line(gvar->declToString());
+
+        // TODO this no longer works
+        // wr.line(gvar->declToString());
     }
 }
 
@@ -154,7 +156,10 @@ void Writer::functionHead(const Func* func) {
     wr.startFunctionParams();
     for (auto it = func->parameters.cbegin(); it != func->parameters.cend(); ++it) {
         const auto& param = *it;
-        wr.functionParam(param->getType()->toString(), param->toString());
+        wr.raw(param->getType()->toString());
+        wr.raw(" ");
+        param->accept(ew);
+
         if (it != last)
             wr.nextFunctionParam();
     }
@@ -247,56 +252,18 @@ void Writer::writeBlock(const Block* block, bool first) {
     }
 
     for (const auto& expr : block->expressions) {
+        // TODO: introduce StackAlloc expression to use instead of this
         if (auto V = dynamic_cast<Value*>(expr)) {
             wr.indent(1);
             if (initialized.insert(V).second) {
-                wr.declareVar(expr->getType()->toString(), V->toString());
+                wr.declareVar(expr->getType()->toString(), V->valueName);
             }
             continue;
         }
 
-        if (auto CE = dynamic_cast<CallExpr*>(expr)) {
-            if (noFuncCasts) {
-                auto call = CE->funcValue;
-                bool hasCast = false;
-                while (auto CAST = dynamic_cast<CastExpr*>(call)) {
-                    hasCast = true;
-                    call = CAST->expr;
-                }
-
-                if (hasCast) {
-                    wr.indent(1);
-                    wr.raw(call->toString().substr(1, call->toString().size() - 1));
-                    wr.line("(" + CE->paramsToString() + ");");
-                    continue;
-                }
-            }
-        }
-
-        if (auto EE = dynamic_cast<AssignExpr*>(expr)) {
-            if (noFuncCasts) {
-                if (auto CE = dynamic_cast<CallExpr*>(EE->right)) {
-                    auto call = CE->funcValue;
-                    bool hasCast = false;
-                    while (auto CAST = dynamic_cast<CastExpr*>(call)) {
-                        hasCast = true;
-                        call = CAST->expr;
-                    }
-
-                    if (hasCast) {
-                        wr.raw("    (");
-                        wr.raw(EE->left->toString());
-                        wr.raw(") = ");
-                        wr.raw(call->toString().substr(1, call->toString().size() - 1));
-                        wr.line("(" + CE->paramsToString() + ");");
-                        continue;
-                    }
-                }
-            }
-        }
-
         wr.indent(1);
-        wr.line(expr->toString());
+        expr->accept(ew);
+        wr.line(";");
     }
 }
 
@@ -314,7 +281,7 @@ void Writer::functionDefinitions(const Program& program) {
         // TODO: prepend phi variables of function to the first block instead of this hack
         for (const auto& var : func->phiVariables) {
             wr.indent(1);
-            wr.declareVar(var->getType()->toString(), var->toString());
+            wr.declareVar(var->getType()->toString(), var->valueName);
         }
 
         bool first = true;

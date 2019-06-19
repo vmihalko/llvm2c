@@ -5,6 +5,7 @@ class StructElement;
 class ArrayElement;
 class ExtractValueExpr;
 class Value;
+class GlobalValue;
 class IfExpr;
 class SwitchExpr;
 class AsmExpr;
@@ -37,6 +38,7 @@ public:
     virtual void visit(ArrayElement& expr) {}
     virtual void visit(ExtractValueExpr& expr) {}
     virtual void visit(Value& expr) {}
+    virtual void visit(GlobalValue& expr) {}
     virtual void visit(IfExpr& expr) {}
     virtual void visit(SwitchExpr& expr) {}
     virtual void visit(AsmExpr& expr) {}

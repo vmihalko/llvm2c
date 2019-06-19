@@ -17,11 +17,10 @@ class Expr {
 public:
     virtual ~Expr() = default;
     virtual void accept(ExprVisitor& visitor) = 0;
-    virtual void print() const = 0;
-    virtual std::string toString() const = 0;
     virtual const Type* getType() const = 0;
     virtual Type* getType() = 0;
     virtual void setType(std::unique_ptr<Type>) = 0;
+    virtual bool isZero() const = 0;
 };
 
 /**
@@ -43,6 +42,10 @@ public:
     void setType(std::unique_ptr<Type> type) override {
         this->type = std::move(type);
     }
+
+    bool isZero() const override {
+        return false;
+    }
 };
 
 /**
@@ -53,12 +56,7 @@ public:
     std::string name;
     std::vector<std::pair<std::unique_ptr<Type>, std::string>> items; //elements of the struct
 
-    bool isPrinted; //used for printing structs in the right order
-
     Struct(const std::string&);
-
-    void print() const override;
-    std::string toString() const override;
 
     /**
      * @brief addItem Adds new struct element to the vector items.
@@ -74,16 +72,12 @@ public:
  * @brief The StructElement class represents access to element of a struct.
  */
 class StructElement : public ExprBase {
-private:
+public:
     Struct* strct; //struct being accessed
     Expr* expr; //expression being accessed
     unsigned element; //number of the element
 
-public:
     StructElement(Struct*, Expr*, unsigned);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -92,16 +86,12 @@ public:
  * @brief The ArrayElement class represents access to element of an array.
  */
 class ArrayElement : public ExprBase {
-private:
+public:
     Expr* expr; //expression being accessed
     Expr* element; //expression representing index of the element
 
-public:
     ArrayElement(Expr*, Expr*);
     ArrayElement(Expr*, Expr*, std::unique_ptr<Type>);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -110,14 +100,10 @@ public:
  * @brief The ExtractValueExpr class represents extractvalue instruction in C. It is made of sequence of StructElement and ArrayElements expressions.
  */
 class ExtractValueExpr : public ExprBase {
-private:
+public:
     std::vector<std::unique_ptr<Expr>> indices; //sequence of StructElement and ArrayElements expressions
 
-public:
     ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -128,36 +114,24 @@ public:
 class Value : public ExprBase {
 public:
     std::string valueName;
-    bool init; //used for declaration printing
 
     Value(const std::string&, std::unique_ptr<Type>);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
+
+    bool isZero() const override;
 };
 
 /**
  * @brief The GlobalValue class represents global variable.
  */
 class GlobalValue : public Value {
-private:
+public:
     std::string value;
 
-public:
     GlobalValue(const std::string&, const std::string&, std::unique_ptr<Type>);
 
-    void print() const override;
-    std::string toString() const override;
-
     bool isDefined = false;
-
-    /**
-     * @brief declToString Returns string containing declaration only.
-     * @return String containing declaration of the global variable;
-     */
-    std::string declToString() const;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -166,17 +140,13 @@ public:
  * @brief The IfExpr class represents br instruction in C as an if-else statement.
  */
 class IfExpr : public ExprBase {
-private:
+public:
     Expr* cmp; //expression used as a condition
     std::string trueBlock; //goto trueBlock if condition is true
     std::string falseBlock; //else goto falseBlock
 
-public:
     IfExpr(Expr*, const std::string&, const std::string&);
     IfExpr(const std::string& trueBlock);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -185,16 +155,12 @@ public:
  * @brief The SwitchExpr class represents switch.
  */
 class SwitchExpr : public ExprBase {
-private:
+public:
     Expr* cmp; //expression used in switch
     std::string def; //default
     std::map<int, std::string> cases; //cases of switch
 
-public:
     SwitchExpr(Expr*, const std::string&, std::map<int, std::string>);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -203,17 +169,13 @@ public:
  * @brief The AsmExpr class represents calling of inline asm.
  */
 class AsmExpr : public ExprBase {
-private:
+public:
     std::string inst; //asm string
     std::vector<std::pair<std::string, Expr*>> output; //output constraints
     std::vector<std::pair<std::string, Expr*>> input; //input constraints
     std::string clobbers; //clobber
 
-public:
     AsmExpr(const std::string&, const std::vector<std::pair<std::string, Expr*>>&, const std::vector<std::pair<std::string, Expr*>>&, const std::string&);
-
-    void print() const override;
-    std::string toString() const override;
 
     /**
      * @brief addOutputExpr Adds Expr to the output vector
@@ -229,28 +191,12 @@ public:
  * @brief The CallExpr class represents function call.
  */
 class CallExpr : public ExprBase {
-private:
+public:
     std::string funcName; //name of the called function
     std::vector<Expr*> params; //parameters of the function call
-
-public:
     Expr* funcValue; //expression in case of calling function pointer
 
     CallExpr(Expr*, const std::string&, std::vector<Expr*>, std::unique_ptr<Type>);
-
-    void print() const override;
-    std::string toString() const override;
-
-    /**
-     * @brief printParams Prints parameters of function call.
-     */
-    void printParams() const;
-
-    /**
-     * @brief paramsToString Returns parameters of function call as string.
-     * @return String with parameters.
-     */
-    std::string paramsToString() const;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -259,16 +205,12 @@ public:
  * @brief The PointerShift class represents shifting a pointer.
  */
 class PointerShift : public ExprBase {
-private:
+public:
     std::unique_ptr<Type> ptrType; //type of the pointer
     Expr* pointer; //expression being shifted
     Expr* move; //expression representing number used for shifting
 
-public:
     PointerShift(std::unique_ptr<Type>, Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -277,14 +219,9 @@ public:
  * @brief The GepExpr class represents getelementptr instruction in C. It is made of sequence of StructElement, ArrayElement and PointerShift expressions.
  */
 class GepExpr : public ExprBase {
-private:
-    std::vector<std::unique_ptr<Expr>> indices; //sequence of StructElement, ArrayElement and PointerShift expressions
-
 public:
+    std::vector<std::unique_ptr<Expr>> indices; //sequence of StructElement, ArrayElement and PointerShift expressions
     GepExpr(std::vector<std::unique_ptr<Expr>>&);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -293,16 +230,12 @@ public:
  * @brief The SelectExpr class represents select instruction in C (comp ? left : right).
  */
 class SelectExpr : public ExprBase {
-private:
+public:
     Expr* left;
     Expr* right;
     Expr* comp;
 
-public:
     SelectExpr(Expr*, Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };

@@ -23,13 +23,13 @@ std::string Program::getAnonStructName() {
 }
 
 void Program::unsetAllInit() {
-	for (auto& gvar : globalVars) {
-		gvar->init = false;
-	}
+	/* for (auto& gvar : globalVars) { */
+	/* 	gvar->init = false; */
+	/* } */
 
-	for (auto& strct : structs) {
-		strct->isPrinted = false;
-	}
+	/* for (auto& strct : structs) { */
+	/* 	strct->isPrinted = false; */
+	/* } */
 }
 
 Struct* Program::getStruct(const llvm::StructType* strct) const {
@@ -166,130 +166,130 @@ bool Program::isFunctionDeclared(const llvm::Function* func) const {
 }
 
 void Program::output(std::ostream &stream) {
-	unsetAllInit();
+	/* unsetAllInit(); */
 
-	stream << getIncludeString();
+	/* stream << getIncludeString(); */
 
-	if (!structs.empty()) {
-		stream << "//Struct declarations\n";
-		for (auto& strct : structs) {
-			stream << "struct " << strct->name << ";\n";
-		}
-		stream << "\n";
-	}
+	/* if (!structs.empty()) { */
+	/* 	stream << "//Struct declarations\n"; */
+	/* 	for (auto& strct : structs) { */
+	/* 		stream << "struct " << strct->name << ";\n"; */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (typeHandler.hasTypeDefs()) {
-		stream << "//typedefs\n";
-		for (auto elem : typeHandler.sortedTypeDefs) {
-			stream << elem->defToString() << "\n";
-		}
-		stream << "\n";
-	}
+	/* if (typeHandler.hasTypeDefs()) { */
+	/* 	stream << "//typedefs\n"; */
+	/* 	for (auto elem : typeHandler.sortedTypeDefs) { */
+	/* 		stream << elem->defToString() << "\n"; */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!structs.empty()) {
-		stream << "//Struct definitions\n";
-		for (auto& strct : structs) {
-			if (!strct->isPrinted) {
-				outputStruct(strct.get(), stream);
-			}
-		}
-		stream << "\n";
-	}
+	/* if (!structs.empty()) { */
+	/* 	stream << "//Struct definitions\n"; */
+	/* 	for (auto& strct : structs) { */
+	/* 		if (!strct->isPrinted) { */
+	/* 			outputStruct(strct.get(), stream); */
+	/* 		} */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!unnamedStructs.empty()) {
-		stream << "//Anonymous struct declarations\n";
-		for (const auto& elem : unnamedStructs) {
-			stream << "struct " << elem.second->name << ";\n";
-		}
-		stream << "\n";
-	}
+	/* if (!unnamedStructs.empty()) { */
+	/* 	stream << "//Anonymous struct declarations\n"; */
+	/* 	for (const auto& elem : unnamedStructs) { */
+	/* 		stream << "struct " << elem.second->name << ";\n"; */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!globalVars.empty()) {
-		stream << "//Global variable declarations\n";
-		for (auto& gvar : globalVars) {
-			if (includes && (gvar->valueName.compare("stdin") == 0 || gvar->valueName.compare("stdout") == 0 || gvar->valueName.compare("stderr") == 0)) {
-				continue;
-			}
+	/* if (!globalVars.empty()) { */
+	/* 	stream << "//Global variable declarations\n"; */
+	/* 	for (auto& gvar : globalVars) { */
+	/* 		if (includes && (gvar->valueName.compare("stdin") == 0 || gvar->valueName.compare("stdout") == 0 || gvar->valueName.compare("stderr") == 0)) { */
+	/* 			continue; */
+	/* 		} */
 
-			stream << gvar->declToString();
-			stream << "\n";
-		}
-		stream << "\n";
-	}
+	/* 		stream << gvar->declToString(); */
+	/* 		stream << "\n"; */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!declarations.empty()) {
-		stream << "//Function declarations\n";
-		for (const auto& func : declarations) {
-			func.second->output(stream);
-		}
-		stream << "\n";
-	}
+	/* if (!declarations.empty()) { */
+	/* 	stream << "//Function declarations\n"; */
+	/* 	for (const auto& func : declarations) { */
+	/* 		func.second->output(stream); */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!unnamedStructs.empty()) {
-		stream << "//Anonymous struct definitions\n";
-		for (auto& elem : unnamedStructs) {
-			if (!elem.second->isPrinted) {
-				outputStruct(elem.second.get(), stream);
-			}
-		}
-		stream << "\n";
-	}
+	/* if (!unnamedStructs.empty()) { */
+	/* 	stream << "//Anonymous struct definitions\n"; */
+	/* 	for (auto& elem : unnamedStructs) { */
+	/* 		if (!elem.second->isPrinted) { */
+	/* 			outputStruct(elem.second.get(), stream); */
+	/* 		} */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	if (!globalVars.empty()) {
-		stream << "//Global variable definitions\n";
-		for (auto& gvar : globalVars) {
-			if (includes && (gvar->valueName.compare("stdin") == 0 || gvar->valueName.compare("stdout") == 0 || gvar->valueName.compare("stderr") == 0)) {
-				gvar->init = true;
-				continue;
-			}
+	/* if (!globalVars.empty()) { */
+	/* 	stream << "//Global variable definitions\n"; */
+	/* 	for (auto& gvar : globalVars) { */
+	/* 		if (includes && (gvar->valueName.compare("stdin") == 0 || gvar->valueName.compare("stdout") == 0 || gvar->valueName.compare("stderr") == 0)) { */
+	/* 			gvar->init = true; */
+	/* 			continue; */
+	/* 		} */
 
-			stream << gvar->toString();
-			gvar->init = true;
-			stream << "\n";
-		}
-		stream << "\n";
-	}
+	/* 		stream << gvar->toString(); */
+	/* 		gvar->init = true; */
+	/* 		stream << "\n"; */
+	/* 	} */
+	/* 	stream << "\n"; */
+	/* } */
 
-	stream << "//Function definitions\n";
-	for (const auto& func : functions) {
-		func.second->output(stream);
-	}
+	/* stream << "//Function definitions\n"; */
+	/* for (const auto& func : functions) { */
+	/* 	func.second->output(stream); */
+	/* } */
 }
 
 void Program::outputStruct(Struct* strct, std::ostream& stream) {
-	for (auto& item : strct->items) {
-		if (auto AT = dynamic_cast<ArrayType*>(item.first.get())) {
-			if (AT->isStructArray) {
-				outputStruct(getStruct(AT->structName), stream);
-			}
-		}
+	/* for (auto& item : strct->items) { */
+	/* 	if (auto AT = dynamic_cast<ArrayType*>(item.first.get())) { */
+	/* 		if (AT->isStructArray) { */
+	/* 			outputStruct(getStruct(AT->structName), stream); */
+	/* 		} */
+	/* 	} */
 
-		if (auto PT = dynamic_cast<PointerType*>(item.first.get())) {
-			if (PT->isStructPointer && PT->isArrayPointer) {
-				outputStruct(getStruct(PT->structName), stream);
-			}
-		}
+	/* 	if (auto PT = dynamic_cast<PointerType*>(item.first.get())) { */
+	/* 		if (PT->isStructPointer && PT->isArrayPointer) { */
+	/* 			outputStruct(getStruct(PT->structName), stream); */
+	/* 		} */
+	/* 	} */
 
-		if (auto ST = dynamic_cast<StructType*>(item.first.get())) {
-			for (auto& s : structs) {
-				if (s->name == ST->name) {
-					outputStruct(s.get(), stream);
-				}
-			}
+	/* 	if (auto ST = dynamic_cast<StructType*>(item.first.get())) { */
+	/* 		for (auto& s : structs) { */
+	/* 			if (s->name == ST->name) { */
+	/* 				outputStruct(s.get(), stream); */
+	/* 			} */
+	/* 		} */
 
-			for (auto& s : unnamedStructs) {
-				if (s.second->name == ST->name) {
-					outputStruct(s.second.get(), stream);
-				}
-			}
-		}
-	}
+	/* 		for (auto& s : unnamedStructs) { */
+	/* 			if (s.second->name == ST->name) { */
+	/* 				outputStruct(s.second.get(), stream); */
+	/* 			} */
+	/* 		} */
+	/* 	} */
+	/* } */
 
-	if (!strct->isPrinted) {
-		stream << strct->toString();
-		strct->isPrinted = true;
-		stream << "\n\n";
-	}
+	/* if (!strct->isPrinted) { */
+	/* 	stream << strct->toString(); */
+	/* 	strct->isPrinted = true; */
+	/* 	stream << "\n\n"; */
+	/* } */
 }
 
 Func* Program::getDeclaration(const llvm::Function* func) {

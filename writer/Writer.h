@@ -2,6 +2,7 @@
 
 #include "../core/Program.h"
 #include "CWriter.h"
+#include "ExprWriter.h"
 
 #include <iostream>
 
@@ -12,6 +13,7 @@ class Writer
 {
 private:
     CWriter wr;
+    ExprWriter ew;
 
     bool useIncludes;
     bool noFuncCasts;
@@ -33,6 +35,6 @@ private:
 
 
 public:
-    Writer(std::ostream& stream, bool useIncludes) : wr(CWriter(stream)), useIncludes(useIncludes), noFuncCasts(true) {}
+    Writer(std::ostream& stream, bool useIncludes, bool noFuncCasts) : wr(CWriter(stream)), ew(ExprWriter(stream, noFuncCasts)), useIncludes(useIncludes), noFuncCasts(true) {}
     void writeProgram(const Program& program);
 };

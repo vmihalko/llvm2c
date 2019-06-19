@@ -40,7 +40,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
             }
 
             GVAL->isDefined = true;
-            return GVAL->toString();
+            return GVAL->valueName;
         }
 
         return "&" + name;

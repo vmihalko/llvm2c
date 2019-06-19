@@ -22,9 +22,6 @@ class AddExpr : public BinaryExpr {
 public:
     AddExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -34,9 +31,6 @@ public:
 class SubExpr : public BinaryExpr {
 public:
     SubExpr(Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -48,9 +42,6 @@ class AssignExpr : public BinaryExpr {
 public:
     AssignExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -60,9 +51,6 @@ public:
 class MulExpr : public BinaryExpr {
 public:
     MulExpr(Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -74,9 +62,6 @@ class DivExpr : public BinaryExpr {
 public:
     DivExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -86,9 +71,6 @@ public:
 class RemExpr : public BinaryExpr {
 public:
     RemExpr(Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -100,9 +82,6 @@ class AndExpr : public BinaryExpr {
 public:
     AndExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -113,9 +92,6 @@ class OrExpr : public BinaryExpr {
 public:
     OrExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -125,8 +101,6 @@ public:
 class XorExpr : public BinaryExpr {
 public:
     XorExpr(Expr*, Expr*);
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -135,14 +109,10 @@ public:
  * @brief The CmpExpr class represents comparsion.
  */
 class CmpExpr : public BinaryExpr {
-private:
+public:
     std::string comparsion; //symbol of comparsion
     bool isUnsigned; //indicates that unsigned version of cmp instruction was used
-
-public:
     CmpExpr(Expr*, Expr*, const std::string&, bool);
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -154,9 +124,6 @@ class AshrExpr : public BinaryExpr {
 public:
     AshrExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -167,9 +134,6 @@ class LshrExpr : public BinaryExpr {
 public:
     LshrExpr(Expr*, Expr*);
 
-    void print() const override;
-    std::string toString() const override;
-
     void accept(ExprVisitor& visitor) override;
 };
 
@@ -179,9 +143,6 @@ public:
 class ShlExpr : public BinaryExpr {
 public:
     ShlExpr(Expr*, Expr*);
-
-    void print() const override;
-    std::string toString() const override;
 
     void accept(ExprVisitor& visitor) override;
 };
