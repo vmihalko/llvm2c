@@ -63,7 +63,7 @@ void Writer::structDefinition(const Struct* strct) {
         const auto& ty = pair.first;
         const auto& name = pair.second;
         wr.indent(1);
-        wr.structItem(ty->toString(), name);
+        wr.structItem(ty->toString(), ty->surroundName(name));
     }
 
     wr.endStruct();
@@ -127,8 +127,7 @@ void Writer::globalVars(const Program& program) {
             continue;
         }
 
-        // TODO this no longer works
-        // wr.line(gvar->declToString());
+        wr.declareVar(gvar->getType()->toString(), gvar->getType()->surroundName(gvar->valueName));
     }
 }
 
@@ -139,7 +138,12 @@ void Writer::globalVarDefinitions(const Program& program) {
             continue;
         }
 
-        // TODO: wr.line(gvar->toInitString());
+        wr.raw(gvar->getType()->toString());
+        wr.raw(" ");
+        wr.raw(gvar->getType()->surroundName(gvar->valueName));
+        wr.raw(" = ");
+        wr.raw(gvar->value);
+        wr.line(";");
     }
 }
 
@@ -256,7 +260,7 @@ void Writer::writeBlock(const Block* block, bool first) {
         if (auto V = dynamic_cast<Value*>(expr)) {
             wr.indent(1);
             if (initialized.insert(V).second) {
-                wr.declareVar(expr->getType()->toString(), V->valueName);
+                wr.declareVar(expr->getType()->toString(), V->getType()->surroundName(V->valueName));
             }
             continue;
         }
@@ -281,7 +285,7 @@ void Writer::functionDefinitions(const Program& program) {
         // TODO: prepend phi variables of function to the first block instead of this hack
         for (const auto& var : func->phiVariables) {
             wr.indent(1);
-            wr.declareVar(var->getType()->toString(), var->valueName);
+            wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }
 
         bool first = true;

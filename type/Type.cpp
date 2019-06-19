@@ -120,6 +120,19 @@ std::string ArrayType::sizeToString() const {
     return ret;
 }
 
+std::string ArrayType::surroundName(const std::string& name) {
+    std::string ret;
+    if (isPointerArray && pointer->isArrayPointer) {
+        ret = "(";
+        for (unsigned i = 0; i < pointer->levels; i++) {
+            ret += "*";
+        }
+        return ret + name + sizeToString() + ")" + pointer->sizes;
+    } else {
+        return name + sizeToString();
+    }
+}
+
 std::unique_ptr<Type> VoidType::clone() const  {
     return std::make_unique<VoidType>();
 }
@@ -184,6 +197,27 @@ std::string PointerType::toString() const {
     }
 
     return ret + type->toString() + "*";
+}
+
+std::string PointerType::surroundName(const std::string& name) {
+    std::string ret;
+
+    if (isArrayPointer && name != "0") {
+        ret = "(";
+        for (unsigned i = 0; i < levels; i++) {
+            ret += "*";
+        }
+        ret += name + ")";
+    }
+
+    if (isArrayPointer) {
+        ret = ret + sizes;
+    }
+
+    if (!ret.empty())
+        return ret;
+
+    return name;
 }
 
 IntegerType::IntegerType(const std::string& name, bool unsignedType)

@@ -30,6 +30,10 @@ public:
 
         return ret;
     }
+
+    virtual std::string surroundName(const std::string& name) {
+        return name;
+    }
 };
 
 /**
@@ -94,6 +98,8 @@ public:
     std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
+
+    std::string surroundName(const std::string& name) override;
 };
 
 /**
@@ -119,6 +125,8 @@ public:
 
     void printSize() const;
     std::string sizeToString() const;
+
+    std::string surroundName(const std::string& name) override;
 };
 
 /**

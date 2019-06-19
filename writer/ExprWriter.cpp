@@ -85,10 +85,10 @@ void ExprWriter::visit(IfExpr& expr) {
         ss << "if (";
         expr.cmp->accept(*this);
         ss << ") {" << std::endl;
-        ss << "    goto " << expr.trueBlock << ";" << std::endl;
-        ss << "} else {" << std::endl;
-        ss << "    goto " << expr.falseBlock << ";" << std::endl;
-        ss << "}" << std::endl;
+        ss << "        goto " << expr.trueBlock << ";" << std::endl;
+        ss << "    } else {" << std::endl;
+        ss << "        goto " << expr.falseBlock << ";" << std::endl;
+        ss << "    }" << std::endl;
     } else {
         ss << "goto " + expr.trueBlock << ";" << std::endl;
     }
@@ -306,7 +306,7 @@ void ExprWriter::visit(AssignExpr& expr) {
     expr.left->accept(*this); 
     ss << " = ";
     expr.right->accept(*this);
-    ss << ";";
+    /* ss << ";"; */
 }
 
 void ExprWriter::visit(MulExpr& expr) {

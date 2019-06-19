@@ -62,36 +62,36 @@ Value::Value(const std::string& valueName, std::unique_ptr<Type> type) {
 }
 
 /* static std::string valueInitToString() { */
-/*     if (!init) { */
-/*         std::string ret; */
-/*         if (auto PT = dynamic_cast<const PointerType*>(getType())) { */
-/*             if (PT->isArrayPointer && valueName.compare("0") != 0) { */
-/*                 ret = "("; */
-/*                 for (unsigned i = 0; i < PT->levels; i++) { */
-/*                     ret += "*"; */
-/*                 } */
-/*                 ret += valueName + ")"; */
+/*     std::string ret; */
+/*     if (auto AT = dynamic_cast<const ArrayType*>(getType())) { */
+/*         if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
+/*             ret = "("; */
+/*             for (unsigned i = 0; i < AT->pointer->levels; i++) { */
+/*                 ret += "*"; */
 /*             } */
+/*             return ret + valueName + AT->sizeToString() + ")" + AT->pointer->sizes; */
+/*         } else { */
+/*             return valueName + AT->sizeToString(); */
+/*         } */
+/*     } */
 
-/*             if (PT->isArrayPointer) { */
-/*                 ret = ret + PT->sizes; */
+/*     if (auto PT = dynamic_cast<const PointerType*>(getType())) { */
+/*         if (PT->isArrayPointer && valueName.compare("0") != 0) { */
+/*             ret = "("; */
+/*             for (unsigned i = 0; i < PT->levels; i++) { */
+/*                 ret += "*"; */
 /*             } */
-
-/*             if (!ret.empty()) { */
-/*                 return ret; */
-/*             } */
+/*             ret += valueName + ")"; */
 /*         } */
 
-/*         if (auto AT = dynamic_cast<const ArrayType*>(getType())) { */
-/*             if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
-/*                 ret = "("; */
-/*                 for (unsigned i = 0; i < AT->pointer->levels; i++) { */
-/*                     ret += "*"; */
-/*                 } */
-/*                 return ret + valueName + AT->sizeToString() + ")" + AT->pointer->sizes; */
-/*             } else { */
-/*                 return valueName + AT->sizeToString(); */
-/*             } */
+
+
+/*         if (PT->isArrayPointer) { */
+/*             ret = ret + PT->sizes; */
+/*         } */
+
+/*         if (!ret.empty()) { */
+/*             return ret; */
 /*         } */
 /*     } */
 /* } */
@@ -107,86 +107,6 @@ bool Value::isZero() const {
 GlobalValue::GlobalValue(const std::string& varName, const std::string& value, std::unique_ptr<Type> type)
     : Value(varName, std::move(type)),
       value(value) { }
-
-/* static std::string globalValueToString() { */   
-/*     if (!init) { */
-/*         std::string ret = getType()->toString() + " "; */
-/*         if (auto AT = dynamic_cast<const ArrayType*>(getType())) { */
-/*             if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
-/*                 ret += "("; */
-/*                 for (unsigned i = 0; i < AT->pointer->levels; i++) { */
-/*                     ret += "*"; */
-/*                 } */
-/*                 ret += valueName + AT->sizeToString() + ")" + AT->pointer->sizes; */
-/*             } else { */
-/*                 ret += " " + valueName + AT->sizeToString();; */
-/*             } */
-/*         } else if (auto PT = dynamic_cast<const PointerType*>(getType())) { */
-/*             if (PT->isArrayPointer && valueName.compare("0") != 0) { */
-/*                 ret += "("; */
-/*                 for (unsigned i = 0; i < PT->levels; i++) { */
-/*                     ret += "*"; */
-/*                 } */
-/*                 ret += valueName + ")"; */
-/*             } else { */
-/*                 ret += " " + valueName; */
-
-/*                 if (!value.empty()) { */
-/*                     ret += " = " + value; */
-/*                 } */
-
-/*                 return ret + ";"; */
-/*             } */
-
-/*             if (PT->isArrayPointer) { */
-/*                 ret = ret + PT->sizes; */
-/*             } */
-/*         } else { */
-/*             ret += valueName; */
-/*         } */
-
-/*         if (!value.empty()) { */
-/*             ret += " = " + value; */
-/*         } */
-
-/*         return ret + ";"; */
-/*     } */
-/* } */
-
-/* std::string GlobalValue::declToString() const { */
-/*     std::string ret = getType()->toString(); */
-/*     if (auto AT = dynamic_cast<const ArrayType*>(getType())) { */
-/*         if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
-/*             ret += " ("; */
-/*             for (unsigned i = 0; i < AT->pointer->levels; i++) { */
-/*                 ret += "*"; */
-/*             } */
-/*             ret += valueName + AT->sizeToString() + ")" + AT->pointer->sizes; */
-/*         } else { */
-/*             ret += " " + valueName + AT->sizeToString();; */
-/*         } */
-/*     } else if (auto PT = dynamic_cast<const PointerType*>(getType())) { */
-/*         if (PT->isArrayPointer && valueName.compare("0") != 0) { */
-/*             ret += "("; */
-/*             for (unsigned i = 0; i < PT->levels; i++) { */
-/*                 ret += "*"; */
-/*             } */
-/*             ret += valueName + ")"; */
-/*         } else { */
-/*             return ret + " " + valueName + ";"; */
-/*         } */
-
-/*         if (PT->isArrayPointer) { */
-/*             ret = ret + PT->sizes; */
-/*         } */
-
-
-/*     } else { */
-/*         ret += " " + valueName; */
-/*     } */
-
-/*     return ret + ";"; */
-/* } */
 
 void GlobalValue::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -240,30 +160,6 @@ CallExpr::CallExpr(Expr* funcValue, const std::string &funcName, std::vector<Exp
       funcValue(funcValue) {
     setType(std::move(type));
 }
-
-/* std::string CallExpr::paramsToString() const { */
-/*     std::string ret; */
-
-/*     if (funcName.compare("va_start") == 0 || funcName.compare("va_end") == 0) { */
-/*         ret += "(void*)("; */
-/*     } */
-
-/*     bool first = true; */
-/*     for (auto param : params) { */
-/*         if (first) { */
-/*             ret += param->toString(); */
-/*             if (funcName.compare("va_start") == 0 || funcName.compare("va_end") == 0) { */
-/*                 ret += ")"; */
-/*             } */
-/*         } else { */
-/*             ret += ", " + param->toString(); */
-/*         } */
-
-/*         first = false; */
-/*     } */
-
-/*     return ret; */
-/* } */
 
 void CallExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
