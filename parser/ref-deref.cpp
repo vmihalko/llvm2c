@@ -93,8 +93,10 @@ void RefDerefVisitor::visit(ExtractValueExpr& expr) {
 }
 
 void RefDerefVisitor::visit(IfExpr& ifExpr) {
-    ifExpr.cmp->accept(*this);
-    ifExpr.cmp = simplify(ifExpr.cmp);
+    if (ifExpr.cmp) {
+        ifExpr.cmp->accept(*this);
+        ifExpr.cmp = simplify(ifExpr.cmp);
+    }
 }
 
 void RefDerefVisitor::visit(SwitchExpr& expr) {
