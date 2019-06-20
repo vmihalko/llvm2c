@@ -22,23 +22,23 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
     if (type->isIntegerTy()) {
         const auto intType = static_cast<const llvm::IntegerType*>(type);
         if (intType->getBitWidth() == 1) {
-            return std::make_unique<IntType>(false);
+            return std::make_unique<IntType>(true);
         }
 
         if (intType->getBitWidth() <= 8) {
-            return std::make_unique<CharType>(false);
+            return std::make_unique<CharType>(true);
         }
 
         if (intType->getBitWidth() <= 16) {
-            return std::make_unique<ShortType>(false);
+            return std::make_unique<ShortType>(true);
         }
 
         if (intType->getBitWidth() <= 32) {
-            return std::make_unique<IntType>(false);
+            return std::make_unique<IntType>(true);
         }
 
         if (intType->getBitWidth() <= 64) {
-            return std::make_unique<LongType>(false);
+            return std::make_unique<LongType>(true);
         }
 
         return std::make_unique<Int128>();

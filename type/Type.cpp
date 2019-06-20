@@ -277,7 +277,7 @@ std::unique_ptr<Type> LongType::clone() const  {
 }
 
 Int128::Int128()
-    : IntegerType("__int128", false) { }
+    : IntegerType("__int128", true) { }
 
 std::unique_ptr<Type> Int128::clone() const {
     return std::make_unique<Int128>();
