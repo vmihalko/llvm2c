@@ -154,8 +154,10 @@ void RefDerefVisitor::visit(DerefExpr& expr) {
 }
 
 void RefDerefVisitor::visit(RetExpr& expr) {
-    expr.expr->accept(*this);
-    expr.expr = simplify(expr.expr);
+    if (expr.expr) {
+        expr.expr->accept(*this);
+        expr.expr = simplify(expr.expr);
+    }
 }
 
 void RefDerefVisitor::visit(CastExpr& expr) {

@@ -293,5 +293,10 @@ void Program::outputStruct(Struct* strct, std::ostream& stream) {
 }
 
 Func* Program::getDeclaration(const llvm::Function* func) {
-    return declarations.find(func)->second.get();
+    auto it = declarations.find(func);
+    if (it == declarations.end()) {
+        return nullptr;
+    }
+
+    return it->second.get();
 }
