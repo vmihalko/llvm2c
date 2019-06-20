@@ -6,6 +6,7 @@
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 
 using CaseHandle = const llvm::SwitchInst::CaseHandleImpl<const llvm::SwitchInst, const llvm::ConstantInt, const llvm::BasicBlock>*;
@@ -778,11 +779,20 @@ static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr,
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
-    func->createExpr(isConstExpr ? val : &ins, std::make_unique<CastExpr>(expr, func->getType(CI->getDestTy())));
+    auto castExpr = std::make_unique<CastExpr>(expr, func->getType(CI->getDestTy()));
 
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
-        static_cast<IntegerType*>(func->getExpr(isConstExpr ? val : &ins)->getType())->unsignedType = true;
+        static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
     }
+
+    if (llvm::isa<llvm::ZExtInst>(CI)) {
+        static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
+    }
+    if (llvm::isa<llvm::SExtInst>(CI)) {
+        static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
+    }
+
+    func->createExpr(isConstExpr ? val : &ins, std::move(castExpr));
 }
 
 static void parseSelectInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
