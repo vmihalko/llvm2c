@@ -20,3 +20,4 @@ void parseBreaks(const llvm::Module* module, Program& program);
 void addPhis(const llvm::Module* module, Program& program);
 void identifyInlinableBlocks(const llvm::Module* module, Program& program);
 void refDeref(const llvm::Module* mod, Program& program);
+void fixMainParameters(const llvm::Module* module, Program& program);

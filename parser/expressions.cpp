@@ -788,6 +788,7 @@ static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr,
     if (llvm::isa<llvm::ZExtInst>(CI)) {
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
     }
+
     if (llvm::isa<llvm::SExtInst>(CI)) {
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
     }

@@ -35,6 +35,7 @@ Program ProgramParser::parse(const std::string& file) {
 
     // transformations of resulting expressions
     refDeref(mod, result);
+    fixMainParameters(mod, result);
 
     return result;
 }
