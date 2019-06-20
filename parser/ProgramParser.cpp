@@ -34,8 +34,10 @@ Program ProgramParser::parse(const std::string& file) {
     parseBreaks(mod, result);
 
     // transformations of resulting expressions
-    refDeref(mod, result);
     fixMainParameters(mod, result);
+    addSignCasts(mod, result);
+
+    refDeref(mod, result);
 
     return result;
 }

@@ -333,21 +333,10 @@ void ExprWriter::visit(XorExpr& expr) {
 }
 
 void ExprWriter::visit(CmpExpr& expr) {
-    if (expr.isUnsigned) {
-        auto ITL = static_cast<IntegerType*>(expr.left->getType());
-        auto ITR = static_cast<IntegerType*>(expr.right->getType());
-
-        if (!ITL->unsignedType && !ITR->unsignedType) {
-            ss << "(unsigned " << ITL->toString() << ")(";
-            expr.left->accept(*this);
-            ss << ") " << expr.comparsion << " (";
-            expr.right->accept(*this);
-            ss << ")";
-            return;
-        }
-    }
     parensIfNotSimple(expr.left);
+
     ss << " " << expr.comparsion << " ";
+
     parensIfNotSimple(expr.right);
 }
 

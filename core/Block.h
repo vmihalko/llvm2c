@@ -22,6 +22,9 @@ public:
 
     Func* func;
 
+    // TODO move everything owned by the block into this vector
+    std::vector<std::unique_ptr<Expr>> ownership;
+
     // a sequence of expression forming this basic block
     std::vector<Expr*> expressions;
 

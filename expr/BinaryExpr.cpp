@@ -15,15 +15,15 @@ BinaryExpr::BinaryExpr(Expr* l, Expr* r) {
     setType(TypeHandler::getBinaryType(left->getType(), right->getType()));
 }
 
-AddExpr::AddExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+AddExpr::AddExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void AddExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-SubExpr::SubExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+SubExpr::SubExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void SubExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -36,22 +36,22 @@ void AssignExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-MulExpr::MulExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+MulExpr::MulExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void MulExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-DivExpr::DivExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+DivExpr::DivExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void DivExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-RemExpr::RemExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+RemExpr::RemExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void RemExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -89,22 +89,22 @@ void CmpExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-AshrExpr::AshrExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+AshrExpr::AshrExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void AshrExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-LshrExpr::LshrExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+LshrExpr::LshrExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void LshrExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-ShlExpr::ShlExpr(Expr* l, Expr* r) :
-    BinaryExpr(l, r) { }
+ShlExpr::ShlExpr(Expr* l, Expr* r, bool isUnsigned) :
+    BinaryExpr(l, r), isUnsigned(isUnsigned) { }
 
 void ShlExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

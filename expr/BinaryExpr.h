@@ -20,7 +20,9 @@ public:
  */
 class AddExpr : public BinaryExpr {
 public:
-    AddExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    AddExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -30,7 +32,9 @@ public:
  */
 class SubExpr : public BinaryExpr {
 public:
-    SubExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    SubExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -50,7 +54,9 @@ public:
  */
 class MulExpr : public BinaryExpr {
 public:
-    MulExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    MulExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -60,7 +66,9 @@ public:
  */
 class DivExpr : public BinaryExpr {
 public:
-    DivExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    DivExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -70,7 +78,9 @@ public:
  */
 class RemExpr : public BinaryExpr {
 public:
-    RemExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    RemExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -122,7 +132,9 @@ public:
  */
 class AshrExpr : public BinaryExpr {
 public:
-    AshrExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    AshrExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -132,7 +144,9 @@ public:
  */
 class LshrExpr : public BinaryExpr {
 public:
-    LshrExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    LshrExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };
@@ -142,7 +156,9 @@ public:
  */
 class ShlExpr : public BinaryExpr {
 public:
-    ShlExpr(Expr*, Expr*);
+    bool isUnsigned;
+
+    ShlExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
 };

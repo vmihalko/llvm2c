@@ -3,6 +3,7 @@
 #include "../core/Block.h"
 #include "constval.h"
 #include "cfunc.h"
+#include "compare.h"
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -60,7 +61,7 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
     func->createExpr(isConstExpr ? val : &ins, std::make_unique<ExtractValueExpr>(indices));
 }
 
-static void parseCmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     if (func->getExpr(ins.getOperand(0)) == nullptr) {
         createConstantValue(ins.getOperand(0), func, block);
     }
@@ -75,50 +76,35 @@ static void parseCmpInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     const llvm::Value* value = isConstExpr ? val : &ins;
 
     switch(cmpInst->getPredicate()) {
-    case llvm::CmpInst::ICMP_EQ:
-    case llvm::CmpInst::FCMP_OEQ:
-    case llvm::CmpInst::FCMP_UEQ:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, "==", false));
-        break;
-    case llvm::CmpInst::ICMP_NE:
-    case llvm::CmpInst::FCMP_ONE:
-    case llvm::CmpInst::FCMP_UNE:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, "!=", false));
-        break;
-    case llvm::CmpInst::ICMP_UGT:
-    case llvm::CmpInst::ICMP_SGT:
-    case llvm::CmpInst::FCMP_UGT:
-    case llvm::CmpInst::FCMP_OGT:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, ">", false));
-        break;
-    case llvm::CmpInst::ICMP_UGE:
-    case llvm::CmpInst::ICMP_SGE:
-    case llvm::CmpInst::FCMP_OGE:
-    case llvm::CmpInst::FCMP_UGE:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, ">=", false));
-        break;
-    case llvm::CmpInst::ICMP_ULT:
-    case llvm::CmpInst::ICMP_SLT:
-    case llvm::CmpInst::FCMP_OLT:
-    case llvm::CmpInst::FCMP_ULT:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, "<", false));
-        break;
-    case llvm::CmpInst::ICMP_ULE:
-    case llvm::CmpInst::ICMP_SLE:
-    case llvm::CmpInst::FCMP_OLE:
-    case llvm::CmpInst::FCMP_ULE:
-        func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, "<=", false));
-        break;
     case llvm::CmpInst::FCMP_FALSE:
         func->createExpr(value, std::make_unique<Value>("0", std::make_unique<IntegerType>("int", false)));
-        break;
+        return;
     case llvm::CmpInst::FCMP_TRUE:
         func->createExpr(value, std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
-        break;
-    default:
-        throw std::invalid_argument("FCMP ORD/UNO and BAD PREDICATE not supported!");
-
+        return;
     }
+
+    func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), false));
+
+
+}
+
+static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+    if (func->getExpr(ins.getOperand(0)) == nullptr) {
+        createConstantValue(ins.getOperand(0), func, block);
+    }
+    Expr* val0 = func->getExpr(ins.getOperand(0));
+
+    if (func->getExpr(ins.getOperand(1)) == nullptr) {
+        createConstantValue(ins.getOperand(1), func, block);
+    }
+    Expr* val1 = func->getExpr(ins.getOperand(1));
+
+    auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
+    const llvm::Value* value = isConstExpr ? val : &ins;
+
+    func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst)));
+
 }
 
 
@@ -269,6 +255,8 @@ static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExp
     if (!func->getExpr(ins.getOperand(0))) {
         createConstantValue(ins.getOperand(0), func, block);
     }
+    auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
+
     Expr* val0 = func->getExpr(ins.getOperand(0));
 
     if (!func->getExpr(ins.getOperand(1))) {
@@ -278,29 +266,35 @@ static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExp
 
     const llvm::Value* value = isConstExpr ? val : &ins;
 
+    bool isUnsigned = !binOp->hasNoSignedWrap();
+
     std::unique_ptr<Expr> expr;
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
     case llvm::Instruction::FAdd:
-        expr = std::make_unique<AddExpr>(val0, val1);
+        expr = std::make_unique<AddExpr>(val0, val1, isUnsigned);
         break;
     case llvm::Instruction::Sub:
     case llvm::Instruction::FSub:
-        expr = std::make_unique<SubExpr>(val0, val1);
+        expr = std::make_unique<SubExpr>(val0, val1, isUnsigned);
         break;
     case llvm::Instruction::Mul:
     case llvm::Instruction::FMul:
-        expr = std::make_unique<MulExpr>(val0, val1);
+        expr = std::make_unique<MulExpr>(val0, val1, isUnsigned);
+        break;
+    case llvm::Instruction::UDiv:
+        expr = std::make_unique<DivExpr>(val0, val1, true);
         break;
     case llvm::Instruction::SDiv:
-    case llvm::Instruction::UDiv:
     case llvm::Instruction::FDiv:
-        expr = std::make_unique<DivExpr>(val0, val1);
+        expr = std::make_unique<DivExpr>(val0, val1, false);
+        break;
+    case llvm::Instruction::URem:
+        expr = std::make_unique<RemExpr>(val0, val1, true);
         break;
     case llvm::Instruction::SRem:
-    case llvm::Instruction::URem:
     case llvm::Instruction::FRem:
-        expr = std::make_unique<RemExpr>(val0, val1);
+        expr = std::make_unique<RemExpr>(val0, val1, false);
         break;
     case llvm::Instruction::And:
         expr = std::make_unique<AndExpr>(val0, val1);
@@ -378,15 +372,18 @@ static void parseShiftInstruction(const llvm::Instruction& ins, bool isConstExpr
 
     const llvm::Value* value = isConstExpr ? val : &ins;
 
+    auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
+    bool isUnsigned = !binOp->hasNoSignedWrap();
+
     switch (ins.getOpcode()) {
     case llvm::Instruction::Shl:
-        func->createExpr(value, std::make_unique<ShlExpr>(val0, val1));
+        func->createExpr(value, std::make_unique<ShlExpr>(val0, val1, isUnsigned));
         break;
     case llvm::Instruction::LShr:
-        func->createExpr(value, std::make_unique<LshrExpr>(val0, val1));
+        func->createExpr(value, std::make_unique<LshrExpr>(val0, val1, isUnsigned));
         break;
     case llvm::Instruction::AShr:
-        func->createExpr(value, std::make_unique<AshrExpr>(val0, val1));
+        func->createExpr(value, std::make_unique<AshrExpr>(val0, val1, isUnsigned));
         break;
     }
 }
@@ -892,8 +889,10 @@ void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const 
         parseStoreInstruction(ins, isConstExpr, val, func, block);
         break;
     case llvm::Instruction::ICmp:
+        parseICmpInstruction(ins, isConstExpr, val, func, block);
+        break;
     case llvm::Instruction::FCmp:
-        parseCmpInstruction(ins, isConstExpr, val, func, block);
+        parseFCmpInstruction(ins, isConstExpr, val, func, block);
         break;
     case llvm::Instruction::Switch:
         parseSwitchInstruction(ins, isConstExpr, val, func, block);
