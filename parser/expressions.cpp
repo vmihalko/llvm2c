@@ -43,11 +43,11 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
     for (unsigned idx : EVI->getIndices()) {
         std::unique_ptr<Expr> element = nullptr;
 
-        if (StructType* ST = dynamic_cast<StructType*>(prevType.get())) {
+        if (StructType* ST = llvm::dyn_cast<StructType>(prevType.get())) {
             element = std::make_unique<StructElement>(func->getStruct(ST->name), expr, idx);
         }
 
-        if (dynamic_cast<ArrayType*>(prevType.get())) {
+        if (llvm::dyn_cast<ArrayType>(prevType.get())) {
             auto newVal = std::make_unique<Value>(std::to_string(idx), std::make_unique<IntType>(true));
             element = std::make_unique<ArrayElement>(expr, newVal.get());
             block->addValue(std::move(newVal));
@@ -110,7 +110,7 @@ static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
 
 static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     auto type = func->getType(ins.getOperand(0)->getType());
-    if (dynamic_cast<PointerType*>(type.get())) {
+    if (llvm::dyn_cast<PointerType>(type.get())) {
         if (llvm::Function* function = llvm::dyn_cast<llvm::Function>(ins.getOperand(0))) {
             if (!func->getExpr(ins.getOperand(0))) {
                 func->createExpr(ins.getOperand(0), std::make_unique<Value>("&" + function->getName().str(), std::make_unique<VoidType>()));
@@ -598,7 +598,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
     }
 
     //call function if it returns void, otherwise store function return value to a new variable and use this variable instead of function call
-    if (dynamic_cast<VoidType*>(type.get())) {
+    if (llvm::dyn_cast<VoidType>(type.get())) {
         func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
 
         if (!isConstExpr) {

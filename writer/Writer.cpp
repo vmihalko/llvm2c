@@ -77,21 +77,21 @@ void Writer::structDefinitions(const Program& program) {
         for (const auto& item : strct->items) {
 
             auto type = item.first.get();
-            if (auto AT = dynamic_cast<ArrayType*>(type)) {
+            if (auto AT = llvm::dyn_cast<ArrayType>(type)) {
                 if (AT->isStructArray) {
                     if (printed.insert(AT->structName).second)
                         structDefinition(program.getStruct(AT->structName));
                 }
             }
 
-            if (auto PT = dynamic_cast<PointerType*>(type)) {
+            if (auto PT = llvm::dyn_cast<PointerType>(type)) {
                 if (PT->isStructPointer && PT->isArrayPointer) {
                     if (printed.insert(PT->structName).second)
                         structDefinition(program.getStruct(PT->structName));
                 }
             }
 
-            if (auto ST = dynamic_cast<StructType*>(type)) {
+            if (auto ST = llvm::dyn_cast<StructType>(type)) {
                 if (printed.insert(ST->name).second)
                     structDefinition(program.getStruct(ST->name));
             }
@@ -148,7 +148,7 @@ void Writer::globalVarDefinitions(const Program& program) {
 }
 
 void Writer::functionHead(const Func* func) {
-    auto PT = dynamic_cast<PointerType*>(func->returnType.get());
+    auto PT = llvm::dyn_cast<PointerType>(func->returnType.get());
     bool arrayPtr = (PT && PT->isArrayPointer);
     if (arrayPtr) {
         wr.startArrayFunction(func->returnType->toString(), PT->levels, func->name);
@@ -205,21 +205,21 @@ void Writer::anonymousStructDefinitions(const Program& program) {
         for (const auto& item : strct->items) {
 
             auto type = item.first.get();
-            if (auto AT = dynamic_cast<ArrayType*>(type)) {
+            if (auto AT = llvm::dyn_cast<ArrayType>(type)) {
                 if (AT->isStructArray) {
                     if (printed.insert(AT->structName).second)
                         structDefinition(program.getStruct(AT->structName));
                 }
             }
 
-            if (auto PT = dynamic_cast<PointerType*>(type)) {
+            if (auto PT = llvm::dyn_cast<PointerType>(type)) {
                 if (PT->isStructPointer && PT->isArrayPointer) {
                     if (printed.insert(PT->structName).second)
                         structDefinition(program.getStruct(PT->structName));
                 }
             }
 
-            if (auto ST = dynamic_cast<StructType*>(type)) {
+            if (auto ST = llvm::dyn_cast<StructType>(type)) {
                 if (printed.insert(ST->name).second)
                     structDefinition(program.getStruct(ST->name));
             }

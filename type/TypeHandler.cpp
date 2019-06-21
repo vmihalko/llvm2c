@@ -70,7 +70,7 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
                     auto paramType = getType(FT->getParamType(i));
                     param = paramType->toString();
 
-                    if (auto PT = dynamic_cast<PointerType*>(paramType.get())) {
+                    if (auto PT = llvm::dyn_cast<PointerType>(paramType.get())) {
                         if (PT->isArrayPointer) {
                             param += " (";
                             for (unsigned i = 0; i < PT->levels; i++) {
@@ -80,7 +80,7 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
                         }
                     }
 
-                    if (auto AT = dynamic_cast<ArrayType*>(paramType.get())) {
+                    if (auto AT = llvm::dyn_cast<ArrayType>(paramType.get())) {
                         param += AT->sizeToString();
                     }
 
@@ -131,59 +131,59 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
 }
 
 std::unique_ptr<Type> TypeHandler::getBinaryType(const Type* left, const Type* right) {
-    if (const auto LDT = dynamic_cast<const LongDoubleType*>(left)) {
+    if (const auto LDT = llvm::dyn_cast<const LongDoubleType>(left)) {
         return std::make_unique<LongDoubleType>();
     }
-    if (const auto LDT = dynamic_cast<const LongDoubleType*>(right)) {
+    if (const auto LDT = llvm::dyn_cast<const LongDoubleType>(right)) {
         return std::make_unique<LongDoubleType>();
     }
 
-    if (const auto DT = dynamic_cast<const DoubleType*>(left)) {
+    if (const auto DT = llvm::dyn_cast<const DoubleType>(left)) {
         return std::make_unique<DoubleType>();
     }
-    if (const auto DT = dynamic_cast<const DoubleType*>(right)) {
+    if (const auto DT = llvm::dyn_cast<const DoubleType>(right)) {
         return std::make_unique<DoubleType>();
     }
 
-    if (const auto FT = dynamic_cast<const FloatType*>(left)) {
+    if (const auto FT = llvm::dyn_cast<const FloatType>(left)) {
         return std::make_unique<FloatType>();
     }
-    if (const auto FT = dynamic_cast<const FloatType*>(right)) {
+    if (const auto FT = llvm::dyn_cast<const FloatType>(right)) {
         return std::make_unique<FloatType>();
     }
 
-    if (const auto UI = dynamic_cast<const Int128*>(left)) {
+    if (const auto UI = llvm::dyn_cast<const Int128>(left)) {
         return std::make_unique<Int128>();
     }
-    if (const auto UI = dynamic_cast<const Int128*>(right)) {
+    if (const auto UI = llvm::dyn_cast<const Int128>(right)) {
         return std::make_unique<Int128>();
     }
 
-    if (const auto LT = dynamic_cast<const LongType*>(left)) {
+    if (const auto LT = llvm::dyn_cast<const LongType>(left)) {
         return std::make_unique<LongType>(LT->unsignedType);
     }
-    if (const auto LT = dynamic_cast<const LongType*>(right)) {
+    if (const auto LT = llvm::dyn_cast<const LongType>(right)) {
         return std::make_unique<LongType>(LT->unsignedType);
     }
 
-    if (const auto IT = dynamic_cast<const IntType*>(left)) {
+    if (const auto IT = llvm::dyn_cast<const IntType>(left)) {
         return std::make_unique<IntType>(IT->unsignedType);
     }
-    if (const auto IT = dynamic_cast<const IntType*>(right)) {
+    if (const auto IT = llvm::dyn_cast<const IntType>(right)) {
         return std::make_unique<IntType>(IT->unsignedType);
     }
 
-    if (const auto ST = dynamic_cast<const ShortType*>(left)) {
+    if (const auto ST = llvm::dyn_cast<const ShortType>(left)) {
         return std::make_unique<ShortType>(ST->unsignedType);
     }
-    if (const auto ST = dynamic_cast<const ShortType*>(right)) {
+    if (const auto ST = llvm::dyn_cast<const ShortType>(right)) {
         return std::make_unique<ShortType>(ST->unsignedType);
     }
 
-    if (const auto CT = dynamic_cast<const CharType*>(left)) {
+    if (const auto CT = llvm::dyn_cast<const CharType>(left)) {
         return std::make_unique<CharType>(CT->unsignedType);
     }
-    if (const auto CT = dynamic_cast<const CharType*>(right)) {
+    if (const auto CT = llvm::dyn_cast<const CharType>(right)) {
         return std::make_unique<CharType>(CT->unsignedType);
     }
 

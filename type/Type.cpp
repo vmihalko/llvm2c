@@ -4,11 +4,13 @@
 #include "llvm/Support/raw_ostream.h"
 
 FunctionPointerType::FunctionPointerType(const std::string& type, const std::string& name, const std::string& typeEnd)
-    : type(type),
+    : Type(TK_FunctionPointerType),
+      type(type),
       name(name),
       typeEnd(typeEnd) { }
 
-FunctionPointerType::FunctionPointerType(const FunctionPointerType& other) {
+FunctionPointerType::FunctionPointerType(const FunctionPointerType& other)
+    : Type(TK_FunctionPointerType) {
     type = other.type;
     name = other.name;
     typeEnd = other.typeEnd;
@@ -26,6 +28,10 @@ std::unique_ptr<Type> FunctionPointerType::clone() const {
     return std::make_unique<FunctionPointerType>(type, name, typeEnd);
 }
 
+bool FunctionPointerType::classof(const Type* type) {
+    return type->getKind() == TK_FunctionPointerType;
+}
+
 std::string FunctionPointerType::defToString() const {
     if (typeEnd.empty()) {
         return "typedef " + type + " " + name + ";";
@@ -35,9 +41,9 @@ std::string FunctionPointerType::defToString() const {
 }
 
 StructType::StructType(const std::string& name)
-    : name(name) { }
+    : Type(TK_StructType), name(name) { }
 
-StructType::StructType(const StructType& other) {
+StructType::StructType(const StructType& other) : Type(TK_StructType) {
     name = other.name;
 }
 
@@ -49,6 +55,10 @@ void StructType::print() const {
     llvm::outs() << toString();
 }
 
+bool StructType::classof(const Type* type) {
+    return type->getKind() == TK_StructType;
+}
+
 std::string StructType::toString() const {
     std::string ret = getConstStaticString();
 
@@ -56,12 +66,13 @@ std::string StructType::toString() const {
 }
 
 ArrayType::ArrayType(std::unique_ptr<Type> type, unsigned int size)
-    : type(std::move(type)),
+    : Type(TK_ArrayType),
+      type(std::move(type)),
       size(size) {
     isStructArray = false;
     isPointerArray = false;
 
-    if (auto AT = dynamic_cast<ArrayType*>(this->type.get())) {
+    if (auto AT = llvm::dyn_cast<ArrayType>(this->type.get())) {
         isStructArray = AT->isStructArray;
         structName = AT->structName;
 
@@ -69,18 +80,18 @@ ArrayType::ArrayType(std::unique_ptr<Type> type, unsigned int size)
         pointer = AT->pointer;
     }
 
-    if (auto ST = dynamic_cast<StructType*>(this->type.get())) {
+    if (auto ST = llvm::dyn_cast<StructType>(this->type.get())) {
         isStructArray = true;
         structName = ST->name;
     }
 
-    if (auto PT = dynamic_cast<PointerType*>(this->type.get())) {
+    if (auto PT = llvm::dyn_cast<PointerType>(this->type.get())) {
         isPointerArray = true;
         pointer = PT;
     }
 }
 
-ArrayType::ArrayType(const ArrayType& other) {
+ArrayType::ArrayType(const ArrayType& other): Type(TK_ArrayType) {
     size = other.size;
     type = other.type->clone();
     isStructArray = other.isStructArray;
@@ -101,6 +112,10 @@ void ArrayType::printSize() const {
     llvm::outs() << sizeToString();
 }
 
+bool ArrayType::classof(const Type* type) {
+    return type->getKind() == TK_ArrayType;
+}
+
 std::string ArrayType::toString() const {
     std::string ret = getConstStaticString();
 
@@ -113,7 +128,7 @@ std::string ArrayType::sizeToString() const {
     ret += "[";
     ret += std::to_string(size);
     ret += "]";
-    if (ArrayType* AT = dynamic_cast<ArrayType*>(type.get())) {
+    if (ArrayType* AT = llvm::dyn_cast<ArrayType>(type.get())) {
         ret += AT->sizeToString();
     }
 
@@ -133,6 +148,8 @@ std::string ArrayType::surroundName(const std::string& name) {
     }
 }
 
+VoidType::VoidType(): Type(TK_VoidType) {}
+
 std::unique_ptr<Type> VoidType::clone() const  {
     return std::make_unique<VoidType>();
 }
@@ -145,12 +162,16 @@ std::string VoidType::toString() const {
     return "void";
 }
 
-PointerType::PointerType(std::unique_ptr<Type> type) {
+bool VoidType::classof(const Type* type) {
+    return type->getKind() == TK_VoidType;
+}
+
+PointerType::PointerType(std::unique_ptr<Type> type): Type(TK_PointerType) {
     levels = 1;
     isArrayPointer = false;
     isStructPointer = false;
 
-    if (auto PT = dynamic_cast<PointerType*>(type.get())) {
+    if (auto PT = llvm::dyn_cast<PointerType>(type.get())) {
         isArrayPointer = PT->isArrayPointer;
         isStructPointer = PT->isStructPointer;
         structName = PT->structName;
@@ -158,7 +179,7 @@ PointerType::PointerType(std::unique_ptr<Type> type) {
         sizes = PT->sizes;
     }
 
-    if (auto AT = dynamic_cast<ArrayType*>(type.get())) {
+    if (auto AT = llvm::dyn_cast<ArrayType>(type.get())) {
         isArrayPointer = true;
         sizes = AT->sizeToString();
 
@@ -166,7 +187,7 @@ PointerType::PointerType(std::unique_ptr<Type> type) {
         structName = AT->structName;
     }
 
-    if (auto ST = dynamic_cast<StructType*>(type.get())) {
+    if (auto ST = llvm::dyn_cast<StructType>(type.get())) {
         isStructPointer = true;
         structName = ST->name;
     }
@@ -174,7 +195,7 @@ PointerType::PointerType(std::unique_ptr<Type> type) {
     this->type = type->clone();
 }
 
-PointerType::PointerType(const PointerType &other) {
+PointerType::PointerType(const PointerType &other): Type(TK_PointerType) {
     type = other.type->clone();
     isArrayPointer = other.isArrayPointer;
     levels = other.levels;
@@ -187,6 +208,10 @@ std::unique_ptr<Type> PointerType::clone() const  {
 
 void PointerType::print() const {
     llvm::outs() << toString();
+}
+
+bool PointerType::classof(const Type* type) {
+    return type->getKind() == TK_PointerType;
 }
 
 std::string PointerType::toString() const {
@@ -221,10 +246,17 @@ std::string PointerType::surroundName(const std::string& name) {
 }
 
 IntegerType::IntegerType(const std::string& name, bool unsignedType)
-    : name(name),
+    : Type(TK_IntegerType),
+      name(name),
       unsignedType(unsignedType) { }
 
-IntegerType::IntegerType(const IntegerType& other) {
+IntegerType::IntegerType(const std::string& name, bool unsignedType, TypeKind kind)
+    : Type(kind),
+      name(name),
+      unsignedType(unsignedType) { }
+
+
+IntegerType::IntegerType(const IntegerType& other): Type(TK_IntegerType) {
     name = other.name;
     unsignedType = other.unsignedType;
 }
@@ -235,6 +267,10 @@ std::unique_ptr<Type> IntegerType::clone() const  {
 
 void IntegerType::print() const {
     llvm::outs() << toString();
+}
+
+bool IntegerType::classof(const Type* type) {
+    return type->getKind() == TK_IntegerType;
 }
 
 std::string IntegerType::toString() const {
@@ -249,49 +285,76 @@ std::string IntegerType::toString() const {
 }
 
 CharType::CharType(bool unsignedType)
-    : IntegerType("char", unsignedType) { }
+    : IntegerType("char", unsignedType, TK_CharType) { }
 
 std::unique_ptr<Type> CharType::clone() const  {
     return std::make_unique<CharType>(*this);
 }
 
+bool CharType::classof(const Type* type) {
+    return type->getKind() == TK_CharType;
+}
+
 IntType::IntType(bool unsignedType)
-    : IntegerType("int", unsignedType) { }
+    : IntegerType("int", unsignedType, TK_IntType) { }
 
 std::unique_ptr<Type> IntType::clone() const  {
     return std::make_unique<IntType>(*this);
 }
 
+bool IntType::classof(const Type* type) {
+    return type->getKind() == TK_IntType;
+}
+
 ShortType::ShortType(bool unsignedType)
-    : IntegerType("short", unsignedType) { }
+    : IntegerType("short", unsignedType, TK_ShortType) { }
 
 std::unique_ptr<Type> ShortType::clone() const  {
     return std::make_unique<ShortType>(*this);
 }
 
+bool ShortType::classof(const Type* type) {
+    return type->getKind() == TK_ShortType;
+}
+
 LongType::LongType(bool unsignedType)
-    : IntegerType("long", unsignedType) { }
+    : IntegerType("long", unsignedType, TK_LongType) { }
 
 std::unique_ptr<Type> LongType::clone() const  {
     return std::make_unique<LongType>(*this);
 }
 
+bool LongType::classof(const Type* type) {
+    return type->getKind() == TK_LongType;
+}
+
 Int128::Int128()
-    : IntegerType("__int128", true) { }
+    : IntegerType("__int128", true, TK_Int128) { }
 
 std::unique_ptr<Type> Int128::clone() const {
     return std::make_unique<Int128>();
 }
 
-FloatingPointType::FloatingPointType(const std::string& name)
-    :name(name) { }
+bool Int128::classof(const Type* type) {
+    return type->getKind() == TK_Int128;
+}
 
-FloatingPointType::FloatingPointType(const FloatingPointType& other) {
+FloatingPointType::FloatingPointType(const std::string& name)
+    : Type(TK_FloatingPointType), name(name) { }
+
+FloatingPointType::FloatingPointType(const std::string& name, TypeKind kind)
+    : Type(kind), name(name) { }
+
+FloatingPointType::FloatingPointType(const FloatingPointType& other): Type(TK_FloatingPointType) {
     name = other.name;
 }
 
 std::unique_ptr<Type> FloatingPointType::clone() const  {
     return std::make_unique<FloatingPointType>(*this);
+}
+
+bool FloatingPointType::classof(const Type* type) {
+    return type->getKind() == TK_FloatingPointType;
 }
 
 void FloatingPointType::print() const {
@@ -305,22 +368,34 @@ std::string FloatingPointType::toString() const {
 }
 
 FloatType::FloatType()
-    : FloatingPointType("float") { }
+    : FloatingPointType("float", TK_FloatType) { }
 
 std::unique_ptr<Type> FloatType::clone() const  {
     return std::make_unique<FloatType>(*this);
 }
 
+bool FloatType::classof(const Type* type) {
+    return type->getKind() == TK_FloatType;
+}
+
 DoubleType::DoubleType()
-    : FloatingPointType("double") { }
+    : FloatingPointType("double", TK_DoubleType) { }
 
 std::unique_ptr<Type> DoubleType::clone() const  {
     return std::make_unique<DoubleType>(*this);
 }
 
+bool DoubleType::classof(const Type* type) {
+    return type->getKind() == TK_DoubleType;
+}
+
 LongDoubleType::LongDoubleType()
-    : FloatingPointType("long double") { }
+    : FloatingPointType("long double", TK_LongDoubleType) { }
 
 std::unique_ptr<Type> LongDoubleType::clone() const  {
     return std::make_unique<LongDoubleType>(*this);
+}
+
+bool LongDoubleType::classof(const Type* type) {
+    return type->getKind() == TK_LongDoubleType;
 }

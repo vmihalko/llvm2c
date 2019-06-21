@@ -13,7 +13,7 @@ void ExprWriter::visit(Struct& expr) {
 
         ss << "    " << item.first->toString();
 
-        if (auto PT = dynamic_cast<PointerType*>(item.first.get())) {
+        if (auto PT = llvm::dyn_cast<PointerType>(item.first.get())) {
             if (PT->isArrayPointer) {
                 faPointer = " (";
                 for (unsigned i = 0; i < PT->levels; i++) {
@@ -26,7 +26,7 @@ void ExprWriter::visit(Struct& expr) {
         if (faPointer.empty()) {
             ss << " ";
 
-            if (auto AT = dynamic_cast<ArrayType*>(item.first.get())) {
+            if (auto AT = llvm::dyn_cast<ArrayType>(item.first.get())) {
                 if (AT->isPointerArray && AT->pointer->isArrayPointer) {
                     ss << "(";
                     for (unsigned i = 0; i < AT->pointer->levels; i++) {
@@ -52,7 +52,7 @@ void ExprWriter::visit(Struct& expr) {
 void ExprWriter::visit(StructElement& elem) {
     parensIfNotSimple(elem.expr);
 
-    if (dynamic_cast<PointerType*>(elem.expr->getType())) {
+    if (llvm::dyn_cast<PointerType>(elem.expr->getType())) {
         ss << "->";
     } else {
         ss << ".";
@@ -265,7 +265,7 @@ void ExprWriter::visit(RetExpr& ret) {
 
 void ExprWriter::visit(CastExpr& cast) {
     ss << "(" << cast.getType()->toString();
-    if (auto PT = dynamic_cast<const PointerType*>(cast.getType())) {
+    if (auto PT = llvm::dyn_cast<const PointerType>(cast.getType())) {
         if (PT->isArrayPointer) {
             ss << " (";
             for (unsigned i = 0; i < PT->levels; i++) {

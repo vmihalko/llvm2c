@@ -69,7 +69,7 @@ void SignCastsVisitor::visit(IfExpr& expr) {
 
 Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
     Expr* result = expr;
-    auto IT = dynamic_cast<IntegerType*>(expr->getType());
+    auto IT = llvm::dyn_cast<IntegerType>(expr->getType());
 
     if (IT && IT->unsignedType != isUnsigned) {
         auto newType = IT->clone();

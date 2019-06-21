@@ -28,7 +28,7 @@ bool RefExpr::classof(const Expr* expr) {
 
 DerefExpr::DerefExpr(Expr* expr) :
     UnaryExpr(expr, EK_DerefExpr) {
-    if (auto PT = dynamic_cast<PointerType*>(expr->getType())) {
+    if (auto PT = llvm::dyn_cast<PointerType>(expr->getType())) {
         setType(PT->type->clone());
     }
 }

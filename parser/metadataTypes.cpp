@@ -18,7 +18,7 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
         }
 
         if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
-            if (IntegerType* IT = dynamic_cast<IntegerType*>(variable->getType())) {
+            if (IntegerType* IT = llvm::dyn_cast<IntegerType>(variable->getType())) {
                 IT->unsignedType = true;
             }
         }

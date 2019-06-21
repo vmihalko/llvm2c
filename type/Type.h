@@ -10,6 +10,28 @@
  */
 class Type {
 public:
+    enum TypeKind {
+        TK_FunctionPointerType,
+        TK_StructType,
+        TK_PointerType,
+        TK_ArrayType,
+        TK_VoidType,
+        TK_IntegerType,
+        TK_CharType,
+        TK_IntType,
+        TK_ShortType,
+        TK_LongType,
+        TK_Int128,
+        TK_FloatingPointType,
+        TK_FloatType,
+        TK_DoubleType,
+        TK_LongDoubleType,
+    };
+private:
+    const TypeKind kind;
+public:
+
+    Type(TypeKind kind): kind(kind) {}
     virtual ~Type() = default;
     virtual std::unique_ptr<Type> clone() const = 0;
     virtual void print() const = 0;
@@ -34,6 +56,12 @@ public:
     virtual std::string surroundName(const std::string& name) {
         return name;
     }
+
+    TypeKind getKind() const {
+        return kind;
+    }
+    
+    static bool classof(const Type* type);
 };
 
 /**
@@ -61,6 +89,8 @@ public:
      * @return String with FunctionPointerType definition
      */
     std::string defToString() const;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -76,6 +106,8 @@ public:
     std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -100,6 +132,8 @@ public:
     std::string toString() const override;
 
     std::string surroundName(const std::string& name) override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -127,6 +161,8 @@ public:
     std::string sizeToString() const;
 
     std::string surroundName(const std::string& name) override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -134,9 +170,12 @@ public:
  */
 class VoidType : public Type {
 public:
+    VoidType();
     std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -150,11 +189,14 @@ public:
     bool unsignedType;
 
     IntegerType(const std::string&, bool);
+    IntegerType(const std::string&, bool, TypeKind);
     IntegerType(const IntegerType&);
 
     std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -165,6 +207,8 @@ public:
     CharType(bool);
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -175,6 +219,8 @@ public:
     IntType(bool);
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -185,6 +231,8 @@ public:
     ShortType(bool);
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -195,6 +243,8 @@ public:
     LongType(bool);
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -205,6 +255,8 @@ public:
     Int128();
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -216,11 +268,14 @@ private:
 
 public:
     FloatingPointType(const std::string&);
+    FloatingPointType(const std::string&, TypeKind kind);
     FloatingPointType(const FloatingPointType&);
 
     std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -231,6 +286,8 @@ public:
     FloatType();
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -241,6 +298,8 @@ public:
     DoubleType();
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };
 
 /**
@@ -251,4 +310,6 @@ public:
     LongDoubleType();
 
     std::unique_ptr<Type> clone() const override;
+
+    static bool classof(const Type* type);
 };

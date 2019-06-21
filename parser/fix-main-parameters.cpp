@@ -6,9 +6,9 @@
 #include <iostream>
 
 static void convertToSignedIntPtr(PointerType* pt) {
-    if (auto inner = dynamic_cast<PointerType*>(pt->type.get())) {
+    if (auto inner = llvm::dyn_cast<PointerType>(pt->type.get())) {
         convertToSignedIntPtr(inner);
-    } else if (auto IT = dynamic_cast<IntegerType*>(pt->type.get())) {
+    } else if (auto IT = llvm::dyn_cast<IntegerType>(pt->type.get())) {
         IT->unsignedType = false;
     }
 }
@@ -27,22 +27,22 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
 
         for (auto& param : myFunc->parameters) {
             auto type = param->getType();
-            if (auto IT = dynamic_cast<IntegerType*>(type)) {
+            if (auto IT = llvm::dyn_cast<IntegerType>(type)) {
                 IT->unsignedType = false;
             }
 
-            if (auto PT = dynamic_cast<PointerType*>(type)) {
+            if (auto PT = llvm::dyn_cast<PointerType>(type)) {
                 convertToSignedIntPtr(PT);
             }
         }
 
         for (auto& param : decl->parameters) {
             auto type = param->getType();
-            if (auto IT = dynamic_cast<IntegerType*>(type)) {
+            if (auto IT = llvm::dyn_cast<IntegerType>(type)) {
                 IT->unsignedType = false;
             }
 
-            if (auto PT = dynamic_cast<PointerType*>(type)) {
+            if (auto PT = llvm::dyn_cast<PointerType>(type)) {
                 convertToSignedIntPtr(PT);
             }
         }
