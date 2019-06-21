@@ -226,7 +226,6 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     func->createExpr(v, std::move(assign));
 }
 
-
 static void parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     auto* v = isConstExpr ? val : &ins;
 

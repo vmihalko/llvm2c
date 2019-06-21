@@ -36,6 +36,7 @@ Program ProgramParser::parse(const std::string& file) {
     // transformations of resulting expressions
     fixMainParameters(mod, result);
     addSignCasts(mod, result);
+    deleteRedundantCasts(mod, result);
 
     refDeref(mod, result);
 

@@ -22,3 +22,4 @@ void identifyInlinableBlocks(const llvm::Module* module, Program& program);
 void refDeref(const llvm::Module* mod, Program& program);
 void fixMainParameters(const llvm::Module* module, Program& program);
 void addSignCasts(const llvm::Module* module, Program& program);
+void deleteRedundantCasts(const llvm::Module* module, Program& program);
