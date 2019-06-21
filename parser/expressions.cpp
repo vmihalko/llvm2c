@@ -16,7 +16,7 @@ void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const 
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
 static void createFuncCallParam(const llvm::Use& param, Func* func, Block* block) {
-    if (llvm::PointerType* PT = llvm::dyn_cast<llvm::PointerType>(param->getType())) {
+    if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(param->getType())) {
         if (llvm::isa<llvm::ConstantPointerNull>(param)) {
             createConstantValue(param, func, block);
         } else if (PT->getElementType()->isFunctionTy() && !param->getName().empty()) {
@@ -43,11 +43,11 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
     for (unsigned idx : EVI->getIndices()) {
         std::unique_ptr<Expr> element = nullptr;
 
-        if (StructType* ST = llvm::dyn_cast<StructType>(prevType.get())) {
+        if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType.get())) {
             element = std::make_unique<StructElement>(func->getStruct(ST->name), expr, idx);
         }
 
-        if (llvm::dyn_cast<ArrayType>(prevType.get())) {
+        if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
             auto newVal = std::make_unique<Value>(std::to_string(idx), std::make_unique<IntType>(true));
             element = std::make_unique<ArrayElement>(expr, newVal.get());
             block->addValue(std::move(newVal));
@@ -110,8 +110,8 @@ static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
 
 static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     auto type = func->getType(ins.getOperand(0)->getType());
-    if (llvm::dyn_cast<PointerType>(type.get())) {
-        if (llvm::Function* function = llvm::dyn_cast<llvm::Function>(ins.getOperand(0))) {
+    if (llvm::dyn_cast_or_null<PointerType>(type.get())) {
+        if (llvm::Function* function = llvm::dyn_cast_or_null<llvm::Function>(ins.getOperand(0))) {
             if (!func->getExpr(ins.getOperand(0))) {
                 func->createExpr(ins.getOperand(0), std::make_unique<Value>("&" + function->getName().str(), std::make_unique<VoidType>()));
             }
@@ -119,7 +119,7 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     }
 
     //skip stacksave
-    if (llvm::CallInst* CI = llvm::dyn_cast<llvm::CallInst>(ins.getOperand(0))) {
+    if (llvm::CallInst* CI = llvm::dyn_cast_or_null<llvm::CallInst>(ins.getOperand(0))) {
         if (CI->getCalledFunction()) {
             if (CI->getCalledFunction()->getName().str().compare("llvm.stacksave") == 0) {
                 return;
@@ -130,38 +130,38 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     llvm::Value* inst = ins.getOperand(0);
     bool isCast = false;
     //get rid of casts in case of asm output parameter
-    while (llvm::CastInst* CI = llvm::dyn_cast<llvm::CastInst>(inst)) {
+    while (llvm::CastInst* CI = llvm::dyn_cast_or_null<llvm::CastInst>(inst)) {
         inst = CI->getOperand(0);
         isCast = true;
     }
 
     if (isCast) {
         //inline asm with multiple outputs with casts
-        if (llvm::ExtractValueInst* EVI = llvm::dyn_cast<llvm::ExtractValueInst>(inst)) {
+        if (llvm::ExtractValueInst* EVI = llvm::dyn_cast_or_null<llvm::ExtractValueInst>(inst)) {
             if (!func->getExpr(ins.getOperand(1))) {
                 createConstantValue(ins.getOperand(1), func, block);
             }
             Expr* value = func->getExpr(ins.getOperand(1));
             Expr* asmExpr = func->getExpr(EVI->getOperand(0));
 
-            if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
+            if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
                 value = RE->expr;
             }
 
-            if (auto AE = llvm::dyn_cast<AsmExpr>(asmExpr)) {
+            if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(asmExpr)) {
                 AE->addOutputExpr(value, EVI->getIndices()[0]);
                 return;
             }
         }
 
         //inline asm with single output with cast
-        if (AsmExpr* AE = llvm::dyn_cast<AsmExpr>(func->getExpr(inst))) {
+        if (AsmExpr* AE = llvm::dyn_cast_or_null<AsmExpr>(func->getExpr(inst))) {
             if (!func->getExpr(ins.getOperand(1))) {
                 createConstantValue(ins.getOperand(1), func, block);
             }
             Expr* value = func->getExpr(ins.getOperand(1));
 
-            if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
+            if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
                 value = RE->expr;
             }
 
@@ -171,18 +171,18 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     }
 
     //inline asm with multiple outputs
-    if (llvm::ExtractValueInst* EVI = llvm::dyn_cast<llvm::ExtractValueInst>(ins.getOperand(0))) {
+    if (llvm::ExtractValueInst* EVI = llvm::dyn_cast_or_null<llvm::ExtractValueInst>(ins.getOperand(0))) {
         if (!func->getExpr(ins.getOperand(1))) {
             createConstantValue(ins.getOperand(1), func, block);
         }
         Expr* value = func->getExpr(ins.getOperand(1));
         Expr* asmExpr = func->getExpr(EVI->getOperand(0));
 
-        if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
+        if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
             value = RE->expr;
         }
 
-        if (auto AE = llvm::dyn_cast<AsmExpr>(asmExpr)) {
+        if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(asmExpr)) {
             AE->addOutputExpr(value, EVI->getIndices()[0]);
             return;
         }
@@ -210,8 +210,8 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     }
 
     //inline asm with single output
-    if (auto AE = llvm::dyn_cast<AsmExpr>(val0)) {
-        if (auto RE = llvm::dyn_cast<RefExpr>(val1)) {
+    if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(val0)) {
+        if (auto RE = llvm::dyn_cast_or_null<RefExpr>(val1)) {
             val1 = RE->expr;
         }
         AE->addOutputExpr(val1, 0);
@@ -598,7 +598,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
     }
 
     //call function if it returns void, otherwise store function return value to a new variable and use this variable instead of function call
-    if (llvm::dyn_cast<VoidType>(type.get())) {
+    if (llvm::dyn_cast_or_null<VoidType>(type.get())) {
         func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
 
         if (!isConstExpr) {
@@ -688,11 +688,11 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
             createFuncCallParam(arg, func, block);
         }
 
-        const llvm::AllocaInst* AI = llvm::dyn_cast<llvm::AllocaInst>(arg.get());
-        const llvm::GetElementPtrInst* GI = llvm::dyn_cast<llvm::GetElementPtrInst>(arg.get());
-        const llvm::CastInst* CI = llvm::dyn_cast<llvm::CastInst>(arg.get());
-        const llvm::GlobalVariable* GV = llvm::dyn_cast<llvm::GlobalVariable>(arg.get());
-        llvm::ConstantExpr* CE = llvm::dyn_cast<llvm::ConstantExpr>(arg.get());
+        const llvm::AllocaInst* AI = llvm::dyn_cast_or_null<llvm::AllocaInst>(arg.get());
+        const llvm::GetElementPtrInst* GI = llvm::dyn_cast_or_null<llvm::GetElementPtrInst>(arg.get());
+        const llvm::CastInst* CI = llvm::dyn_cast_or_null<llvm::CastInst>(arg.get());
+        const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(arg.get());
+        llvm::ConstantExpr* CE = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg.get());
 
         //creates new variable for every alloca, getelementptr and cast instruction and global variable that inline asm takes as a parameter
         //as inline asm has problem with casts and expressions containing "&" symbol
@@ -847,7 +847,7 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
         }
 
         if (prevType->isStructTy()) {
-            llvm::ConstantInt* CI = llvm::dyn_cast<llvm::ConstantInt>(it.getOperand());
+            llvm::ConstantInt* CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(it.getOperand());
             if (!CI) {
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }

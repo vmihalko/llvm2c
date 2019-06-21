@@ -72,7 +72,7 @@ ArrayType::ArrayType(std::unique_ptr<Type> type, unsigned int size)
     isStructArray = false;
     isPointerArray = false;
 
-    if (auto AT = llvm::dyn_cast<ArrayType>(this->type.get())) {
+    if (auto AT = llvm::dyn_cast_or_null<ArrayType>(this->type.get())) {
         isStructArray = AT->isStructArray;
         structName = AT->structName;
 
@@ -80,12 +80,12 @@ ArrayType::ArrayType(std::unique_ptr<Type> type, unsigned int size)
         pointer = AT->pointer;
     }
 
-    if (auto ST = llvm::dyn_cast<StructType>(this->type.get())) {
+    if (auto ST = llvm::dyn_cast_or_null<StructType>(this->type.get())) {
         isStructArray = true;
         structName = ST->name;
     }
 
-    if (auto PT = llvm::dyn_cast<PointerType>(this->type.get())) {
+    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->type.get())) {
         isPointerArray = true;
         pointer = PT;
     }
@@ -128,7 +128,7 @@ std::string ArrayType::sizeToString() const {
     ret += "[";
     ret += std::to_string(size);
     ret += "]";
-    if (ArrayType* AT = llvm::dyn_cast<ArrayType>(type.get())) {
+    if (ArrayType* AT = llvm::dyn_cast_or_null<ArrayType>(type.get())) {
         ret += AT->sizeToString();
     }
 
@@ -171,7 +171,7 @@ PointerType::PointerType(std::unique_ptr<Type> type): Type(TK_PointerType) {
     isArrayPointer = false;
     isStructPointer = false;
 
-    if (auto PT = llvm::dyn_cast<PointerType>(type.get())) {
+    if (auto PT = llvm::dyn_cast_or_null<PointerType>(type.get())) {
         isArrayPointer = PT->isArrayPointer;
         isStructPointer = PT->isStructPointer;
         structName = PT->structName;
@@ -179,7 +179,7 @@ PointerType::PointerType(std::unique_ptr<Type> type): Type(TK_PointerType) {
         sizes = PT->sizes;
     }
 
-    if (auto AT = llvm::dyn_cast<ArrayType>(type.get())) {
+    if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type.get())) {
         isArrayPointer = true;
         sizes = AT->sizeToString();
 
@@ -187,7 +187,7 @@ PointerType::PointerType(std::unique_ptr<Type> type): Type(TK_PointerType) {
         structName = AT->structName;
     }
 
-    if (auto ST = llvm::dyn_cast<StructType>(type.get())) {
+    if (auto ST = llvm::dyn_cast_or_null<StructType>(type.get())) {
         isStructPointer = true;
         structName = ST->name;
     }

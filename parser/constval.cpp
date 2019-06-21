@@ -9,12 +9,12 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
         return;
     }
 
-    if (auto CPN = llvm::dyn_cast<llvm::ConstantPointerNull>(val)) {
+    if (auto CPN = llvm::dyn_cast_or_null<llvm::ConstantPointerNull>(val)) {
         func->createExpr(val, std::make_unique<Value>("0", func->getType(CPN->getType())));
         return;
     }
 
-    if (auto CI = llvm::dyn_cast<llvm::ConstantInt>(val)) {
+    if (auto CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(val)) {
         std::string value;
         if (CI->getBitWidth() > 64) {
             const llvm::APInt& API = CI->getValue();
@@ -29,7 +29,7 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
         return;
     }
 
-    if (auto CFP = llvm::dyn_cast<llvm::ConstantFP>(val)) {
+    if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
         if (CFP->isInfinity()) {
             func->createExpr(val, std::make_unique<Value>("__builtin_inff ()", std::make_unique<FloatType>()));
         } else if (CFP->isNaN()){
@@ -52,7 +52,7 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
         return;
     }
 
-    if (auto CE = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+    if (auto CE = llvm::dyn_cast_or_null<llvm::ConstantExpr>(val)) {
         parseLLVMInstruction(*CE->getAsInstruction(), true, val, func, block);
     }
 }

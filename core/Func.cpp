@@ -24,7 +24,7 @@ Func::Func(const llvm::Function* func, Program* program, bool isDeclaration) {
 Expr* Func::getExpr(const llvm::Value* val) {
     auto it = exprMap.find(val);
 	if (it == exprMap.end()) {
-		if (auto F = llvm::dyn_cast<llvm::Function>(val)) {
+		if (auto F = llvm::dyn_cast_or_null<llvm::Function>(val)) {
 			createExpr(val, std::make_unique<Value>("&" + F->getName().str(), getType(F->getReturnType())));
 			return exprMap.find(val)->second.get();
 		}

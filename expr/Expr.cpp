@@ -199,7 +199,7 @@ PointerShift::PointerShift(std::unique_ptr<Type> ptrType, Expr* pointer, Expr* m
       ptrType(std::move(ptrType)),
       pointer(pointer),
       move(move) {
-    if (auto PT = llvm::dyn_cast<PointerType>(this->ptrType.get())) {
+    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->ptrType.get())) {
         setType(PT->type->clone());
     }
 }

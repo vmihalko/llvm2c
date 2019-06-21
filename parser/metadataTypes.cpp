@@ -5,20 +5,20 @@
 #include <llvm/IR/Instruction.h>
 
 static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
-    llvm::Metadata* md = llvm::dyn_cast<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
+    llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
 
     if (Value* variable = block->getValue(referredVal)) {
-        llvm::Metadata* varMD = llvm::dyn_cast<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
-        llvm::DILocalVariable* localVar = llvm::dyn_cast<llvm::DILocalVariable>(varMD);
-        llvm::DIBasicType* type = llvm::dyn_cast<llvm::DIBasicType>(localVar->getType());
+        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+        llvm::DIBasicType* type = llvm::dyn_cast_or_null<llvm::DIBasicType>(localVar->getType());
 
         if (!localVar->getName().empty()) {
             variable->valueName = localVar->getName();
         }
 
         if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
-            if (IntegerType* IT = llvm::dyn_cast<IntegerType>(variable->getType())) {
+            if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(variable->getType())) {
                 IT->unsignedType = true;
             }
         }

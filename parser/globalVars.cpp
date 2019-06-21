@@ -9,7 +9,7 @@
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program);
 
 static std::string getInitValue(const llvm::Constant* val, Program& program) {
-    if (llvm::PointerType* PT = llvm::dyn_cast<llvm::PointerType>(val->getType())) {
+    if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
         std::string name = val->getName().str();
 
         if (llvm::isa<llvm::GlobalVariable>(val)) {
@@ -32,7 +32,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
             return "&" + name;
         }
 
-        if (const llvm::GlobalVariable* GV = llvm::dyn_cast<llvm::GlobalVariable>(val->getOperand(0))) {
+        if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val->getOperand(0))) {
             auto RE = program.getGlobalRef(GV);
             auto GVAL = static_cast<GlobalValue*>(RE->expr);
             if (!GVAL->isDefined) {
@@ -46,7 +46,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
         return "&" + name;
     }
 
-    if (const llvm::ConstantInt* CI = llvm::dyn_cast<llvm::ConstantInt>(val)) {
+    if (const llvm::ConstantInt* CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(val)) {
         std::string value;
         if (CI->getBitWidth() > 64) {
             const llvm::APInt& API = CI->getValue();
@@ -60,7 +60,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
         return value;
     }
 
-    if (const llvm::ConstantFP* CFP = llvm::dyn_cast<llvm::ConstantFP>(val)) {
+    if (const llvm::ConstantFP* CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
         if (CFP->isInfinity()) {
             return "__builtin_inff ()";
         }
@@ -84,7 +84,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
         return ret;
     }
 
-    if (const llvm::ConstantDataArray* CDA = llvm::dyn_cast<llvm::ConstantDataArray>(val)) {
+    if (const llvm::ConstantDataArray* CDA = llvm::dyn_cast_or_null<llvm::ConstantDataArray>(val)) {
         std::string value = "{";
         bool first = true;
 
@@ -100,7 +100,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
         return value + "}";
     }
 
-    if (const llvm::ConstantStruct* CS = llvm::dyn_cast<llvm::ConstantStruct>(val)) {
+    if (const llvm::ConstantStruct* CS = llvm::dyn_cast_or_null<llvm::ConstantStruct>(val)) {
         std::string value = "{";
         bool first = true;
         for (unsigned i = 0; i < CS->getNumOperands(); i++) {

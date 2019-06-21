@@ -29,7 +29,7 @@ Block::Block(const std::string &blockName, const llvm::BasicBlock* block, Func* 
 	blockName(blockName), doInline(false) { }
 
 bool Block::isVoidType(llvm::DITypeRef type) {
-	if (llvm::DIDerivedType* dtype = llvm::dyn_cast<llvm::DIDerivedType>(type)) {
+	if (llvm::DIDerivedType* dtype = llvm::dyn_cast_or_null<llvm::DIDerivedType>(type)) {
 		if (!dtype->getBaseType()) {
 			return true;
 		}
@@ -37,7 +37,7 @@ bool Block::isVoidType(llvm::DITypeRef type) {
 		return isVoidType(dtype->getBaseType());
 	}
 
-	if (llvm::DICompositeType* ctype = llvm::dyn_cast<llvm::DICompositeType>(type)) {
+	if (llvm::DICompositeType* ctype = llvm::dyn_cast_or_null<llvm::DICompositeType>(type)) {
 		if (!ctype->getBaseType()) {
 			return true;
 		}

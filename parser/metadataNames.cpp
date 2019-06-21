@@ -17,8 +17,8 @@ void findMetadataNames(const llvm::Module* module, Program& program) {
                 if (ins.getOpcode() == llvm::Instruction::Call) {
                     const auto CI = llvm::cast<llvm::CallInst>(&ins);
                     if (CI->getCalledFunction() && CI->getCalledFunction()->getName().str().compare("llvm.dbg.declare") == 0) {
-                        llvm::Metadata* varMD = llvm::dyn_cast<llvm::MetadataAsValue>(ins.getOperand(1))->getMetadata();
-                        llvm::DILocalVariable* localVar = llvm::dyn_cast<llvm::DILocalVariable>(varMD);
+                        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins.getOperand(1))->getMetadata();
+                        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
                         std::regex varName("var[0-9]+");
                         if (std::regex_match(localVar->getName().str(), varName)) {

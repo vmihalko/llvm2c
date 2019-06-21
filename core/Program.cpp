@@ -55,7 +55,7 @@ Struct* Program::getStruct(const std::string& name) const {
 }
 
 RefExpr* Program::getGlobalVar(const llvm::Value* val) {
-	if (const llvm::GlobalVariable* GV = llvm::dyn_cast<llvm::GlobalVariable>(val)) {
+	if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
 		if (globalRefs.count(GV)) {
 			return globalRefs.find(GV)->second.get();
 		}
