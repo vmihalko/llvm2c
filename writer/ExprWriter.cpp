@@ -377,7 +377,9 @@ void ExprWriter::gotoOrInline(Block* block) {
         for (const auto& expr : block->expressions) {
             ss << "    ";
             expr->accept(*this);
-            ss << ";" << std::endl;
+            if (!llvm::isa<IfExpr>(expr)) {
+                ss << ";" << std::endl;
+            }
         }
         ss << "}" << std::endl;
     } else {
