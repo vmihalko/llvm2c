@@ -256,7 +256,7 @@ IntegerType::IntegerType(const std::string& name, bool unsignedType, TypeKind ki
       unsignedType(unsignedType) { }
 
 
-IntegerType::IntegerType(const IntegerType& other): Type(TK_IntegerType) {
+IntegerType::IntegerType(const IntegerType& other): Type(other.getKind()) {
     name = other.name;
     unsignedType = other.unsignedType;
 }
@@ -270,7 +270,12 @@ void IntegerType::print() const {
 }
 
 bool IntegerType::classof(const Type* type) {
-    return type->getKind() == TK_IntegerType;
+    return type->getKind() == TK_IntegerType
+        || type->getKind() == TK_ShortType
+        || type->getKind() == TK_IntType
+        || type->getKind() == TK_CharType
+        || type->getKind() == TK_LongType
+        || type->getKind() == TK_Int128;
 }
 
 std::string IntegerType::toString() const {
@@ -345,7 +350,7 @@ FloatingPointType::FloatingPointType(const std::string& name)
 FloatingPointType::FloatingPointType(const std::string& name, TypeKind kind)
     : Type(kind), name(name) { }
 
-FloatingPointType::FloatingPointType(const FloatingPointType& other): Type(TK_FloatingPointType) {
+FloatingPointType::FloatingPointType(const FloatingPointType& other): Type(other.getKind()) {
     name = other.name;
 }
 
@@ -354,7 +359,10 @@ std::unique_ptr<Type> FloatingPointType::clone() const  {
 }
 
 bool FloatingPointType::classof(const Type* type) {
-    return type->getKind() == TK_FloatingPointType;
+    return type->getKind() == TK_FloatingPointType
+        || type->getKind() == TK_FloatType
+        || type->getKind() == TK_DoubleType
+        || type->getKind() == TK_LongDoubleType;
 }
 
 void FloatingPointType::print() const {

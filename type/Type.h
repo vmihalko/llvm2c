@@ -60,7 +60,7 @@ public:
     TypeKind getKind() const {
         return kind;
     }
-    
+
     static bool classof(const Type* type);
 };
 
