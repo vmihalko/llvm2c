@@ -67,29 +67,10 @@ public:
     void saveStruct(Struct* strct, std::ofstream& file);
 
     /**
-     * @brief printStruct Prints parsed Struct. If Struct contains other Struct, then the other is printed first.
-     * @param strct Struct for printing
-     */
-    void printStruct(Struct* strct);
-
-    /**
      * @brief getIncludeString Returns string containing all includes program uses.
      * @return String containing includes;
      */
     std::string getIncludeString() const;
-
-    /**
-     * @brief output Outputs the translated program to given stream.
-     * @param stream Stream for output
-     */
-    void output(std::ostream& stream);
-
-    /**
-     * @brief outputStruct Outputs parsed Struct to given stream. If Struct contains other Struct, then the other is output first.
-     * @param strct Struct for output
-     * @param stream Stream for output
-     */
-    void outputStruct(Struct* strct, std::ostream& stream);
 
     void createNewUnnamedStruct(const llvm::StructType *strct);
 

@@ -6,7 +6,7 @@
  * UnaryExpr classes
  */
 
-UnaryExpr::UnaryExpr(Expr *expr) {
+UnaryExpr::UnaryExpr(Expr *expr, ExprKind kind): ExprBase(kind) {
     this->expr = expr;
     if (expr) {
         setType(expr->getType()->clone());
@@ -14,7 +14,7 @@ UnaryExpr::UnaryExpr(Expr *expr) {
 }
 
 RefExpr::RefExpr(Expr* expr) :
-    UnaryExpr(expr) {
+    UnaryExpr(expr, EK_RefExpr) {
     setType(std::make_unique<PointerType>(expr->getType()->clone()));
 }
 
@@ -22,8 +22,12 @@ void RefExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
+bool RefExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_RefExpr;
+}
+
 DerefExpr::DerefExpr(Expr* expr) :
-    UnaryExpr(expr) {
+    UnaryExpr(expr, EK_DerefExpr) {
     if (auto PT = dynamic_cast<PointerType*>(expr->getType())) {
         setType(PT->type->clone());
     }
@@ -33,22 +37,34 @@ void DerefExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
+bool DerefExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_DerefExpr;
+}
+
 RetExpr::RetExpr(Expr* ret)
-    : UnaryExpr(ret) { }
+    : UnaryExpr(ret, EK_RetExpr) { }
 
 RetExpr::RetExpr()
-    : UnaryExpr(nullptr) { }
+    : UnaryExpr(nullptr, EK_RetExpr) { }
 
 void RetExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
+bool RetExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_RetExpr;
+}
+
 CastExpr::CastExpr(Expr* expr, std::unique_ptr<Type> type)
-    : UnaryExpr(expr) {
+    : UnaryExpr(expr, EK_CastExpr) {
     setType(std::move(type));
 }
 
 void CastExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
+}
+
+bool CastExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_CastExpr;
 }
 

@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Casting.h"
 
 #include "../type/Type.h"
 #include "ExprVisitor.h"
@@ -17,6 +18,48 @@ class Block;
  */
 class Expr {
 public:
+    enum ExprKind {
+        EK_Struct,
+        EK_StructElement,
+        EK_ArrayElement,
+        EK_ExtractValueExpr,
+        EK_Value,
+        EK_GlobalValue,
+        EK_IfExpr,
+        EK_SwitchExpr,
+        EK_AsmExpr,
+        EK_CallExpr,
+        EK_PointerShift,
+        EK_GepExpr,
+        EK_SelectExpr,
+        EK_StackAlloc,
+
+        EK_RefExpr,
+        EK_DerefExpr,
+        EK_RetExpr,
+        EK_CastExpr,
+
+        EK_AddExpr,
+        EK_SubExpr,
+        EK_AssignExpr,
+        EK_MulExpr,
+        EK_DivExpr,
+        EK_RemExpr,
+        EK_AndExpr,
+        EK_OrExpr,
+        EK_XorExpr,
+        EK_CmpExpr,
+        EK_AshrExpr,
+        EK_LshrExpr,
+        EK_ShlExpr
+
+    };
+private:
+    const ExprKind kind;
+public:
+    ExprKind getKind() const { return kind; }
+    Expr(ExprKind kind): kind(kind) {}
+
     virtual ~Expr() = default;
     virtual void accept(ExprVisitor& visitor) = 0;
     virtual const Type* getType() const = 0;
@@ -34,6 +77,8 @@ private:
     std::unique_ptr<Type> type;
 
 public:
+    ExprBase(ExprKind kind) : Expr(kind) {}
+
     const Type* getType() const override {
         return type.get();
     }
@@ -73,6 +118,8 @@ public:
     void addItem(std::unique_ptr<Type> type, const std::string& name);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -87,6 +134,8 @@ public:
     StructElement(Struct*, Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -101,6 +150,8 @@ public:
     ArrayElement(Expr*, Expr*, std::unique_ptr<Type>);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -113,6 +164,8 @@ public:
     ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -123,12 +176,15 @@ public:
     std::string valueName;
 
     Value(const std::string&, std::unique_ptr<Type>);
+    Value(const std::string&, std::unique_ptr<Type>, ExprKind kind);
 
     void accept(ExprVisitor& visitor) override;
 
     bool isZero() const override;
 
     bool isSimple() const override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -145,6 +201,8 @@ public:
     void accept(ExprVisitor& visitor) override;
 
     bool isSimple() const override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -160,6 +218,8 @@ public:
     IfExpr(Block* trueBlock);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -174,6 +234,8 @@ public:
     SwitchExpr(Expr*, Block*, std::map<int, Block*>);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -196,6 +258,8 @@ public:
     void addOutputExpr(Expr* expr, unsigned pos);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -210,6 +274,8 @@ public:
     CallExpr(Expr*, const std::string&, std::vector<Expr*>, std::unique_ptr<Type>);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -224,6 +290,8 @@ public:
     PointerShift(std::unique_ptr<Type>, Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -235,6 +303,8 @@ public:
     GepExpr(std::vector<std::unique_ptr<Expr>>&);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -249,6 +319,8 @@ public:
     SelectExpr(Expr*, Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 class StackAlloc : public ExprBase {
@@ -261,4 +333,6 @@ public:
 
     const Type* getType() const override;
     Type* getType() override;
+
+    static bool classof(const Expr* expr);
 };

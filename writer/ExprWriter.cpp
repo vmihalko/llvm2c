@@ -172,7 +172,7 @@ void ExprWriter::visit(CallExpr& expr) {
 
         if (noFuncCasts) {
             // strip all the casts
-            while (auto CAST = dynamic_cast<CastExpr*>(call)) {
+            while (auto CAST = llvm::dyn_cast<CastExpr>(call)) {
                 call = CAST->expr;
             }
         }

@@ -58,14 +58,14 @@ void refDeref(const llvm::Module* module, Program& program) {
 }
 
 Expr* RefDerefVisitor::simplify(Expr* expr) {
-    if (auto RE = dynamic_cast<RefExpr*>(expr)) {
-        if (auto DE = dynamic_cast<DerefExpr*>(RE->expr)) {
+    if (auto RE = llvm::dyn_cast<RefExpr>(expr)) {
+        if (auto DE = llvm::dyn_cast<DerefExpr>(RE->expr)) {
             return DE->expr;
         }
     }
 
-    if (auto DE = dynamic_cast<DerefExpr*>(expr)) {
-        if (auto RE = dynamic_cast<RefExpr*>(DE->expr)) {
+    if (auto DE = llvm::dyn_cast<DerefExpr>(expr)) {
+        if (auto RE = llvm::dyn_cast<RefExpr>(DE->expr)) {
             return RE->expr;
         }
     }

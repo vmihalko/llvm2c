@@ -36,7 +36,7 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
     std::unique_ptr<Type> prevType = func->getType(ins.getOperand(0)->getType());
     Expr* expr = func->getExpr(ins.getOperand(0));
 
-    if (dynamic_cast<AsmExpr*>(expr)) {
+    if (llvm::isa<AsmExpr>(expr)) {
         return;
     }
 
@@ -144,24 +144,24 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
             Expr* value = func->getExpr(ins.getOperand(1));
             Expr* asmExpr = func->getExpr(EVI->getOperand(0));
 
-            if (auto RE = dynamic_cast<RefExpr*>(value)) {
+            if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
                 value = RE->expr;
             }
 
-            if (auto AE = dynamic_cast<AsmExpr*>(asmExpr)) {
+            if (auto AE = llvm::dyn_cast<AsmExpr>(asmExpr)) {
                 AE->addOutputExpr(value, EVI->getIndices()[0]);
                 return;
             }
         }
 
         //inline asm with single output with cast
-        if (AsmExpr* AE = dynamic_cast<AsmExpr*>(func->getExpr(inst))) {
+        if (AsmExpr* AE = llvm::dyn_cast<AsmExpr>(func->getExpr(inst))) {
             if (!func->getExpr(ins.getOperand(1))) {
                 createConstantValue(ins.getOperand(1), func, block);
             }
             Expr* value = func->getExpr(ins.getOperand(1));
 
-            if (auto RE = dynamic_cast<RefExpr*>(value)) {
+            if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
                 value = RE->expr;
             }
 
@@ -178,11 +178,11 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
         Expr* value = func->getExpr(ins.getOperand(1));
         Expr* asmExpr = func->getExpr(EVI->getOperand(0));
 
-        if (auto RE = dynamic_cast<RefExpr*>(value)) {
+        if (auto RE = llvm::dyn_cast<RefExpr>(value)) {
             value = RE->expr;
         }
 
-        if (auto AE = dynamic_cast<AsmExpr*>(asmExpr)) {
+        if (auto AE = llvm::dyn_cast<AsmExpr>(asmExpr)) {
             AE->addOutputExpr(value, EVI->getIndices()[0]);
             return;
         }
@@ -210,8 +210,8 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     }
 
     //inline asm with single output
-    if (auto AE = dynamic_cast<AsmExpr*>(val0)) {
-        if (auto RE = dynamic_cast<RefExpr*>(val1)) {
+    if (auto AE = llvm::dyn_cast<AsmExpr>(val0)) {
+        if (auto RE = llvm::dyn_cast<RefExpr>(val1)) {
             val1 = RE->expr;
         }
         AE->addOutputExpr(val1, 0);
@@ -768,9 +768,8 @@ static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr,
     }
     Expr* expr = func->getExpr(ins.getOperand(0));
 
-    auto AE = dynamic_cast<AsmExpr*>(expr);
     //operand is used for initializing output in inline asm
-    if (!expr || AE) {
+    if (!expr || llvm::isa<AsmExpr>(expr)) {
         return;
     }
 

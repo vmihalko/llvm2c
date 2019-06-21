@@ -12,7 +12,7 @@ public:
     Expr* left; //first operand of binary operation
     Expr* right; //second operand of binary operation
 
-    BinaryExpr(Expr*, Expr*);
+    BinaryExpr(Expr*, Expr*, ExprKind);
 };
 
 /**
@@ -25,6 +25,8 @@ public:
     AddExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -37,6 +39,8 @@ public:
     SubExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -47,6 +51,8 @@ public:
     AssignExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -59,6 +65,8 @@ public:
     MulExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -71,6 +79,8 @@ public:
     DivExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -83,6 +93,8 @@ public:
     RemExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -93,6 +105,8 @@ public:
     AndExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -103,6 +117,8 @@ public:
     OrExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -113,6 +129,8 @@ public:
     XorExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -125,6 +143,8 @@ public:
     CmpExpr(Expr*, Expr*, const std::string&, bool);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -137,6 +157,8 @@ public:
     AshrExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -149,6 +171,8 @@ public:
     LshrExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -161,4 +185,6 @@ public:
     ShlExpr(Expr*, Expr*, bool isUnsigned);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };

@@ -9,7 +9,7 @@
  */
 class UnaryExpr : public ExprBase {
 public:
-    UnaryExpr(Expr *);
+    UnaryExpr(Expr *, ExprKind);
 
     Expr* expr; //operand of unary operation
 };
@@ -22,6 +22,8 @@ public:
     RefExpr(Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -32,6 +34,8 @@ public:
     DerefExpr(Expr*);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -43,6 +47,8 @@ public:
     RetExpr();
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -53,4 +59,6 @@ public:
     CastExpr(Expr*, std::unique_ptr<Type>);
 
     void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };

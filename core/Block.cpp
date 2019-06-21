@@ -28,14 +28,6 @@ Block::Block(const std::string &blockName, const llvm::BasicBlock* block, Func* 
 	func(func),
 	blockName(blockName), doInline(false) { }
 
-void Block::unsetAllInit() {
-    /* for (auto expr : expressions) { */
-    /*     if (Value* val = dynamic_cast<Value*>(expr)) { */
-    /*         val->init = false; */
-    /*     } */
-    /* } */
-}
-
 bool Block::isVoidType(llvm::DITypeRef type) {
 	if (llvm::DIDerivedType* dtype = llvm::dyn_cast<llvm::DIDerivedType>(type)) {
 		if (!dtype->getBaseType()) {
@@ -68,64 +60,3 @@ void Block::addValue(std::unique_ptr<Value> value) {
 	values.push_back(std::move(value));
 }
 
-void Block::output(std::ostream& stream) {
-	/* unsetAllInit(); */
-	/* for (const auto& expr : expressions) { */
-
-	/* 	if (auto V = dynamic_cast<Value*>(expr)) { */
-	/* 		stream << "    "; */
-	/* 		if (!V->init) { */
-	/* 			stream << V->getType()->toString(); */
-	/* 			stream << " "; */
-	/* 			stream << expr->toString(); */
-	/* 			stream << ";\n"; */
-	/* 			V->init = true; */
-	/* 		} */
-	/* 		continue; */
-	/* 	} */
-
-	/* 	if (auto CE = dynamic_cast<CallExpr*>(expr)) { */
-	/* 		if (func->program->noFuncCasts) { */
-	/* 			auto call = CE->funcValue; */
-	/* 			bool hasCast = false; */
-	/* 			while (auto CAST = dynamic_cast<CastExpr*>(call)) { */
-	/* 				hasCast = true; */
-	/* 				call = CAST->expr; */
-	/* 			} */
-
-	/* 			if (hasCast) { */
-	/* 				stream << "    "; */
-	/* 				stream << call->toString().substr(1, call->toString().size() - 1); */
-	/* 				stream << "(" << CE->paramsToString() << ");\n"; */
-	/* 				continue; */
-	/* 			} */
-	/* 		} */
-	/* 	} */
-
-	/* 	if (auto EE = dynamic_cast<AssignExpr*>(expr)) { */
-	/* 		if (func->program->noFuncCasts) { */
-	/* 			if (auto CE = dynamic_cast<CallExpr*>(EE->right)) { */
-	/* 				auto call = CE->funcValue; */
-	/* 				bool hasCast = false; */
-	/* 				while (auto CAST = dynamic_cast<CastExpr*>(call)) { */
-	/* 					hasCast = true; */
-	/* 					call = CAST->expr; */
-	/* 				} */
-
-	/* 				if (hasCast) { */
-	/* 					stream << "    ("; */
-	/* 					stream << EE->left->toString(); */
-	/* 					stream << ") = "; */
-	/* 					stream << call->toString().substr(1, call->toString().size() - 1); */
-	/* 					stream << "(" << CE->paramsToString() << ");\n"; */
-	/* 					continue; */
-	/* 				} */
-	/* 			} */
-	/* 		} */
-	/* 	} */
-
-	/* 	stream << "    "; */
-	/* 	stream << expr->toString(); */
-	/* 	stream << "\n"; */
-	/* } */
-}

@@ -113,11 +113,6 @@ public:
     std::string toRawString(const std::string& str) const;
 
     /**
-     * @brief unsetAllInit Unsets the init flag in every Value in abstractSyntaxTree. Used for repeated calling of print or saveFile.
-     */
-    void unsetAllInit();
-
-    /**
      * @brief addPhiAssignment Adds assignment @expr to the end of block (just before the last br)
      */
     void addPhiAssignment(std::unique_ptr<Expr> expr);
@@ -136,12 +131,6 @@ public:
      * @param func Func where the block is located
      */
     Block(const std::string &blockName, const llvm::BasicBlock* block, Func* func);
-
-    /**
-     * @brief output Outputs the translated block to the given stream.
-     * @param stream Stream for output
-     */
-    void output(std::ostream& stream);
 
     void insertValue(const llvm::Value* value, std::unique_ptr<Value> expr);
 
