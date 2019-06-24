@@ -672,19 +672,15 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
             block->addExpr(func->getExpr(&ins));
         }
     } else {
-        block->callExprMap.push_back(std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
+        auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type->clone());
 
-        auto newVariable = std::make_unique<Value>(func->getVarName(), type->clone());
-        auto alloca = std::make_unique<StackAlloc>(newVariable.get());
-        block->callValueMap.push_back(std::make_unique<AssignExpr>(newVariable.get(), block->callExprMap[block->callExprMap.size() - 1].get()));
-
-        if (!isConstExpr) {
-            block->addExpr(alloca.get());
-            block->addExpr(block->callValueMap[block->callValueMap.size() - 1].get());
+        // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
+        if (value->hasNUses(0) && !isConstExpr) {
+            block->addExpr(callExpr.get());
+            func->createExpr(value, std::move(callExpr));
+        } else {
+            inlineOrCreateVariable(value, std::move(callExpr), func, block);
         }
-
-        func->createExpr(value, std::move(newVariable));
-        block->allocas.push_back(std::move(alloca));
     }
 }
 
