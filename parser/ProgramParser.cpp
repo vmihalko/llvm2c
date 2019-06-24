@@ -34,6 +34,7 @@ Program ProgramParser::parse(const std::string& file) {
     parseBreaks(mod, result);
 
     // transformations of resulting expressions
+    deleteUnusedVariables(mod, result);
     fixMainParameters(mod, result);
     addSignCasts(mod, result);
     deleteRedundantCasts(mod, result);
