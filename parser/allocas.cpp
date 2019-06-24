@@ -18,6 +18,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     auto alloc = std::make_unique<StackAlloc>(theVariable.get());
 
                     myBlock->addExpr(alloc.get());
+                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get()));
 
                     myBlock->insertValue(&ins, std::move(theVariable));
                     myBlock->allocas.push_back(std::move(alloc));

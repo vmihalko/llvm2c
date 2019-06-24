@@ -958,9 +958,6 @@ void createExpressions(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 if (ins.getOpcode() != llvm::Instruction::Alloca) {
                     parseLLVMInstruction(ins, false, nullptr, func, myBlock);
-                } else {
-                    // TODO what exactly is this for?
-                    func->createExpr(&ins, std::make_unique<RefExpr>(myBlock->getValue(&ins)));
                 }
             }
 
