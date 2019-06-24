@@ -17,7 +17,9 @@ static void declareFunc(const llvm::Function* func, Program& program) {
         decl->createExpr(&arg, std::move(argVal));
     }
 
-    decl->setVarArg(func->isVarArg());
+    if (func->args().begin() != func->args().end()) {
+        decl->setVarArg(func->isVarArg());
+    }
 
     program.addDeclaration(func, std::move(decl));
 }
