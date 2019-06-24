@@ -9,14 +9,71 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <unordered_set>
 
 using CaseHandle = const llvm::SwitchInst::CaseHandleImpl<const llvm::SwitchInst, const llvm::ConstantInt, const llvm::BasicBlock>*;
+
+static std::unordered_set<int> read_only = {
+    llvm::Instruction::Add,
+    llvm::Instruction::FAdd,
+    llvm::Instruction::Sub,
+    llvm::Instruction::FSub,
+    llvm::Instruction::Mul,
+    llvm::Instruction::FMul,
+    llvm::Instruction::UDiv,
+    llvm::Instruction::FDiv,
+    llvm::Instruction::SDiv,
+    llvm::Instruction::URem,
+    llvm::Instruction::FRem,
+    llvm::Instruction::SRem,
+    llvm::Instruction::And,
+    llvm::Instruction::Or,
+    llvm::Instruction::Xor,
+    llvm::Instruction::Load,
+    llvm::Instruction::ICmp,
+    llvm::Instruction::FCmp,
+    llvm::Instruction::Shl,
+    llvm::Instruction::LShr,
+    llvm::Instruction::AShr,
+    llvm::Instruction::SExt,
+    llvm::Instruction::ZExt,
+    llvm::Instruction::FPToSI,
+    llvm::Instruction::SIToFP,
+    llvm::Instruction::FPTrunc,
+    llvm::Instruction::FPExt,
+    llvm::Instruction::FPToUI,
+    llvm::Instruction::UIToFP,
+    llvm::Instruction::PtrToInt,
+    llvm::Instruction::IntToPtr,
+    llvm::Instruction::Trunc,
+    llvm::Instruction::BitCast,
+    llvm::Instruction::GetElementPtr,
+    llvm::Instruction::ExtractValue,
+    llvm::Instruction::PHI,
+    llvm::Instruction::Br,
+    llvm::Instruction::Ret,
+};
+
 
 void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
+static bool usesAreOnlyReads(const llvm::Value* value) {
+    for (const auto* user : value->users()) {
+        const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(user);
+        if (!ins) {
+            continue;
+        }
+
+        if (read_only.find(ins->getOpcode()) == read_only.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Expr> expr, Func* func, Block* block) {
-    if (value->hasOneUse()) {
+    if (value->hasOneUse() || usesAreOnlyReads(value)) {
         func->createExpr(value, std::move(expr));
         return;
     }
