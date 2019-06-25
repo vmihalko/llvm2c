@@ -16,9 +16,10 @@ static void deleteExprFromBlock(Block* block, Expr* toDelete) {
 
 void extractVars(const llvm::Module* module, Program& program) {
     for (const auto& func : module->functions()) {
-        std::vector<StackAlloc*> allocs;
         auto* function = program.getFunction(&func);
+
         for (const auto& block : func) {
+            std::vector<StackAlloc*> allocs;
             // 1. find allocas
             auto* myBlock = function->getBlock(&block);
             for (const auto& expr : myBlock->expressions) {
@@ -34,6 +35,8 @@ void extractVars(const llvm::Module* module, Program& program) {
                 // 3. add them at the beginning of function
                 function->phiVariables.push_back(alloc->value);
             }
+
         }
+
     }
 }
