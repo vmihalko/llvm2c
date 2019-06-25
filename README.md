@@ -22,6 +22,17 @@ make
 
 Copy the built `llvm2c` binary into test directory and run `./run` script
 
+### Testing with CSmith
+
+To test llvm2c with [csmith](https://github.com/csmith-project/csmith/):
+
+1. compile csmith and llvm2c
+2. copy `csmith/src/csmith` binary to `test/` folder
+3. copy `csmith/runtime` to `test/` folder and rename it to `csmith-runtime`
+4. run `test/csmith_testing.py`
+
+The script generates 1000 testing programs. Each program is translated to LLVM via clang and then back to C via llvm2c. The only thing that is currently tested is, that llvm2c binary does not crash.
+
 ## Unsupported features
 
 - vector instructions
