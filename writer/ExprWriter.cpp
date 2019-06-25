@@ -373,7 +373,7 @@ void ExprWriter::visit(StackAlloc& expr) {
 
 void ExprWriter::gotoOrInline(Block* block) {
     if (block->doInline) {
-        ss << "{ // " << block->blockName << std::endl;
+        ss << "// " << block->blockName << std::endl;
         for (const auto& expr : block->expressions) {
             ss << "    ";
             expr->accept(*this);
@@ -381,7 +381,6 @@ void ExprWriter::gotoOrInline(Block* block) {
                 ss << ";" << std::endl;
             }
         }
-        ss << "}" << std::endl;
     } else {
         ss << "goto " << block->blockName << ";" << std::endl;
     }
