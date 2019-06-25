@@ -109,4 +109,6 @@ public:
     Value* getValue(const llvm::Value* value);
 
     void addOwnership(std::unique_ptr<Expr> expr);
+
+    void addExprAndOwnership(std::unique_ptr<Expr> expr);
 };

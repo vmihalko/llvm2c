@@ -82,11 +82,8 @@ static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Exp
     auto assign = std::make_unique<AssignExpr>(var.get(), expr.get());
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
-    block->addExpr(alloca.get());
-    block->addExpr(assign.get());
-
-    block->addOwnership(std::move(assign));
-    block->addOwnership(std::move(alloca));
+    block->addExprAndOwnership(std::move(alloca));
+    block->addExprAndOwnership(std::move(assign));
     block->addOwnership(std::move(expr));
 
     func->createExpr(value, std::move(var));
@@ -767,12 +764,10 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
             auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
             args.push_back(newVar.get());
 
-            block->addExpr(stackAlloc.get());
-            block->addExpr(newAssign.get());
+            block->addExprAndOwnership(std::move(stackAlloc));
+            block->addExprAndOwnership(std::move(newAssign));
 
             block->addOwnership(std::move(newVar));
-            block->addOwnership(std::move(stackAlloc));
-            block->addOwnership(std::move(newAssign));
         } else if (CE) {
             if (llvm::isa<llvm::GetElementPtrInst>(CE->getAsInstruction())) {
                 auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone());
@@ -781,12 +776,10 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
 
                 args.push_back(newVar.get());
 
-                block->addExpr(stackAlloc.get());
-                block->addExpr(newAssign.get());
+                block->addExprAndOwnership(std::move(stackAlloc));
+                block->addExprAndOwnership(std::move(newAssign));
 
                 block->addOwnership(std::move(newVar));
-                block->addOwnership(std::move(newAssign));
-                block->addOwnership(std::move(stackAlloc));
             } else {
                 args.push_back(func->getExpr(arg.get()));
             }
@@ -833,9 +826,9 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
         input.push_back({inputStrings[i], args[arg]});
         arg--;
     }
-
-    func->createExpr(&ins, std::make_unique<AsmExpr>(asmString, output, input, usedReg));
-    block->addExpr(func->getExpr(&ins));
+    auto asmExpr = std::make_unique<AsmExpr>(asmString, output, input, usedReg);
+    block->addExpr(asmExpr.get());
+    func->createExpr(&ins, std::move(asmExpr));
 }
 
 static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {

@@ -59,3 +59,8 @@ Value* Block::getValue(const llvm::Value* value) {
 void Block::addOwnership(std::unique_ptr<Expr> expr) {
     ownership.push_back(std::move(expr));
 }
+
+void Block::addExprAndOwnership(std::unique_ptr<Expr> expr) {
+    addExpr(expr.get());
+    addOwnership(std::move(expr));
+}
