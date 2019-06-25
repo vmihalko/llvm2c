@@ -89,11 +89,6 @@ public:
      */
     std::string toRawString(const std::string& str) const;
 
-    /**
-     * @brief addPhiAssignment Adds assignment @expr to the end of block (just before the last br)
-     */
-    void addPhiAssignment(std::unique_ptr<Expr> expr);
-
 public:
     std::string blockName;
 

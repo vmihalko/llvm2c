@@ -81,10 +81,6 @@ void Func::createPhiVariable(const llvm::Value* phi) {
 	createExpr(phi, std::move(var));
 }
 
-void Func::addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue) {
-	phiEntries.push_back(PhiEntry{phi, inBlock, inValue});
-}
-
 Block* Func::createBlockIfNotExist(const llvm::BasicBlock* block) {
 	auto iter = blockMap.find(block);
 	Block *result = nullptr;

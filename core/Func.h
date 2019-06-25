@@ -22,14 +22,6 @@ friend class Block;
 friend class Program;
 
 public:
-struct PhiEntry {
-    const llvm::Value* phi;
-    const llvm::BasicBlock *inBlock;
-    const llvm::Value* inValue;
-
-    PhiEntry(const llvm::Value* phi, const llvm::BasicBlock *inBlock, const llvm::Value *inValue) : phi(phi), inBlock(inBlock), inValue(inValue) {}
-};
-
     std::unique_ptr<Type> returnType;
 
     const llvm::Function* function;
@@ -44,9 +36,6 @@ struct PhiEntry {
 
     //set containing metadata names of variables (and names of global variables) that are in "var[0-9]+" format, used in creating variable names
     std::set<std::string> metadataVarNames;
-
-    // phi entries of all blocks in this function
-    std::vector<PhiEntry> phiEntries;
 
     // variables that correspond to phi nodes and will be declared at the beginning of the function
     std::vector<Value*> phiVariables;
@@ -170,11 +159,6 @@ public:
      * @brief createPhiVariable Creates a new variable for @phi.
      */
     void createPhiVariable(const llvm::Value* phi);
-
-    /**
-     * @brief addPhiAssignment Appends an assignment @phi = @inValue at the end of @inBlock
-     */
-    void addPhiAssignment(const llvm::Value* phi, const llvm::BasicBlock* inBlock, const llvm::Value* inValue);
 
     void output(std::ostream& out);
 
