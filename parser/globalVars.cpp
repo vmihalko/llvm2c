@@ -34,6 +34,10 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
 
         if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val->getOperand(0))) {
             auto RE = program.getGlobalRef(GV);
+            if (!RE) {
+                parseGlobalVar(*GV, program);
+                RE = program.getGlobalRef(GV);
+            }
             auto GVAL = static_cast<GlobalValue*>(RE->expr);
             if (!GVAL->isDefined) {
                 parseGlobalVar(*GV, program);
