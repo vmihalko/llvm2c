@@ -38,6 +38,7 @@ Program ProgramParser::parse(const std::string& file) {
     fixMainParameters(mod, result);
     addSignCasts(mod, result);
     deleteRedundantCasts(mod, result);
+    extractVars(mod, result);
 
     refDeref(mod, result);
 
