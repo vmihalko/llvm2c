@@ -22,8 +22,8 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
             continue;
         }
 
-        static_cast<IntegerType*>(myFunc->returnType.get())->unsignedType = false;
-        static_cast<IntegerType*>(decl->returnType.get())->unsignedType = false;
+        myFunc->returnType = std::make_unique<IntType>(false);
+        decl->returnType = std::make_unique<IntType>(false);
 
         for (auto& param : myFunc->parameters) {
             auto type = param->getType();
