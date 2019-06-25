@@ -5,6 +5,7 @@
 #include "ExprWriter.h"
 
 #include <iostream>
+#include <unordered_set>
 
 /**
  * @brief Writer converts programs to C code
@@ -28,7 +29,7 @@ private:
     void anonymousStructDefinitions(const Program& program);
     void functionDefinitions(const Program& program);
     void typedefs(const Program& program);
-    void structDefinition(const Struct* strct);
+    void structDefinition(const Program& program, const Struct* strct, std::unordered_set<std::string>& printed);
     bool isFunctionPrinted(const Func* func) const;
     void functionHead(const Func* func);
     void writeBlock(const Block* block, bool first);

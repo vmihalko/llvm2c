@@ -56,7 +56,29 @@ void Writer::structDeclarations(const Program& program) {
     }
 }
 
-void Writer::structDefinition(const Struct* strct) {
+void Writer::structDefinition(const Program& program, const Struct* strct, std::unordered_set<std::string>& printed) {
+    for (const auto& item : strct->items) {
+        auto type = item.first.get();
+        if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
+            if (AT->isStructArray) {
+                structDefinition(program, program.getStruct(AT->structName), printed);
+            }
+        }
+
+        if (auto PT = llvm::dyn_cast_or_null<PointerType>(type)) {
+            if (PT->isStructPointer && PT->isArrayPointer) {
+                structDefinition(program, program.getStruct(PT->structName), printed);
+            }
+        }
+
+        if (auto ST = llvm::dyn_cast_or_null<StructType>(type)) {
+            structDefinition(program, program.getStruct(ST->name), printed);
+        }
+    }
+
+    if (!printed.insert(strct->name).second)
+        return;
+
     wr.startStruct(strct->name);
 
     for (const auto& pair : strct->items) {
@@ -74,31 +96,7 @@ void Writer::structDefinitions(const Program& program) {
     std::unordered_set<std::string> printed;
 
     for (const auto& strct : program.structs) {
-        for (const auto& item : strct->items) {
-
-            auto type = item.first.get();
-            if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
-                if (AT->isStructArray) {
-                    if (printed.insert(AT->structName).second)
-                        structDefinition(program.getStruct(AT->structName));
-                }
-            }
-
-            if (auto PT = llvm::dyn_cast_or_null<PointerType>(type)) {
-                if (PT->isStructPointer && PT->isArrayPointer) {
-                    if (printed.insert(PT->structName).second)
-                        structDefinition(program.getStruct(PT->structName));
-                }
-            }
-
-            if (auto ST = llvm::dyn_cast_or_null<StructType>(type)) {
-                if (printed.insert(ST->name).second)
-                    structDefinition(program.getStruct(ST->name));
-            }
-        }
-
-        if (printed.insert(strct->name).second)
-            structDefinition(strct.get());
+        structDefinition(program, strct.get(), printed);
     }
 }
 
@@ -202,31 +200,7 @@ void Writer::anonymousStructDefinitions(const Program& program) {
 
     for (const auto& pair : program.unnamedStructs) {
         const auto& strct = pair.second;
-        for (const auto& item : strct->items) {
-
-            auto type = item.first.get();
-            if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
-                if (AT->isStructArray) {
-                    if (printed.insert(AT->structName).second)
-                        structDefinition(program.getStruct(AT->structName));
-                }
-            }
-
-            if (auto PT = llvm::dyn_cast_or_null<PointerType>(type)) {
-                if (PT->isStructPointer && PT->isArrayPointer) {
-                    if (printed.insert(PT->structName).second)
-                        structDefinition(program.getStruct(PT->structName));
-                }
-            }
-
-            if (auto ST = llvm::dyn_cast_or_null<StructType>(type)) {
-                if (printed.insert(ST->name).second)
-                    structDefinition(program.getStruct(ST->name));
-            }
-        }
-
-        if (printed.insert(strct->name).second)
-            structDefinition(strct.get());
+        structDefinition(program, strct.get(), printed);
     }
 }
 
