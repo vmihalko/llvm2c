@@ -55,6 +55,10 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
     if (auto CE = llvm::dyn_cast_or_null<llvm::ConstantExpr>(val)) {
         auto constExpr = const_cast<llvm::ConstantExpr*>(CE);
         parseLLVMInstruction(*constExpr->getAsInstruction(), true, val, func, block);
+        return;
     }
+
+    val->print(llvm::errs());
+    assert(false && "Failed to create a constant value");
 }
 
