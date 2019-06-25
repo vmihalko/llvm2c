@@ -934,6 +934,10 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     block->addOwnership(std::move(newGep));
 }
 
+void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+    func->createPhiVariable(isConstExpr ? val : &ins);
+}
+
 void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block) {
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
@@ -1009,6 +1013,8 @@ void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const 
         throw std::invalid_argument("Alloca instructions should be removed by now!");
         break;
     case llvm::Instruction::PHI:
+        parsePhiInstruction(ins, isConstExpr, val, func, block);
+        break;
     case llvm::Instruction::Br:
     case llvm::Instruction::Ret:
         // leave these for later

@@ -11,8 +11,7 @@ static void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
     const auto* phi = llvm::cast<const llvm::PHINode>(&ins);
     assert(phi != nullptr && "instruction is not a phi node or is null");
 
-    // create variable for phi
-    func->createPhiVariable(value);
+    auto* phiVar = func->getExpr(value);
 
     // for all incoming blocks:
     for (auto i = 0; i < phi->getNumIncomingValues(); ++i) {
@@ -25,7 +24,7 @@ static void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
 
         // at the end of @inBlock (just before br instruction), append an assignment @value = @inValue
         auto* myBlock = func->getBlock(inBlock);
-        auto assign = std::make_unique<AssignExpr>(func->getExpr(value), func->getExpr(inValue));
+        auto assign = std::make_unique<AssignExpr>(phiVar, func->getExpr(inValue));
         myBlock->addExpr(assign.get());
         myBlock->addOwnership(std::move(assign));
     }
