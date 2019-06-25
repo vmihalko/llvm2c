@@ -22,38 +22,15 @@ public:
 
     Func* func;
 
-    // TODO move everything owned by the block into this vector
     std::vector<std::unique_ptr<Expr>> ownership;
 
     // a sequence of expression forming this basic block
     std::vector<Expr*> expressions;
 
-    std::vector<std::unique_ptr<StackAlloc>> allocas;
-
-    //getelementptr expressions
-    std::vector<std::unique_ptr<GepExpr>> geps; //GepExpr vector used in getelementptr parsing
-    std::vector<std::unique_ptr<Expr>> casts; //Vector of casted values used in parsing getelementptr and store instruction
-
     //store expressions
-    std::map<Expr*, std::unique_ptr<Expr>> derefs; //Map used for storing unique pointers to DerefExpr (used in store instruction parsing)
+    std::map<Expr*, DerefExpr*> derefs; //Map used for storing pointers to DerefExpr (used in store instruction parsing)
 
-    //alloca expressions
     llvm::DenseMap<const llvm::Value*, std::unique_ptr<Value>> valueMap; //map of Values used in parsing alloca instruction
-
-    //extractvalue expressions
-    std::vector<std::unique_ptr<Value>> values; //Vector of Values used in parsing extractvalue
-
-    //inline asm and load expressions
-    std::vector<std::unique_ptr<Expr>> vars; //Vector of Values used in parsing inline asm and load
-    std::vector<std::unique_ptr<Expr>> stores; //Vector of EqualsExpr used in parsing inline asm and load
-    std::vector<std::unique_ptr<Expr>> loadDerefs; //Vector of DerefExpr used in parsing load
-
-    //call expressions
-    std::vector<std::unique_ptr<Expr>> callExprMap; //Vector of CallExpr used in parsing call instruction
-    std::vector<std::unique_ptr<Expr>> callValueMap; //Vector of EqualsExpr used in parsing call instruction
-
-    // assignments of values to variables for phi nodes
-    std::vector<std::unique_ptr<Expr>> phiAssignments;
 
     // instead of `goto block`, the block will be outputed in place
     bool doInline;
@@ -136,5 +113,5 @@ public:
 
     Value* getValue(const llvm::Value* value);
 
-    void addValue(std::unique_ptr<Value> value);
+    void addOwnership(std::unique_ptr<Expr> expr);
 };

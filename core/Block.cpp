@@ -56,7 +56,6 @@ Value* Block::getValue(const llvm::Value* value) {
 	return valueMap[value].get();
 }
 
-void Block::addValue(std::unique_ptr<Value> value) {
-	values.push_back(std::move(value));
+void Block::addOwnership(std::unique_ptr<Expr> expr) {
+    ownership.push_back(std::move(expr));
 }
-

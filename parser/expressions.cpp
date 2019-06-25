@@ -85,9 +85,9 @@ static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Exp
     block->addExpr(alloca.get());
     block->addExpr(assign.get());
 
-    block->stores.push_back(std::move(assign));
-    block->allocas.push_back(std::move(alloca));
-    block->ownership.push_back(std::move(expr));
+    block->addOwnership(std::move(assign));
+    block->addOwnership(std::move(alloca));
+    block->addOwnership(std::move(expr));
 
     func->createExpr(value, std::move(var));
 }
@@ -127,7 +127,7 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
         if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
             auto newVal = std::make_unique<Value>(std::to_string(idx), std::make_unique<IntType>(true));
             element = std::make_unique<ArrayElement>(expr, newVal.get());
-            block->addValue(std::move(newVal));
+            block->addOwnership(std::move(newVal));
         }
 
         prevType = element->getType()->clone();
@@ -279,11 +279,13 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     if (val1->isZero()) {
         auto newCast = std::make_unique<CastExpr>(val1, func->getType(ins.getOperand(1)->getType()));
         val1 = newCast.get();
-        block->casts.push_back(std::move(newCast));
+        block->ownership.push_back(std::move(newCast));
     }
 
     if (block->derefs.find(val1) == block->derefs.end()) {
-        block->derefs[val1] = std::make_unique<DerefExpr>(val1);
+        auto deref = std::make_unique<DerefExpr>(val1);
+        block->derefs[val1] = deref.get();
+        block->addOwnership(std::move(deref));
     }
 
     //inline asm with single output
@@ -295,7 +297,7 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
         return;
     }
     auto v = isConstExpr ? val : &ins;
-    auto assign = std::make_unique<AssignExpr>(block->derefs[val1].get(), val0);
+    auto assign = std::make_unique<AssignExpr>(block->derefs[val1], val0);
 
     if (!isConstExpr) {
         block->addExpr(assign.get());
@@ -760,20 +762,31 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
         //creates new variable for every alloca, getelementptr and cast instruction and global variable that inline asm takes as a parameter
         //as inline asm has problem with casts and expressions containing "&" symbol
         if (GI || CI || AI || GV) {
-            block->vars.push_back(std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone()));
-            block->stores.push_back(std::make_unique<AssignExpr>(block->vars[block->vars.size() - 1].get(), func->getExpr(arg.get())));
-            args.push_back(block->vars[block->vars.size() - 1].get());
+            auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone());
+            auto stackAlloc = std::make_unique<StackAlloc>(newVar.get());
+            auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
+            args.push_back(newVar.get());
 
-            block->addExpr(block->vars[block->vars.size() - 1].get());
-            block->addExpr(block->stores[block->stores.size() - 1].get());
+            block->addExpr(stackAlloc.get());
+            block->addExpr(newAssign.get());
+
+            block->addOwnership(std::move(newVar));
+            block->addOwnership(std::move(stackAlloc));
+            block->addOwnership(std::move(newAssign));
         } else if (CE) {
             if (llvm::isa<llvm::GetElementPtrInst>(CE->getAsInstruction())) {
-                block->vars.push_back(std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone()));
-                block->stores.push_back(std::make_unique<AssignExpr>(block->vars[block->vars.size() - 1].get(), func->getExpr(arg.get())));
-                args.push_back(block->vars[block->vars.size() - 1].get());
+                auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone());
+                auto stackAlloc = std::make_unique<StackAlloc>(newVar.get());
+                auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
 
-                block->addExpr(block->vars[block->vars.size() - 1].get());
-                block->addExpr(block->stores[block->stores.size() - 1].get());
+                args.push_back(newVar.get());
+
+                block->addExpr(stackAlloc.get());
+                block->addExpr(newAssign.get());
+
+                block->addOwnership(std::move(newVar));
+                block->addOwnership(std::move(newAssign));
+                block->addOwnership(std::move(stackAlloc));
             } else {
                 args.push_back(func->getExpr(arg.get()));
             }
@@ -887,8 +900,9 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
 
     //if getelementptr contains null, cast it to given type
     if (expr->isZero()) {
-        block->casts.push_back(std::make_unique<CastExpr>(expr, func->getType(prevType)));
-        prevExpr = block->casts[block->casts.size() - 1].get();
+        auto newCast = std::make_unique<CastExpr>(expr, func->getType(prevType));
+        prevExpr = newCast.get();
+        block->addOwnership(std::move(newCast));
     }
 
     for (auto it = llvm::gep_type_begin(gepInst); it != llvm::gep_type_end(gepInst); it++) {
@@ -921,8 +935,10 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
         prevType = it.getIndexedType();
         prevExpr = indices[indices.size() - 1].get();
     }
-    block->geps.push_back(std::make_unique<GepExpr>(indices));
-    inlineOrCreateVariable(isConstExpr ? val : &ins, std::make_unique<RefExpr>(block->geps[block->geps.size() -1].get()), func, block);
+    auto newGep = std::make_unique<GepExpr>(indices);
+    inlineOrCreateVariable(isConstExpr ? val : &ins, std::make_unique<RefExpr>(newGep.get()), func, block);
+
+    block->addOwnership(std::move(newGep));
 }
 
 void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block) {

@@ -21,7 +21,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get()));
 
                     myBlock->insertValue(&ins, std::move(theVariable));
-                    myBlock->allocas.push_back(std::move(alloc));
+                    myBlock->addOwnership(std::move(alloc));
                 }
             }
 

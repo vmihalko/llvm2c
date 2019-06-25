@@ -27,7 +27,7 @@ static void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, 
         auto* myBlock = func->getBlock(inBlock);
         auto assign = std::make_unique<AssignExpr>(func->getExpr(value), func->getExpr(inValue));
         myBlock->addExpr(assign.get());
-        myBlock->phiAssignments.push_back(std::move(assign));
+        myBlock->addOwnership(std::move(assign));
     }
 }
 
