@@ -5,10 +5,14 @@
 #include <llvm/IR/Instruction.h>
 
 #include <regex>
+#include <unordered_set>
 
-static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program);
+using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 
-static std::string getInitValue(const llvm::Constant* val, Program& program) {
+static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
+
+static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
+
     if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
         std::string name = val->getName().str();
 
@@ -35,15 +39,13 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
         if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val->getOperand(0))) {
             auto RE = program.getGlobalRef(GV);
             if (!RE) {
-                parseGlobalVar(*GV, program);
+                parseGlobalVar(*GV, program, initialized);
                 RE = program.getGlobalRef(GV);
             }
-            auto GVAL = static_cast<GlobalValue*>(RE->expr);
-            if (!GVAL->isDefined) {
-                parseGlobalVar(*GV, program);
-            }
 
-            GVAL->isDefined = true;
+            auto GVAL = static_cast<GlobalValue*>(RE->expr);
+            parseGlobalVar(*GV, program, initialized);
+
             return GVAL->valueName;
         }
 
@@ -98,7 +100,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
             }
             first = false;
 
-            value += getInitValue(CDA->getElementAsConstant(i), program);
+            value += getInitValue(CDA->getElementAsConstant(i), program, initialized);
         }
 
         return value + "}";
@@ -113,7 +115,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
             }
             first = false;
 
-            value += getInitValue(llvm::cast<llvm::Constant>(val->getOperand(i)), program);
+            value += getInitValue(llvm::cast<llvm::Constant>(val->getOperand(i)), program, initialized);
         }
 
         return value + "}";
@@ -126,16 +128,23 @@ static std::string getInitValue(const llvm::Constant* val, Program& program) {
     return "{}";
 }
 void parseGlobalVars(const llvm::Module* module, Program& program) {
+    GVarSet initialized;
+
     for (const llvm::GlobalVariable& gvar : module->globals()) {
         if (llvm::isa<llvm::Function>(&gvar)) {
             continue;
         }
 
-        parseGlobalVar(gvar, program);
+        parseGlobalVar(gvar, program, initialized);
     }
 }
 
-static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
+static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized) {
+    // do not initialize twice
+    if (initialized.find(&gvar) != initialized.end()) {
+        return;
+    }
+
     std::string gvarName = gvar.getName().str();
     std::replace(gvarName.begin(), gvarName.end(), '.', '_');
 
@@ -146,7 +155,12 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
 
     std::string value;
     if (gvar.hasInitializer()) {
-        value = getInitValue(gvar.getInitializer(), program);
+        value = getInitValue(gvar.getInitializer(), program, initialized);
+    }
+
+    // do not initialize twice
+    if (!initialized.insert(&gvar).second) {
+        return;
     }
 
     llvm::PointerType* PT = llvm::cast<llvm::PointerType>(gvar.getType());

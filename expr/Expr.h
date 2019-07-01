@@ -196,8 +196,6 @@ public:
 
     GlobalValue(const std::string&, const std::string&, std::unique_ptr<Type>);
 
-    bool isDefined = false;
-
     void accept(ExprVisitor& visitor) override;
 
     bool isSimple() const override;
