@@ -12,6 +12,18 @@ using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
 
 static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
+    if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
+        auto RE = program.getGlobalRef(GV);
+        if (!RE) {
+            parseGlobalVar(*GV, program, initialized);
+            RE = program.getGlobalRef(GV);
+        }
+
+        auto GVAL = static_cast<GlobalValue*>(RE->expr);
+        parseGlobalVar(*GV, program, initialized);
+
+        return "&" + GVAL->valueName;
+    }
 
     if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
         std::string name = val->getName().str();
