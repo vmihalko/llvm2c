@@ -16,7 +16,7 @@ for i in range(num_tests):
         print("Found bug!")
         break
 
-    proc = run(['clang', '-I', csmith_runtime_dir, dirname + '/output.c'])
+    proc = run(['clang', dirname + '/output.c'])
     if proc.returncode != 0:
         print("Found bug!")
         break
