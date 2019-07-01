@@ -251,12 +251,11 @@ void Writer::functionDefinitions(const Program& program) {
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }
 
-        bool first = true;
         for (const auto& blockEntry : func->blockMap) {
             const auto* block = blockEntry.second.get();
-            if (!block->doInline || first)
-                writeBlock(block, first);
-            first = false;
+            if (!block->doInline) {
+                writeBlock(block, false);
+            }
         }
 
         wr.endFunctionBody();
