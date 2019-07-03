@@ -31,8 +31,11 @@ void deleteUnusedVariables(const llvm::Module* module, Program& program) {
                             continue;
                         }
 
-                        deleteExprFromBlock(myBlock, alloca);
-                        deleteExprFromBlock(myBlock, function->getExpr(user));
+                        // make sure the allocation is only used as a target of store
+                        if (user->getValueOperand() != &ins && user->getPointerOperand() == &ins) {
+                            deleteExprFromBlock(myBlock, alloca);
+                            deleteExprFromBlock(myBlock, function->getExpr(user));
+                        }
                     }
                 }
             }
