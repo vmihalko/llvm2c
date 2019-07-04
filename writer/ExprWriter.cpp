@@ -2,6 +2,12 @@
 
 #include "../core/Block.h"
 
+void ExprWriter::indent() {
+    for (auto i = 0; i < indentCount; ++i) {
+        ss << "    ";
+    }
+}
+
 ExprWriter::ExprWriter(std::ostream& os, bool noFuncCasts): ss(os), noFuncCasts(noFuncCasts) { }
 
 void ExprWriter::visit(Struct& expr) {
@@ -369,14 +375,17 @@ void ExprWriter::visit(StackAlloc& expr) {
 
 void ExprWriter::gotoOrInline(Block* block) {
     if (block->doInline) {
+        indentCount += 1;
+        indent();
         ss << "// " << block->blockName << std::endl;
         for (const auto& expr : block->expressions) {
-            ss << "    ";
+            indent();
             expr->accept(*this);
             if (!llvm::isa<IfExpr>(expr)) {
                 ss << ";" << std::endl;
             }
         }
+        indentCount -= 1;
     } else {
         ss << "goto " << block->blockName << ";" << std::endl;
     }

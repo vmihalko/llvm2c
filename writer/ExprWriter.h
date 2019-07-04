@@ -13,9 +13,11 @@ class ExprWriter : public ExprVisitor
 private:
     std::ostream& ss;
     bool noFuncCasts;
+    size_t indentCount = 0;
 
     void gotoOrInline(Block* block);
     void parensIfNotSimple(Expr* expr);
+    void indent();
 
 public:
     ExprWriter(std::ostream& os, bool noFuncCasts);
