@@ -639,9 +639,6 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
             createConstantValue(callInst->getCalledValue(), func, block);
         }
 
-        if (!func->getExpr(callInst->getCalledValue())) {
-            createConstantValue(callInst->getCalledValue(), func, block);
-        }
         funcValue = func->getExpr(callInst->getCalledValue());
     }
 

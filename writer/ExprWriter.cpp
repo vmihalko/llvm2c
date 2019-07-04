@@ -166,8 +166,6 @@ void ExprWriter::visit(CallExpr& expr) {
     bool isVaFunc = (expr.funcName == "va_start" || expr.funcName == "va_end");
 
     if (expr.funcValue) {
-        ss << "(";
-
         auto call = expr.funcValue;
 
         if (noFuncCasts) {
@@ -177,9 +175,8 @@ void ExprWriter::visit(CallExpr& expr) {
             }
         }
 
-        call->accept(*this);
-
-        ss << ")";
+        //call->accept(*this);
+        parensIfNotSimple(call);
     } else {
         ss << expr.funcName;
     }
