@@ -175,7 +175,6 @@ void ExprWriter::visit(CallExpr& expr) {
             }
         }
 
-        //call->accept(*this);
         parensIfNotSimple(call);
     } else {
         ss << expr.funcName;
