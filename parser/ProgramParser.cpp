@@ -26,7 +26,6 @@ Program ProgramParser::parse(const std::string& file) {
     nameFunctions(mod, result);
     createFunctionParameters(mod, result);
     createBlocks(mod, result);
-    identifyInlinableBlocks(mod, result);
     createAllocas(mod, result);
     parseMetadataTypes(mod, result);
     createExpressions(mod, result);
@@ -39,8 +38,10 @@ Program ProgramParser::parse(const std::string& file) {
     addSignCasts(mod, result);
     deleteRedundantCasts(mod, result);
     extractVars(mod, result);
-
     refDeref(mod, result);
+
+    // read-only passes
+    identifyInlinableBlocks(mod, result);
 
     return result;
 }
