@@ -220,10 +220,9 @@ bool Writer::isFunctionPrinted(const Func* func) const {
     return true;
 }
 
-void Writer::writeBlock(const Block* block, bool first) {
-    if (!first) {
-        wr.startBlock(block->blockName);
-    }
+void Writer::writeBlock(const Block* block) {
+    wr.indent(1);
+    wr.startBlock(block->blockName);
 
     for (const auto& expr : block->expressions) {
         wr.indent(1);
@@ -254,10 +253,11 @@ void Writer::functionDefinitions(const Program& program) {
         for (const auto& blockEntry : func->blockMap) {
             const auto* block = blockEntry.second.get();
             if (!block->doInline) {
-                writeBlock(block, false);
+                writeBlock(block);
             }
         }
 
         wr.endFunctionBody();
+        wr.line("");
     }
 }

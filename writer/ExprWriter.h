@@ -13,14 +13,16 @@ class ExprWriter : public ExprVisitor
 private:
     std::ostream& ss;
     bool noFuncCasts;
-    size_t indentCount = 0;
+    bool forceBlockLabels;
+    size_t indentCount = 1;
 
-    void gotoOrInline(Block* block);
     void parensIfNotSimple(Expr* expr);
     void indent();
 
 public:
-    ExprWriter(std::ostream& os, bool noFuncCasts);
+    ExprWriter(std::ostream& os, bool noFuncCasts, bool forceBlockLabels);
+
+    void gotoOrInline(Block* block, bool doIndent);
 
     void visit(Struct& expr) override;
     void visit(StructElement& expr) override;

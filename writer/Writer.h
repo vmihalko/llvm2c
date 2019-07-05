@@ -18,6 +18,7 @@ private:
 
     bool useIncludes;
     bool noFuncCasts;
+    bool forceBlockLabels;
 
     void includes(const Program& program);
     void structDeclarations(const Program& program);
@@ -32,10 +33,10 @@ private:
     void structDefinition(const Program& program, const Struct* strct, std::unordered_set<std::string>& printed);
     bool isFunctionPrinted(const Func* func) const;
     void functionHead(const Func* func);
-    void writeBlock(const Block* block, bool first);
+    void writeBlock(const Block* block);
 
 
 public:
-    Writer(std::ostream& stream, bool useIncludes, bool noFuncCasts) : wr(CWriter(stream)), ew(ExprWriter(stream, noFuncCasts)), useIncludes(useIncludes), noFuncCasts(true) {}
+    Writer(std::ostream& stream, bool useIncludes, bool noFuncCasts, bool forceBlockLabels) : wr(CWriter(stream)), ew(ExprWriter(stream, noFuncCasts, forceBlockLabels)), useIncludes(useIncludes), noFuncCasts(true), forceBlockLabels(forceBlockLabels) {}
     void writeProgram(const Program& program);
 };

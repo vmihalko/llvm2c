@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     cl::opt<bool> Debug("debug", cl::desc("Print only information about translation"), cl::cat(options));
     cl::opt<bool> Includes("add-includes", cl::desc("Uses includes instead of declarations. For experimental purposes."), cl::cat(options));
     cl::opt<bool> Casts("no-function-call-casts", cl::desc("Removes casts around function calls. For experimental purposes."), cl::cat(options));
+    cl::opt<bool> BlockLabels("force-block-labels", cl::desc("Forces printing of block labels of inlined blocks"), cl::cat(options));
 
     cl::HideUnrelatedOptions(options);
     cl::ParseCommandLineOptions(argc, argv);
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
         auto program = parser.parse(Input);
 
         if (Print) {
-            Writer wr{ std::cout, Includes, Casts };
+            Writer wr{ std::cout, Includes, Casts, BlockLabels };
             wr.writeProgram(program);
         }
 
@@ -43,7 +44,7 @@ int main(int argc, char** argv) {
             if (!file.is_open()) {
                 throw std::invalid_argument("Output file cannot be opened!");
             }
-            Writer wr{ file, Includes, Casts };
+            Writer wr{ file, Includes, Casts, BlockLabels };
             wr.writeProgram(program);
         }
 

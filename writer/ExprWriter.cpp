@@ -8,7 +8,7 @@ void ExprWriter::indent() {
     }
 }
 
-ExprWriter::ExprWriter(std::ostream& os, bool noFuncCasts): ss(os), noFuncCasts(noFuncCasts) { }
+ExprWriter::ExprWriter(std::ostream& os, bool noFuncCasts, bool forceBlockLabels): ss(os), noFuncCasts(noFuncCasts), forceBlockLabels(forceBlockLabels) { }
 
 void ExprWriter::visit(Struct& expr) {
     ss << "struct ";
@@ -70,7 +70,7 @@ void ExprWriter::visit(StructElement& elem) {
 void ExprWriter::visit(ArrayElement& ae) {
     parensIfNotSimple(ae.expr);
     ss << "[";
-    ae.element->accept(*this); 
+    ae.element->accept(*this);
     ss << "]";
 }
 
@@ -92,12 +92,14 @@ void ExprWriter::visit(IfExpr& expr) {
         ss << "if (";
         expr.cmp->accept(*this);
         ss << ") {" << std::endl;
-        gotoOrInline(expr.trueBlock);
-        ss << "    } else {" << std::endl;
-        gotoOrInline(expr.falseBlock);
-        ss << "    }" << std::endl;
+        gotoOrInline(expr.trueBlock, true);
+        indent();
+        ss << "} else {" << std::endl;
+        gotoOrInline(expr.falseBlock, true);
+        indent();
+        ss << "}" << std::endl;
     } else {
-        gotoOrInline(expr.trueBlock);
+        gotoOrInline(expr.trueBlock, false);
     }
 }
 
@@ -110,13 +112,19 @@ void ExprWriter::visit(SwitchExpr& expr) {
         const auto& label = lb_block.first;
         const auto& block = lb_block.second;
 
-        ss << "    case " << label << ": ";
-        gotoOrInline(block);
+        indent();
+        ss << "    case " << label << ":" << std::endl;
+        indentCount++;
+        gotoOrInline(block, true);
+        indentCount--;
     }
 
     if (expr.def) {
+        indent();
         ss << "    default:" << std::endl;
-        gotoOrInline(expr.def);
+        indentCount++;
+        gotoOrInline(expr.def, true);
+        indentCount--;
     }
 
     ss << "}" << std::endl;
@@ -357,7 +365,7 @@ void ExprWriter::visit(LshrExpr& expr) {
     }
     expr.left->accept(*this);
     ss << ") >> (";
-    expr.right->accept(*this); 
+    expr.right->accept(*this);
     ss << ")";
 }
 
@@ -373,13 +381,17 @@ void ExprWriter::visit(StackAlloc& expr) {
     ss << expr.getType()->surroundName(expr.value->valueName);
 }
 
-void ExprWriter::gotoOrInline(Block* block) {
+void ExprWriter::gotoOrInline(Block* block, bool doIndent) {
     if (block->doInline) {
         indentCount += 1;
-        indent();
-        ss << "// " << block->blockName << std::endl;
+        if (forceBlockLabels) {
+            if (doIndent)
+                indent();
+            ss << block->blockName << ": ;" << std::endl;
+        }
         for (const auto& expr : block->expressions) {
-            indent();
+            if (doIndent)
+                indent();
             expr->accept(*this);
             if (!llvm::isa<IfExpr>(expr)) {
                 ss << ";" << std::endl;
