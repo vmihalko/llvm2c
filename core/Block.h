@@ -35,6 +35,9 @@ public:
     // instead of `goto block`, the block will be outputed in place
     bool doInline;
 
+    // is this first block of a function?
+    bool isFirst;
+
     /**
      * @brief createConstantValue Creates Value for given ConstantInt or ConstantFP and inserts it into exprMap.
      * @param val constant value
