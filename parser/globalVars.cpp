@@ -14,11 +14,6 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, G
 static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
     std::string name = val->getName().str();
 
-    if (llvm::isa<llvm::GlobalVariable>(val)) {
-        std::replace(name.begin(), name.end(), '.', '_');
-        return name;
-    }
-
     if (llvm::isa<llvm::FunctionType>(val->getType())) {
         return "&" + name;
     }
