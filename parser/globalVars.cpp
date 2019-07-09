@@ -12,6 +12,21 @@ using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
 
 static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
+    std::string name = val->getName().str();
+
+    if (llvm::isa<llvm::GlobalVariable>(val)) {
+        std::replace(name.begin(), name.end(), '.', '_');
+        return name;
+    }
+
+    if (llvm::isa<llvm::FunctionType>(val->getType())) {
+        return "&" + name;
+    }
+
+    if (llvm::isa<llvm::ConstantPointerNull>(val)) {
+        return "0";
+    }
+
     if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
         auto RE = program.getGlobalRef(GV);
         if (!RE) {
@@ -26,42 +41,9 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
     }
 
     if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
-        std::string name = val->getName().str();
+        assert(llvm::isa<llvm::Constant>(val) && "Pointer operand must be a constant");
 
-        if (llvm::isa<llvm::GlobalVariable>(val)) {
-            std::replace(name.begin(), name.end(), '.', '_');
-        }
-
-        if (name.empty()) {
-            return "0";
-        }
-
-        if (llvm::isa<llvm::ConstantPointerNull>(val)) {
-            return "0";
-        }
-
-        if (llvm::isa<llvm::FunctionType>(PT->getElementType())) {
-            return  "&" + name;
-        }
-
-        if (llvm::isa<llvm::StructType>(PT->getElementType())) {
-            return "&" + name;
-        }
-
-        if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val->getOperand(0))) {
-            auto RE = program.getGlobalRef(GV);
-            if (!RE) {
-                parseGlobalVar(*GV, program, initialized);
-                RE = program.getGlobalRef(GV);
-            }
-
-            auto GVAL = static_cast<GlobalValue*>(RE->expr);
-            parseGlobalVar(*GV, program, initialized);
-
-            return GVAL->valueName;
-        }
-
-        return "&" + name;
+        return "&" + getInitValue(llvm::cast<llvm::Constant>(val->getOperand(0)), program, initialized);
     }
 
     if (const llvm::ConstantInt* CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(val)) {
@@ -101,6 +83,27 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
 
         return ret;
     }
+
+    if (const llvm::ConstantAggregate* CA = llvm::dyn_cast_or_null<llvm::ConstantAggregate>(val)) {
+        std::string value = "{";
+        bool first = true;
+
+        for (int i = 0; ; ++i) {
+            auto* elem = CA->getAggregateElement(i);
+            if (!elem)
+                break;
+
+            if (!first) {
+                value += ", ";
+            }
+            first = false;
+
+            value += getInitValue(elem, program, initialized);
+        }
+
+        return value + "}";
+    }
+
 
     if (const llvm::ConstantDataArray* CDA = llvm::dyn_cast_or_null<llvm::ConstantDataArray>(val)) {
         std::string value = "{";
