@@ -36,7 +36,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
     }
 
     if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
-        assert(llvm::isa<llvm::Constant>(val) && "Pointer operand must be a constant");
+        assert(llvm::isa<llvm::Constant>(val->getOperand(0)) && "Pointer operand must be a constant");
 
         return "&" + getInitValue(llvm::cast<llvm::Constant>(val->getOperand(0)), program, initialized);
     }
