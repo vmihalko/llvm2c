@@ -52,6 +52,7 @@ static std::unordered_set<int> read_only = {
     llvm::Instruction::PHI,
     llvm::Instruction::Br,
     llvm::Instruction::Ret,
+    llvm::Instruction::Call,
 };
 
 
