@@ -194,6 +194,10 @@ bool CallExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_CallExpr;
 }
 
+bool CallExpr::isSimple() const {
+    return true;
+}
+
 PointerShift::PointerShift(std::unique_ptr<Type> ptrType, Expr* pointer, Expr* move)
     : ExprBase(EK_PointerShift),
       ptrType(std::move(ptrType)),
@@ -227,6 +231,10 @@ void GepExpr::accept(ExprVisitor& visitor) {
 
 bool GepExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GepExpr;
+}
+
+bool GepExpr::isSimple() const {
+    return true;
 }
 
 SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
