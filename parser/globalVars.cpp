@@ -14,7 +14,7 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, G
 static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
     std::string name = val->getName().str();
 
-    if (llvm::isa<llvm::FunctionType>(val->getType())) {
+    if (llvm::isa<llvm::Function>(val)) {
         return "&" + name;
     }
 
@@ -35,11 +35,6 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
         return "&" + GVAL->valueName;
     }
 
-    if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
-        assert(llvm::isa<llvm::Constant>(val->getOperand(0)) && "Pointer operand must be a constant");
-
-        return getInitValue(llvm::cast<llvm::Constant>(val->getOperand(0)), program, initialized);
-    }
 
     if (const llvm::ConstantInt* CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(val)) {
         std::string value;
@@ -131,8 +126,14 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
         return value + "}";
     }
 
+    if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
+        assert(llvm::isa<llvm::Constant>(val->getOperand(0)) && "Pointer operand must be a constant");
+
+        return "&" + getInitValue(llvm::cast<llvm::Constant>(val->getOperand(0)), program, initialized);
+    }
+
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
-        return "0";
+        assert("globalVars: unknown type of initial value of a global variable");
     }
 
     return "{}";
