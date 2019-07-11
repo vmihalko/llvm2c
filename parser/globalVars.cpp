@@ -5,11 +5,44 @@
 #include <llvm/IR/Instruction.h>
 
 #include <regex>
+#include <sstream>
 #include <unordered_set>
 
 using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
+
+static std::string createUndefValue(const llvm::Type* ty) {
+    if (ty->isIntegerTy()) {
+        return "0";
+    }
+
+    std::stringstream result;
+
+    if (auto* ST = llvm::dyn_cast_or_null<llvm::SequentialType>(ty)) {
+        result << "{";
+        for (auto i = 0; i < ST->getNumElements(); ++i) {
+            result << createUndefValue(ST->getElementType()) << ",";
+        }
+
+        result << "}";
+    }
+
+    if (auto* ST = llvm::dyn_cast_or_null<llvm::StructType>(ty)) {
+        result << "{";
+        for (auto i = 0; i < ST->getNumElements(); ++i) {
+            result << createUndefValue(ST->getElementType(i)) << ",";
+        }
+        result << "}";
+    }
+
+    if (!result.tellp()) {
+        ty->print(llvm::errs(), true);
+        assert(false && "globalVars: unrecognized type of undef value");
+    }
+
+    return result.str();
+}
 
 static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
     std::string name = val->getName().str();
@@ -94,50 +127,38 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
         return value + "}";
     }
 
-
-    if (const llvm::ConstantDataArray* CDA = llvm::dyn_cast_or_null<llvm::ConstantDataArray>(val)) {
+    if (const llvm::ConstantDataSequential* CDS = llvm::dyn_cast_or_null<llvm::ConstantDataSequential>(val)) {
         std::string value = "{";
         bool first = true;
 
-        for (unsigned i = 0; i < CDA->getNumElements(); i++) {
+        for (unsigned i = 0; i < CDS->getNumElements(); i++) {
             if (!first) {
                 value += ", ";
             }
             first = false;
 
-            value += getInitValue(CDA->getElementAsConstant(i), program, initialized);
+            value += getInitValue(CDS->getElementAsConstant(i), program, initialized);
         }
 
         return value + "}";
     }
 
-    if (const llvm::ConstantStruct* CS = llvm::dyn_cast_or_null<llvm::ConstantStruct>(val)) {
-        std::string value = "{";
-        bool first = true;
-        for (unsigned i = 0; i < CS->getNumOperands(); i++) {
-            if (!first) {
-                value += ", ";
-            }
-            first = false;
+    if (llvm::isa<llvm::UndefValue>(val)) {
 
-            value += getInitValue(llvm::cast<llvm::Constant>(val->getOperand(i)), program, initialized);
-        }
+        return createUndefValue(val->getType());
 
-        return value + "}";
-    }
-
-    if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(val->getType())) {
-        assert(llvm::isa<llvm::Constant>(val->getOperand(0)) && "Pointer operand must be a constant");
-
-        return "&" + getInitValue(llvm::cast<llvm::Constant>(val->getOperand(0)), program, initialized);
+        val->print(llvm::errs(), true);
+        assert(false && "globalVars: unknown type of undef value of a global variable");
     }
 
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
-        assert("globalVars: unknown type of initial value of a global variable");
+        val->print(llvm::errs(), true);
+        assert(false && "globalVars: unknown type of initial value of a global variable");
     }
 
     return "{}";
 }
+
 void parseGlobalVars(const llvm::Module* module, Program& program) {
     GVarSet initialized;
 
