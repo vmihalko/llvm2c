@@ -73,8 +73,13 @@ static bool usesAreOnlyReads(const llvm::Value* value) {
     return true;
 }
 
+// if it is a function call, assume it is impure
+static bool hasNoSideEffects(const llvm::Value* value) {
+    return !llvm::isa<llvm::CallInst>(value);
+}
+
 static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Expr> expr, Func* func, Block* block) {
-    if (value->hasOneUse() || usesAreOnlyReads(value)) {
+    if (value->hasOneUse() || (usesAreOnlyReads(value) && hasNoSideEffects(value))) {
         func->createExpr(value, std::move(expr));
         return;
     }
