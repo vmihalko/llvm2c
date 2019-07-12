@@ -16,12 +16,13 @@ Program ProgramParser::parse(const std::string& file) {
     }
 
     const auto* mod = module.get();
-    parseGlobalVars(mod, result);
-    parseStructs(mod, result);
 
     determineIncludes(mod, result);
+    parseStructs(mod, result);
     findMetadataNames(mod, result);
     findDeclaredFunctions(mod, result);
+    parseGlobalVars(mod, result);
+
     createFunctions(mod, result);
     nameFunctions(mod, result);
     createFunctionParameters(mod, result);
