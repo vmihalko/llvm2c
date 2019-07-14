@@ -184,7 +184,6 @@ static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
     const llvm::Value* value = isConstExpr ? val : &ins;
 
     func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst)));
-
 }
 
 

@@ -11,6 +11,16 @@
 using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
+static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized);
+
+// TODO do not return strings!!!!!
+static std::string createFromConstantExpr(llvm::ConstantExpr* expr, GVarSet& initialized) {
+    const llvm::Instruction* ins = expr->getAsInstruction();
+    switch (ins->getOpcode()) {
+    default:
+        assert(false && "unknown expression used in a global variable initializer");
+    }
+}
 
 static std::string createUndefValue(const llvm::Type* ty) {
     if (ty->isIntegerTy()) {
@@ -144,11 +154,11 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
     }
 
     if (llvm::isa<llvm::UndefValue>(val)) {
-
         return createUndefValue(val->getType());
+    }
 
-        val->print(llvm::errs(), true);
-        assert(false && "globalVars: unknown type of undef value of a global variable");
+    if (auto* CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast_or_null<llvm::ConstantExpr>(val))) {
+        return createFromConstantExpr(CE, initialized);
     }
 
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
