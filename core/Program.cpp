@@ -133,3 +133,9 @@ Func* Program::getDeclaration(const llvm::Function* func) {
 
     return it->second.get();
 }
+
+Expr* Program::addOwnership(std::unique_ptr<Expr> expr) {
+    Expr* result = expr.get();
+    ownership.push_back(std::move(expr));
+    return result;
+}

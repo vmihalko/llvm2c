@@ -192,9 +192,9 @@ public:
  */
 class GlobalValue : public Value {
 public:
-    std::string value;
+    Expr* value;
 
-    GlobalValue(const std::string&, const std::string&, std::unique_ptr<Type>);
+    GlobalValue(const std::string&, Expr*, std::unique_ptr<Type>);
 
     void accept(ExprVisitor& visitor) override;
 

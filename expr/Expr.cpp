@@ -104,7 +104,7 @@ bool Value::classof(const Expr* expr) {
     return expr->getKind() == EK_Value || expr->getKind() == EK_GlobalValue;
 }
 
-GlobalValue::GlobalValue(const std::string& varName, const std::string& value, std::unique_ptr<Type> type)
+GlobalValue::GlobalValue(const std::string& varName, Expr* value, std::unique_ptr<Type> type)
     : Value(varName, std::move(type), EK_GlobalValue),
       value(value) { }
 

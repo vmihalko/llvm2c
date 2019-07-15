@@ -138,7 +138,7 @@ void Writer::globalVarDefinitions(const Program& program) {
         wr.raw(" ");
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
         wr.raw(" = ");
-        wr.raw(gvar->value);
+        gvar->value->accept(ew);
         wr.line(";");
     }
 }

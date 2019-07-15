@@ -36,6 +36,9 @@ public:
     //set containing names of global variables that are in "var[0-9]+" format, used in creating variable names in functions
     std::set<std::string> globalVarNames;
 
+    // expressions that are owned by program (used in initializers of global variables)
+    std::vector<std::unique_ptr<Expr>> ownership;
+
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
     unsigned anonStructCount = 0;
@@ -153,4 +156,6 @@ public:
     const std::set<std::string>& getGlobalVarNames() const;
 
     Func* getDeclaration(const llvm::Function* func);
+
+    Expr* addOwnership(std::unique_ptr<Expr> expr);
 };

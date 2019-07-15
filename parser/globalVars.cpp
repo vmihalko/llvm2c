@@ -1,20 +1,19 @@
 #include "../core/Program.h"
 #include "../core/Func.h"
 #include "../core/Block.h"
+#include "../type/Type.h"
 
 #include <llvm/IR/Instruction.h>
 
 #include <regex>
-#include <sstream>
 #include <unordered_set>
 
 using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
 
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
-static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized);
+static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized);
 
-// TODO do not return strings!!!!!
-static std::string createFromConstantExpr(llvm::ConstantExpr* expr, GVarSet& initialized) {
+static Expr* createFromConstantExpr(llvm::ConstantExpr* expr, GVarSet& initialized) {
     const llvm::Instruction* ins = expr->getAsInstruction();
     switch (ins->getOpcode()) {
     default:
@@ -22,47 +21,45 @@ static std::string createFromConstantExpr(llvm::ConstantExpr* expr, GVarSet& ini
     }
 }
 
-static std::string createUndefValue(const llvm::Type* ty) {
+static Expr* createUndefValue(const llvm::Type* ty, Program& program) {
     if (ty->isIntegerTy()) {
-        return "0";
+        auto zero = std::make_unique<Value>("0", program.getType(ty));
+        return program.addOwnership(std::move(zero));
     }
 
-    std::stringstream result;
+    std::vector<Expr*> values;
 
     if (auto* ST = llvm::dyn_cast_or_null<llvm::SequentialType>(ty)) {
-        result << "{";
         for (auto i = 0; i < ST->getNumElements(); ++i) {
-            result << createUndefValue(ST->getElementType()) << ",";
+            values.push_back(createUndefValue(ST->getElementType(), program));
         }
 
-        result << "}";
-    }
-
-    if (auto* ST = llvm::dyn_cast_or_null<llvm::StructType>(ty)) {
-        result << "{";
+    } else if (auto* ST = llvm::dyn_cast_or_null<llvm::StructType>(ty)) {
         for (auto i = 0; i < ST->getNumElements(); ++i) {
-            result << createUndefValue(ST->getElementType(i)) << ",";
+            values.push_back(createUndefValue(ST->getElementType(i), program));
         }
-        result << "}";
-    }
-
-    if (!result.tellp()) {
+    } else {
         ty->print(llvm::errs(), true);
         assert(false && "globalVars: unrecognized type of undef value");
     }
 
-    return result.str();
+    auto init = std::make_unique<AggregateInitializer>(values);
+    return program.addOwnership(std::move(init));
 }
 
-static std::string getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
+static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
     std::string name = val->getName().str();
 
     if (llvm::isa<llvm::Function>(val)) {
-        return "&" + name;
+        auto f = std::make_unique<Value>(name, std::make_unique<PointerType>(std::make_unique<CharType>(false)));
+        auto ref = std::make_unique<RefExpr>(f.get());
+        program.addOwnership(std::move(f));
+        return program.addOwnership(std::move(ref));
     }
 
     if (llvm::isa<llvm::ConstantPointerNull>(val)) {
-        return "0";
+        auto zero = std::make_unique<Value>("0", program.getType(val->getType()));
+        return program.addOwnership(std::move(zero));
     }
 
     if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
@@ -75,7 +72,7 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
         auto GVAL = static_cast<GlobalValue*>(RE->expr);
         parseGlobalVar(*GV, program, initialized);
 
-        return "&" + GVAL->valueName;
+        return RE;
     }
 
 
@@ -90,21 +87,30 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
             value = std::to_string(CI->getSExtValue());
         }
 
-        return value;
+        auto num = std::make_unique<Value>(value, program.getType(CI->getType()));
+        return program.addOwnership(std::move(num));
     }
 
     if (const llvm::ConstantFP* CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
         if (CFP->isInfinity()) {
-            return "__builtin_inff ()";
+            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
+            return program.addOwnership(std::move(call));
         }
 
         if (CFP->isNaN()) {
-            return "__builtin_nanf (\"\")";
+            auto param = std::make_unique<Value>("\"\"", std::make_unique<PointerType>(std::make_unique<CharType>(true)));
+            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
+            program.addOwnership(std::move(param));
+            return program.addOwnership(std::move(call));
         }
 
         std::string ret = std::to_string(CFP->getValueAPF().convertToDouble());
         if (ret.compare("-nan") == 0) {
-            return "-(__builtin_nanf (\"\"))";
+            auto param = std::make_unique<Value>("\"\"", std::make_unique<PointerType>(std::make_unique<CharType>(true)));
+            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
+            // TODO flip sign like this: -(__builtin_nanf(""))
+            program.addOwnership(std::move(param));
+            return program.addOwnership(std::move(call));
         }
 
         llvm::SmallVector<char, 32> string;
@@ -114,47 +120,40 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
             ret += string[i];
         }
 
-        return ret;
+        auto val = std::make_unique<Value>(ret, program.getType(CFP->getType()));
+        return program.addOwnership(std::move(val));
     }
 
     if (const llvm::ConstantAggregate* CA = llvm::dyn_cast_or_null<llvm::ConstantAggregate>(val)) {
-        std::string value = "{";
-        bool first = true;
+        std::vector<Expr*> values;
 
-        for (int i = 0; ; ++i) {
+        for (int i = 0; true; ++i) {
             auto* elem = CA->getAggregateElement(i);
             if (!elem)
                 break;
 
-            if (!first) {
-                value += ", ";
-            }
-            first = false;
-
-            value += getInitValue(elem, program, initialized);
+            values.push_back(getInitValue(elem, program, initialized));
         }
 
-        return value + "}";
+        auto ai = std::make_unique<AggregateInitializer>(values);
+
+        return program.addOwnership(std::move(ai));
     }
 
     if (const llvm::ConstantDataSequential* CDS = llvm::dyn_cast_or_null<llvm::ConstantDataSequential>(val)) {
-        std::string value = "{";
-        bool first = true;
+        std::vector<Expr*> values;
 
-        for (unsigned i = 0; i < CDS->getNumElements(); i++) {
-            if (!first) {
-                value += ", ";
-            }
-            first = false;
-
-            value += getInitValue(CDS->getElementAsConstant(i), program, initialized);
+        for (int i = 0; i < CDS->getNumElements(); ++i) {
+            values.push_back(getInitValue(CDS->getElementAsConstant(i), program, initialized));
         }
 
-        return value + "}";
+        auto ai = std::make_unique<AggregateInitializer>(values);
+
+        return program.addOwnership(std::move(ai));
     }
 
     if (llvm::isa<llvm::UndefValue>(val)) {
-        return createUndefValue(val->getType());
+        return createUndefValue(val->getType(), program);
     }
 
     if (auto* CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast_or_null<llvm::ConstantExpr>(val))) {
@@ -166,7 +165,8 @@ static std::string getInitValue(const llvm::Constant* val, Program& program, GVa
         assert(false && "globalVars: unknown type of initial value of a global variable");
     }
 
-    return "{}";
+    auto ai = std::make_unique<AggregateInitializer>(std::vector<Expr*>{});
+    return program.addOwnership(std::move(ai));
 }
 
 void parseGlobalVars(const llvm::Module* module, Program& program) {
@@ -195,7 +195,7 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, G
         program.globalVarNames.insert(gvarName);
     }
 
-    std::string value;
+    Expr* value = nullptr;
     if (gvar.hasInitializer()) {
         value = getInitValue(gvar.getInitializer(), program, initialized);
     }
