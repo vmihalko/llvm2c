@@ -79,7 +79,7 @@ static bool hasNoSideEffects(const llvm::Value* value) {
 }
 
 static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Expr> expr, Func* func, Block* block) {
-    if (value->hasOneUse() || (usesAreOnlyReads(value) && hasNoSideEffects(value))) {
+    if (hasNoSideEffects(value) && (value->hasOneUse() || usesAreOnlyReads(value))) {
         func->createExpr(value, std::move(expr));
         return;
     }
