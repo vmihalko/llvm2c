@@ -195,3 +195,9 @@ void SimplifyingExprVisitor::visit(ShlExpr& expr) {
     expr.left = simplify(expr.left);
     expr.right = simplify(expr.right);
 }
+
+void SimplifyingExprVisitor::visit(AggregateInitializer& expr) {
+    for (auto it = expr.values.begin(); it != expr.values.end(); ++it) {
+        *it = simplify(*it);
+    }
+}

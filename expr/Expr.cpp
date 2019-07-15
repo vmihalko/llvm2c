@@ -274,3 +274,13 @@ Type* StackAlloc::getType() {
 const Type* StackAlloc::getType() const {
     return value->getType();
 }
+
+AggregateInitializer::AggregateInitializer(std::vector<Expr*> values): ExprBase(EK_AggregateInitializer), values(values) { }
+
+bool AggregateInitializer::classof(const Expr* expr) {
+    return expr->getKind() == EK_AggregateInitializer;
+}
+
+void AggregateInitializer::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}

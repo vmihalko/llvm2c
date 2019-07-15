@@ -51,8 +51,8 @@ public:
         EK_CmpExpr,
         EK_AshrExpr,
         EK_LshrExpr,
-        EK_ShlExpr
-
+        EK_ShlExpr,
+        EK_AggregateInitializer,
     };
 private:
     const ExprKind kind;
@@ -335,6 +335,17 @@ public:
 
     const Type* getType() const override;
     Type* getType() override;
+
+    static bool classof(const Expr* expr);
+};
+
+class AggregateInitializer : public ExprBase {
+public:
+    std::vector<Expr *> values;
+
+    AggregateInitializer(std::vector<Expr *> values);
+
+    void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
 };
