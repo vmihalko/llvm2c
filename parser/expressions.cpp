@@ -59,27 +59,23 @@ static std::unordered_set<int> read_only = {
 void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
-static bool usesAreOnlyReads(const llvm::Value* value) {
-    for (const auto* user : value->users()) {
-        const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(user);
-        if (!ins) {
-            continue;
-        }
+static bool canInline(const llvm::Value* value) {
+    if (llvm::isa<llvm::Constant>(value)) {
+        return true;
+    }
 
-        if (read_only.find(ins->getOpcode()) == read_only.end()) {
-            return false;
+    if (auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
+        if (ins->hasNUses(1)) {
+            auto* user = *ins->user_begin();
+            return (ins->getNextNonDebugInstruction() == user);
         }
     }
-    return true;
-}
 
-// if it is a function call, assume it is impure
-static bool hasNoSideEffects(const llvm::Value* value) {
-    return !llvm::isa<llvm::CallInst>(value);
+    return false;
 }
 
 static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Expr> expr, Func* func, Block* block) {
-    if (hasNoSideEffects(value) && (value->hasOneUse() || usesAreOnlyReads(value))) {
+    if (canInline(value)) {
         func->createExpr(value, std::move(expr));
         return;
     }
