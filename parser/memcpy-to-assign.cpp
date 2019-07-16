@@ -29,6 +29,10 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
 
             for (const auto& ins : block) {
                 if (auto callInst = llvm::dyn_cast_or_null<llvm::CallInst>(&ins)) {
+                    if (!callInst->getCalledFunction()) {
+                        continue;
+                    }
+
                     std::string funcName = callInst->getCalledFunction()->getName().str();
 
                     if (funcName.substr(0,4) == "llvm") {
