@@ -26,3 +26,4 @@ void deleteRedundantCasts(const llvm::Module* module, Program& program);
 void deleteUnusedVariables(const llvm::Module* module, Program& program);
 void extractVars(const llvm::Module* module, Program& program);
 void arrowify(const llvm::Module* module, Program& program);
+void memcpyToAssignment(const llvm::Module* module, Program& program);
