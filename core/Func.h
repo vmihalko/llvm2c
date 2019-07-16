@@ -27,6 +27,8 @@ public:
     const llvm::Function* function;
     Program* program;
 
+    Block* entry;
+
     std::map<const llvm::BasicBlock*, std::unique_ptr<Block>> blockMap; //DenseMap used for mapping llvm::BasicBlock to Block
     llvm::DenseMap<const llvm::Value*, std::unique_ptr<Expr>> exprMap; // DenseMap used for mapping llvm::Value to Expr
 

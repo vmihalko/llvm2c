@@ -9,5 +9,8 @@ void createBlocks(const llvm::Module* module, Program& program) {
         for (const auto& block : func) {
             function->createBlockIfNotExist(&block);
         }
+
+        if (function)
+            function->entry = function->getBlock(&func.getEntryBlock());
     }
 }

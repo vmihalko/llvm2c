@@ -250,8 +250,15 @@ void Writer::functionDefinitions(const Program& program) {
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }
 
+        assert(func->entry);
+        writeBlock(func->entry);
+
         for (const auto& blockEntry : func->blockMap) {
             const auto* block = blockEntry.second.get();
+
+            if (block == func->entry)
+                continue;
+
             if (!block->doInline) {
                 writeBlock(block);
             }
