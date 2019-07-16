@@ -420,3 +420,12 @@ void ExprWriter::parensIfNotSimple(Expr* expr) {
         ss << ")";
     }
 }
+
+void ExprWriter::visit(AggregateInitializer& expr) {
+    ss << "{";
+    for (auto& val : expr.values) {
+        val->accept(*this);
+        ss << ",";
+    }
+    ss << "}";
+}
