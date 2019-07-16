@@ -34,12 +34,13 @@ Program ProgramParser::parse(const std::string& file) {
     parseBreaks(mod, result);
 
     // transformations of resulting expressions
+    refDeref(mod, result);
+    arrowify(mod, result);
     deleteUnusedVariables(mod, result);
     fixMainParameters(mod, result);
     addSignCasts(mod, result);
     deleteRedundantCasts(mod, result);
     extractVars(mod, result);
-    refDeref(mod, result);
 
     // read-only passes
     identifyInlinableBlocks(mod, result);
