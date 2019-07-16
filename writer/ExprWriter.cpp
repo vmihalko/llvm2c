@@ -381,6 +381,12 @@ void ExprWriter::visit(StackAlloc& expr) {
     ss << expr.getType()->surroundName(expr.value->valueName);
 }
 
+void ExprWriter::visit(ArrowExpr& expr) {
+    parensIfNotSimple(expr.expr);
+    ss << "->";
+    ss << expr.strct->items[expr.element].second;
+}
+
 void ExprWriter::gotoOrInline(Block* block, bool doIndent) {
     if (block->doInline) {
         indentCount += 1;

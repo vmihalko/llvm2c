@@ -53,6 +53,7 @@ public:
         EK_LshrExpr,
         EK_ShlExpr,
         EK_AggregateInitializer,
+        EK_ArrowExpr,
     };
 private:
     const ExprKind kind;
@@ -344,6 +345,23 @@ public:
     std::vector<Expr *> values;
 
     AggregateInitializer(std::vector<Expr *> values);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+/**
+ * @brief The ArrowExpr represents an access to structure field via structure pointer
+ * struct->field
+ */
+class ArrowExpr : public ExprBase {
+public:
+    Struct* strct; //struct being accessed
+    Expr* expr; //expression being accessed
+    unsigned element; //number of the element
+
+    ArrowExpr(Struct*, Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
 

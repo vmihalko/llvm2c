@@ -201,3 +201,8 @@ void SimplifyingExprVisitor::visit(AggregateInitializer& expr) {
         *it = simplify(*it);
     }
 }
+
+void SimplifyingExprVisitor::visit(ArrowExpr& expr) {
+    expr.expr->accept(*this);
+    expr.expr = simplify(expr.expr);
+}

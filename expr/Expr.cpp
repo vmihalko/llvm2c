@@ -284,3 +284,15 @@ bool AggregateInitializer::classof(const Expr* expr) {
 void AggregateInitializer::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
+
+ArrowExpr::ArrowExpr(Struct* strct, Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), strct(strct), expr(expr), element(element) {
+    setType(strct->items[element].first->clone());
+}
+
+void ArrowExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool ArrowExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_ArrowExpr;
+}

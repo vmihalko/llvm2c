@@ -32,6 +32,7 @@ class LshrExpr;
 class ShlExpr;
 class StackAlloc;
 class AggregateInitializer;
+class ArrowExpr;
 
 class ExprVisitor {
 public:
@@ -67,5 +68,6 @@ public:
     virtual void visit(ShlExpr& expr) {}
     virtual void visit(StackAlloc& expr) {}
     virtual void visit(AggregateInitializer& expr) {}
+    virtual void visit(ArrowExpr& expr) {}
     virtual ~ExprVisitor() = default;
 };

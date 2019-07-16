@@ -55,6 +55,7 @@ public:
     void visit(LshrExpr& expr) override;
     void visit(ShlExpr& expr) override;
     void visit(StackAlloc& expr) override;
+    void visit(ArrowExpr& expr) override;
 
     virtual ~ExprWriter() = default;
 };

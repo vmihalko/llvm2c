@@ -39,6 +39,7 @@ public:
     void visit(LshrExpr& expr) override;
     void visit(ShlExpr& expr) override;
     void visit(AggregateInitializer& expr) override;
+    void visit(ArrowExpr& expr) override;
 
     virtual ~SimplifyingExprVisitor() = default;
 };
