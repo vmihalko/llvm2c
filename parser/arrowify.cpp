@@ -53,6 +53,7 @@ Expr* ArrowifyVisitor::simplify(Expr* expr) {
 
 void ArrowifyVisitor::visit(GepExpr& expr) {
     for (auto it = expr.indices.begin(); it != expr.indices.end(); ++it) {
+        (*it)->accept(*this);
         auto uptr = std::move(*it);
 
         if (auto* SE = llvm::dyn_cast_or_null<StructElement>(uptr.get())) {
