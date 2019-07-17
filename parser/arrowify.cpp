@@ -59,6 +59,7 @@ void ArrowifyVisitor::visit(GepExpr& expr) {
         if (auto* SE = llvm::dyn_cast_or_null<StructElement>(uptr.get())) {
             if (auto* DE = llvm::dyn_cast_or_null<DerefExpr>(SE->expr)) {
                 auto arrow = std::make_unique<ArrowExpr>(SE->strct, DE->expr, SE->element);
+                ownership.push_back(std::move(uptr));
                 uptr = std::move(arrow);
             }
         }
