@@ -50,9 +50,6 @@ static std::unordered_set<int> read_only = {
     llvm::Instruction::GetElementPtr,
     llvm::Instruction::ExtractValue,
     llvm::Instruction::PHI,
-    llvm::Instruction::Br,
-    llvm::Instruction::Ret,
-    llvm::Instruction::Call,
 };
 
 
@@ -67,7 +64,19 @@ static bool canInline(const llvm::Value* value) {
     if (auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
         if (ins->hasNUses(1)) {
             auto* user = *ins->user_begin();
-            return (ins->getNextNonDebugInstruction() == user);
+
+            auto* cur = ins->getNextNonDebugInstruction();
+            while (cur) {
+                if (cur == user) {
+                    return true;
+                }
+
+                if (read_only.find(cur->getOpcode()) == read_only.end()) {
+                    return false;
+                }
+
+                cur = cur->getNextNonDebugInstruction();
+            }
         }
     }
 
