@@ -54,6 +54,8 @@ public:
         EK_ShlExpr,
         EK_AggregateInitializer,
         EK_ArrowExpr,
+        EK_LogicalAnd,
+        EK_LogicalOr,
     };
 private:
     const ExprKind kind;
@@ -362,6 +364,30 @@ public:
     unsigned element; //number of the element
 
     ArrowExpr(Struct*, Expr*, unsigned);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+class LogicalAnd : public ExprBase {
+public:
+    Expr* lhs;
+    Expr* rhs;
+
+    LogicalAnd(Expr*, Expr*);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+class LogicalOr : public ExprBase {
+public:
+    Expr* lhs;
+    Expr* rhs;
+
+    LogicalOr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
 

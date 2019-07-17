@@ -40,6 +40,8 @@ public:
     void visit(ShlExpr& expr) override;
     void visit(AggregateInitializer& expr) override;
     void visit(ArrowExpr& expr) override;
+    void visit(LogicalAnd& expr) override;
+    void visit(LogicalOr& expr) override;
 
     virtual ~SimplifyingExprVisitor() = default;
 };

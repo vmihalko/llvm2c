@@ -429,3 +429,15 @@ void ExprWriter::visit(AggregateInitializer& expr) {
     }
     ss << "}";
 }
+
+void ExprWriter::visit(LogicalAnd& expr) {
+    parensIfNotSimple(expr.lhs);
+    ss << " && ";
+    parensIfNotSimple(expr.rhs);
+}
+
+void ExprWriter::visit(LogicalOr& expr) {
+    parensIfNotSimple(expr.lhs);
+    ss << " || ";
+    parensIfNotSimple(expr.rhs);
+}

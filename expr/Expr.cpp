@@ -296,3 +296,27 @@ void ArrowExpr::accept(ExprVisitor& visitor) {
 bool ArrowExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_ArrowExpr;
 }
+
+LogicalAnd::LogicalAnd(Expr* lhs, Expr* rhs): ExprBase(EK_LogicalAnd), lhs(lhs), rhs(rhs) {
+    setType(std::make_unique<IntegerType>("int", false));
+}
+
+void LogicalAnd::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool LogicalAnd::classof(const Expr* expr) {
+    return expr->getKind() == EK_LogicalAnd;
+}
+
+LogicalOr::LogicalOr(Expr* lhs, Expr* rhs): ExprBase(EK_LogicalOr), lhs(lhs), rhs(rhs) {
+    setType(std::make_unique<IntegerType>("int", false));
+}
+
+void LogicalOr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool LogicalOr::classof(const Expr* expr) {
+    return expr->getKind() == EK_LogicalOr;
+}

@@ -206,3 +206,19 @@ void SimplifyingExprVisitor::visit(ArrowExpr& expr) {
     expr.expr->accept(*this);
     expr.expr = simplify(expr.expr);
 }
+
+void SimplifyingExprVisitor::visit(LogicalAnd& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+
+    expr.lhs = simplify(expr.lhs);
+    expr.rhs = simplify(expr.rhs);
+}
+
+void SimplifyingExprVisitor::visit(LogicalOr& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+
+    expr.lhs = simplify(expr.lhs);
+    expr.rhs = simplify(expr.rhs);
+}

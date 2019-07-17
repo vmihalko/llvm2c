@@ -57,6 +57,8 @@ public:
     void visit(StackAlloc& expr) override;
     void visit(ArrowExpr& expr) override;
     void visit(AggregateInitializer& ai) override;
+    void visit(LogicalAnd& expr) override;
+    void visit(LogicalOr& expr) override;
 
     virtual ~ExprWriter() = default;
 };
