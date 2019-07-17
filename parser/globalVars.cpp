@@ -69,9 +69,6 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
             RE = program.getGlobalRef(GV);
         }
 
-        auto GVAL = static_cast<GlobalValue*>(RE->expr);
-        parseGlobalVar(*GV, program, initialized);
-
         return RE;
     }
 
@@ -196,20 +193,17 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, G
     }
 
     Expr* value = nullptr;
-    if (gvar.hasInitializer()) {
-        value = getInitValue(gvar.getInitializer(), program, initialized);
-    }
-
-    // do not initialize twice
-    if (!initialized.insert(&gvar).second) {
-        return;
-    }
 
     llvm::PointerType* PT = llvm::cast<llvm::PointerType>(gvar.getType());
 
-    auto var = std::make_unique<GlobalValue>(gvarName, value, program.getType(PT->getElementType()));
+    auto var = std::make_unique<GlobalValue>(gvarName, nullptr, program.getType(PT->getElementType()));
     var->getType()->isStatic = gvar.hasInternalLinkage();
 
     program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get());
+
+    if (gvar.hasInitializer()) {
+        var->value = getInitValue(gvar.getInitializer(), program, initialized);
+    }
+
     program.globalVars.push_back(std::move(var));
 }
