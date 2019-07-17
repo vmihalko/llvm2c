@@ -137,6 +137,10 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
     func->createExpr(isConstExpr ? val : &ins, std::make_unique<ExtractValueExpr>(indices));
 }
 
+static std::unique_ptr<Expr> buildIsNan(Expr* val) {
+    return std::make_unique<CallExpr>(nullptr, "!isnan", std::vector<Expr*>{val}, std::make_unique<IntegerType>("int", false));
+}
+
 static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     if (func->getExpr(ins.getOperand(0)) == nullptr) {
         createConstantValue(ins.getOperand(0), func, block);
@@ -151,6 +155,11 @@ static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
     const llvm::Value* value = isConstExpr ? val : &ins;
 
+    auto isOrderedExpr0 = buildIsNan(val0);
+    auto isOrderedExpr1 = buildIsNan(val1);
+    auto isAllOrdered = std::make_unique<LogicalAnd>(isOrderedExpr0.get(), isOrderedExpr1.get());
+
+    assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
     case llvm::CmpInst::FCMP_FALSE:
         func->createExpr(value, std::make_unique<Value>("0", std::make_unique<IntegerType>("int", false)));
@@ -158,10 +167,29 @@ static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
     case llvm::CmpInst::FCMP_TRUE:
         func->createExpr(value, std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
         return;
+
+    case llvm::CmpInst::FCMP_ORD:
+        func->createExpr(value, std::move(isAllOrdered));
+        return;
+    case llvm::CmpInst::FCMP_UNO:
+        // TODO: negate!!!
+        assert(false);
+        func->createExpr(value, std::move(isAllOrdered));
+        return;
     }
+    std::string pred = getComparePredicate(cmpInst);
+    if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
+        // TODO: isAllOrdered = negate isAllOrdered!!!
+        assert(false);
+    }
+    auto cmpExpr = std::make_unique<CmpExpr>(val0, val1, pred, false);
 
-    func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), false));
+    func->createExpr(value, std::make_unique<LogicalAnd>(isAllOrdered.get(), cmpExpr.get()));
 
+    block->addOwnership(std::move(cmpExpr));
+    block->addOwnership(std::move(isOrderedExpr0));
+    block->addOwnership(std::move(isOrderedExpr1));
+    block->addOwnership(std::move(isAllOrdered));
 
 }
 
