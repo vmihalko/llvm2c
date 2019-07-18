@@ -27,11 +27,13 @@ public:
 
     //expressions
     llvm::DenseMap<const llvm::Function*, std::unique_ptr<Func>> functions; //map containing function definitions
-    llvm::DenseMap<const llvm::Function*, std::unique_ptr<Func>> declarations; //map containing function declarations
+
     std::vector<std::unique_ptr<Struct>> structs; // vector of parsed structs
     std::vector<std::unique_ptr<GlobalValue>> globalVars; // vector of parsed global variables
     llvm::DenseMap<const llvm::GlobalVariable*, std::unique_ptr<RefExpr>> globalRefs; //map containing references to global variables
     llvm::DenseMap<const llvm::StructType*, std::unique_ptr<Struct>> unnamedStructs; // map containing unnamed structs
+
+    llvm::DenseMap<const llvm::Value*, Expr*> exprMap; // DenseMap used for mapping llvm::Value to Expr
 
     //set containing names of global variables that are in "var[0-9]+" format, used in creating variable names in functions
     std::set<std::string> globalVarNames;

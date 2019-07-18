@@ -21,7 +21,7 @@ static void declareFunc(const llvm::Function* func, Program& program) {
         decl->setVarArg(func->isVarArg());
     }
 
-    program.addDeclaration(func, std::move(decl));
+    program.addFunction(func, std::move(decl));
 }
 
 void findDeclaredFunctions(const llvm::Module *module, Program& program) {

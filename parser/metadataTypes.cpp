@@ -8,7 +8,7 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
 
-    if (Value* variable = block->getValue(referredVal)) {
+    if (Value* variable = static_cast<Value*>(block->func->getExpr(referredVal))) {
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
         llvm::DIBasicType* type = llvm::dyn_cast_or_null<llvm::DIBasicType>(localVar->getType());

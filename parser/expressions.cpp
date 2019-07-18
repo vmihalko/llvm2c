@@ -312,7 +312,7 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     if (val1->isZero()) {
         auto newCast = std::make_unique<CastExpr>(val1, func->getType(ins.getOperand(1)->getType()));
         val1 = newCast.get();
-        block->ownership.push_back(std::move(newCast));
+        block->addOwnership(std::move(newCast));
     }
 
     if (block->derefs.find(val1) == block->derefs.end()) {

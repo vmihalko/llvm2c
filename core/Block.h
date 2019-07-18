@@ -22,15 +22,11 @@ public:
 
     Func* func;
 
-    std::vector<std::unique_ptr<Expr>> ownership;
-
     // a sequence of expression forming this basic block
     std::vector<Expr*> expressions;
 
     //store expressions
     std::map<Expr*, DerefExpr*> derefs; //Map used for storing pointers to DerefExpr (used in store instruction parsing)
-
-    llvm::DenseMap<const llvm::Value*, std::unique_ptr<Value>> valueMap; //map of Values used in parsing alloca instruction
 
     // instead of `goto block`, the block will be outputed in place
     bool doInline;

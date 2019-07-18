@@ -76,7 +76,7 @@ Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
         static_cast<IntegerType*>(newType.get())->unsignedType = isUnsigned;
         auto cast = std::make_unique<CastExpr>(expr, std::move(newType));
         result = cast.get();
-        block->ownership.push_back(std::move(cast));
+        block->addOwnership(std::move(cast));
     }
 
     return result;

@@ -9,13 +9,18 @@ static void createArgs(Program& program, const llvm::Function* llvmFunc, Func* f
     const llvm::Value* lastValue;
     for (const llvm::Value& arg : llvmFunc->args()) {
         lastValue = &arg;
-        auto argVal = std::make_unique<Value>(func->getVarName(), program.getType(arg.getType()));
+        auto* argExpr = static_cast<Value*>(func->getExpr(lastValue));
 
-        func->parameters.push_back(argVal.get());
-        func->createExpr(lastValue, std::move(argVal));
+        if (!argExpr) {
+            auto argVal = std::make_unique<Value>(func->getVarName(), program.getType(arg.getType()));
+            argExpr = argVal.get();
+            func->createExpr(lastValue, std::move(argVal));
+        }
+
+        func->parameters.push_back(argExpr);
     }
 
-    auto lastArg = func->exprMap[lastValue].get();
+    auto lastArg = program.exprMap[lastValue];
     if (lastArg) {
         func->setVarArg(llvmFunc->isVarArg());
     }
@@ -24,13 +29,10 @@ static void createArgs(Program& program, const llvm::Function* llvmFunc, Func* f
 void createFunctionParameters(const llvm::Module* module, Program& program) {
     for (const llvm::Function& func : module->functions()) {
         auto* myFunc = program.getFunction(&func);
-        auto* decl = program.getDeclaration(&func);
+
 
         if (myFunc)
             createArgs(program, &func, myFunc);
-
-        if (decl)
-            createArgs(program, &func, decl);
 
     }
 

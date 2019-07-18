@@ -16,27 +16,14 @@ static void convertToSignedIntPtr(PointerType* pt) {
 void fixMainParameters(const llvm::Module* module, Program& program) {
     for (const llvm::Function& func : module->functions()) {
         auto* myFunc = program.getFunction(&func);
-        auto* decl = program.getDeclaration(&func);
 
         if (func.getName() != "main") {
             continue;
         }
 
         myFunc->returnType = std::make_unique<IntType>(false);
-        decl->returnType = std::make_unique<IntType>(false);
 
         for (auto& param : myFunc->parameters) {
-            auto type = param->getType();
-            if (auto IT = llvm::dyn_cast_or_null<IntegerType>(type)) {
-                IT->unsignedType = false;
-            }
-
-            if (auto PT = llvm::dyn_cast_or_null<PointerType>(type)) {
-                convertToSignedIntPtr(PT);
-            }
-        }
-
-        for (auto& param : decl->parameters) {
             auto type = param->getType();
             if (auto IT = llvm::dyn_cast_or_null<IntegerType>(type)) {
                 IT->unsignedType = false;

@@ -61,4 +61,3 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
     val->print(llvm::errs());
     assert(false && "Failed to create a constant value");
 }
-

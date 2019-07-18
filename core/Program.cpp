@@ -64,12 +64,6 @@ RefExpr* Program::getGlobalVar(const llvm::Value* val) {
 	return nullptr;
 }
 
-void Program::addDeclaration(const llvm::Function* func, std::unique_ptr<Func> decl) {
-	if (!isFunctionDeclared(func)) {
-		declarations[func] = std::move(decl);
-	}
-}
-
 void Program::createNewUnnamedStruct(const llvm::StructType *strct) {
 	if (unnamedStructs.find(strct) != unnamedStructs.end()) {
 		return;
@@ -121,17 +115,8 @@ std::string Program::getStructVarName() {
 	return varName;
 }
 
-bool Program::isFunctionDeclared(const llvm::Function* func) const {
-	return declarations.count(func) > 0;
-}
-
-Func* Program::getDeclaration(const llvm::Function* func) {
-    auto it = declarations.find(func);
-    if (it == declarations.end()) {
-        return nullptr;
-    }
-
-    return it->second.get();
+bool Program::isFunctionDeclared(const llvm::Function* llvmFunc) const {
+    return functions.find(llvmFunc) != functions.end();
 }
 
 Expr* Program::addOwnership(std::unique_ptr<Expr> expr) {

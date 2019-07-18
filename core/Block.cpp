@@ -48,16 +48,8 @@ bool Block::isVoidType(llvm::DITypeRef type) {
 	return false;
 }
 
-void Block::insertValue(const llvm::Value* value, std::unique_ptr<Value> expr) {
-	valueMap[value] = std::move(expr);
-}
-
-Value* Block::getValue(const llvm::Value* value) {
-	return valueMap[value].get();
-}
-
 void Block::addOwnership(std::unique_ptr<Expr> expr) {
-    ownership.push_back(std::move(expr));
+    func->program->ownership.push_back(std::move(expr));
 }
 
 void Block::addExprAndOwnership(std::unique_ptr<Expr> expr) {

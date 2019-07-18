@@ -182,7 +182,7 @@ void Writer::functionHead(const Func* func) {
 
 void Writer::functionDeclarations(const Program& program) {
     wr.comment("function declarations");
-    for (const auto& decl : program.declarations) {
+    for (const auto& decl : program.functions) {
         auto& func = decl.second;
         if (!isFunctionPrinted(func.get())) {
             continue;
@@ -238,6 +238,10 @@ void Writer::writeBlock(const Block* block) {
 void Writer::functionDefinitions(const Program& program) {
     for (const auto& pair : program.functions) {
         const auto* func = pair.second.get();
+        if (func->isDeclaration) {
+            continue;
+        }
+
         if (!isFunctionPrinted(func)) {
             continue;
         }

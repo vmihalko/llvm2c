@@ -22,21 +22,22 @@ Func::Func(const llvm::Function* func, Program* program, bool isDeclaration) {
 }
 
 Expr* Func::getExpr(const llvm::Value* val) {
-    auto it = exprMap.find(val);
-	if (it == exprMap.end()) {
+    auto it = program->exprMap.find(val);
+	if (it == program->exprMap.end()) {
 		if (auto F = llvm::dyn_cast_or_null<llvm::Function>(val)) {
 			createExpr(val, std::make_unique<Value>(F->getName().str(), getType(F->getReturnType())));
-			return exprMap.find(val)->second.get();
+			return program->exprMap.find(val)->second;
 		}
 	} else {
-		return it->second.get();
+		return it->second;
 	}
 
 	return program->getGlobalVar(val);
 }
 
 void Func::createExpr(const llvm::Value* val, std::unique_ptr<Expr> expr) {
-	exprMap[val] = std::move(expr);
+	program->exprMap[val] = expr.get();
+    program->ownership.push_back(std::move(expr));
 }
 
 std::string Func::getVarName() {

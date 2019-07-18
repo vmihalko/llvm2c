@@ -25,12 +25,8 @@ static void nameFunction(const llvm::Function* llvmFunc, Func* func) {
 void nameFunctions(const llvm::Module* module, Program& program) {
     for (const llvm::Function& func : module->functions()) {
         auto* function = program.getFunction(&func);
-        auto *decl = program.getDeclaration(&func);
 
         if (function)
             nameFunction(&func, function);
-
-        if (decl)
-            nameFunction(&func, decl);
     }
 }
