@@ -178,11 +178,15 @@ static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
         return;
 
     case llvm::CmpInst::FCMP_ORD:
+        block->addOwnership(std::move(isOrderedExpr0));
+        block->addOwnership(std::move(isOrderedExpr1));
         func->createExpr(value, std::move(isAllOrdered));
         return;
     case llvm::CmpInst::FCMP_UNO:
         // TODO: negate!!!
         assert(false);
+        block->addOwnership(std::move(isOrderedExpr0));
+        block->addOwnership(std::move(isOrderedExpr1));
         func->createExpr(value, std::move(isAllOrdered));
         return;
     }
@@ -193,13 +197,7 @@ static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
     }
     auto cmpExpr = std::make_unique<CmpExpr>(val0, val1, pred, false);
 
-    func->createExpr(value, std::make_unique<LogicalAnd>(isAllOrdered.get(), cmpExpr.get()));
-
-    block->addOwnership(std::move(cmpExpr));
-    block->addOwnership(std::move(isOrderedExpr0));
-    block->addOwnership(std::move(isOrderedExpr1));
-    block->addOwnership(std::move(isAllOrdered));
-
+    func->createExpr(value, std::move(cmpExpr));
 }
 
 static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
