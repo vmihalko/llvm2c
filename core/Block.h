@@ -92,6 +92,7 @@ public:
     std::string blockName;
 
     void addExpr(Expr *expr) {
+        assert(expr);
         expressions.push_back(expr);
     }
 

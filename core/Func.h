@@ -158,7 +158,7 @@ public:
     /**
      * @brief createPhiVariable Creates a new variable for @phi.
      */
-    void createPhiVariable(const llvm::Value* phi);
+    Expr* createPhiVariable(const llvm::Value* phi);
 
     void output(std::ostream& out);
 

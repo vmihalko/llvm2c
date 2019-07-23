@@ -160,4 +160,8 @@ public:
     Func* getDeclaration(const llvm::Function* func);
 
     Expr* addOwnership(std::unique_ptr<Expr> expr);
+
+    Expr* getExpr(const llvm::Value* value);
+
+    void addExpr(const llvm::Value* value, Expr* expr);
 };

@@ -3,7 +3,7 @@
 #include <llvm/IR/Instruction.h>
 #include "../core/Program.h"
 
-void parseGlobalVars(const llvm::Module* module, Program& program);
+void initializeGlobalVars(const llvm::Module* module, Program& program);
 void parseStructs(const llvm::Module* module, Program& program);
 void parseFunctions(const llvm::Module* module, Program& program);
 void determineIncludes(const llvm::Module* module, Program& program);
@@ -27,3 +27,5 @@ void deleteUnusedVariables(const llvm::Module* module, Program& program);
 void extractVars(const llvm::Module* module, Program& program);
 void arrowify(const llvm::Module* module, Program& program);
 void memcpyToAssignment(const llvm::Module* module, Program& program);
+void computeGlobalVarsOrder(const llvm::Module* module, Program& program);
+void createConstants(const llvm::Module* mod, Program& program);

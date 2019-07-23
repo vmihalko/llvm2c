@@ -75,11 +75,11 @@ std::unique_ptr<Type> Func::getType(const llvm::Type* type) {
 	return program->getType(type);
 }
 
-void Func::createPhiVariable(const llvm::Value* phi) {
+Expr* Func::createPhiVariable(const llvm::Value* phi) {
 	auto var = std::make_unique<Value>(getVarName() + "_phi", getType(phi->getType()));
 	phiVariables.push_back(var.get());
 
-	createExpr(phi, std::move(var));
+    return program->addOwnership(std::move(var));
 }
 
 Block* Func::createBlockIfNotExist(const llvm::BasicBlock* block) {

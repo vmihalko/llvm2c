@@ -23,7 +23,6 @@ void refDeref(const llvm::Module* module, Program& program) {
             for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
                 auto expr = *it;
                 expr->accept(rdv);
-
             }
         }
     }

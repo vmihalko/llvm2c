@@ -1,17 +1,48 @@
 #include "constval.h"
 
-void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
+Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 
-void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
+Expr* createUndefValue(const llvm::Type* ty, Program& program) {
+    if (ty->isIntegerTy()) {
+        auto zero = std::make_unique<Value>("0", program.getType(ty));
+        return program.addOwnership(std::move(zero));
+    }
+
+    std::vector<Expr*> values;
+
+    if (auto* ST = llvm::dyn_cast_or_null<llvm::SequentialType>(ty)) {
+        for (auto i = 0; i < ST->getNumElements(); ++i) {
+            values.push_back(createUndefValue(ST->getElementType(), program));
+        }
+
+    } else if (auto* ST = llvm::dyn_cast_or_null<llvm::StructType>(ty)) {
+        for (auto i = 0; i < ST->getNumElements(); ++i) {
+            values.push_back(createUndefValue(ST->getElementType(i), program));
+        }
+    } else {
+        ty->print(llvm::errs(), true);
+        assert(false && "globalVars: unrecognized type of undef value");
+    }
+
+    auto init = std::make_unique<AggregateInitializer>(values);
+    return program.addOwnership(std::move(init));
+}
+
+Expr* createConstantValue(const llvm::Value* val, Program& program) {
     //undefined value is translated as zero, only for experimental purposes (this value cannot occur in LLVM generated from C)
     if (llvm::isa<llvm::UndefValue>(val)) {
-        func->createExpr(val, std::make_unique<Value>("0", func->getType(val->getType())));
-        return;
+        return createUndefValue(val->getType(), program);
     }
 
     if (auto CPN = llvm::dyn_cast_or_null<llvm::ConstantPointerNull>(val)) {
-        func->createExpr(val, std::make_unique<Value>("0", func->getType(CPN->getType())));
-        return;
+        return program.addOwnership(std::make_unique<Value>("0", program.getType(val->getType())));
+    }
+
+    if (llvm::isa<llvm::Function>(val)) {
+        auto f = std::make_unique<Value>(val->getName().str(), std::make_unique<PointerType>(std::make_unique<CharType>(false)));
+        auto ref = std::make_unique<RefExpr>(f.get());
+        program.addOwnership(std::move(f));
+        return program.addOwnership(std::move(ref));
     }
 
     if (auto CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(val)) {
@@ -25,15 +56,15 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
             value = std::to_string(CI->getSExtValue());
         }
 
-        func->createExpr(val, std::make_unique<Value>(value, std::make_unique<IntType>(false)));
-        return;
+        return program.addOwnership(std::make_unique<Value>(value, std::make_unique<IntType>(false)));
     }
 
     if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
+        std::unique_ptr<Expr> result;
         if (CFP->isInfinity()) {
-            func->createExpr(val, std::make_unique<Value>("__builtin_inff ()", std::make_unique<FloatType>()));
+            result = std::make_unique<Value>("__builtin_inff ()", std::make_unique<FloatType>());
         } else if (CFP->isNaN()){
-            func->createExpr(val, std::make_unique<Value>("__builtin_nanf (\"\")", std::make_unique<FloatType>()));
+            result = std::make_unique<Value>("__builtin_nanf (\"\")", std::make_unique<FloatType>());
         } else {
             std::string CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
             if (CFPvalue.compare("-nan") == 0) {
@@ -47,15 +78,16 @@ void createConstantValue(const llvm::Value* val, Func* func, Block* block) {
                 }
             }
 
-            func->createExpr(val, std::make_unique<Value>(CFPvalue, std::make_unique<FloatType>()));
+            result = std::make_unique<Value>(CFPvalue, std::make_unique<FloatType>());
         }
-        return;
+        return program.addOwnership(std::move(result));
     }
 
     if (auto CE = llvm::dyn_cast_or_null<llvm::ConstantExpr>(val)) {
         auto constExpr = const_cast<llvm::ConstantExpr*>(CE);
-        parseLLVMInstruction(*constExpr->getAsInstruction(), true, val, func, block);
-        return;
+        if (auto* inst = constExpr->getAsInstruction()) {
+            return parseLLVMInstruction(*inst, program);
+        }
     }
 
     val->print(llvm::errs());

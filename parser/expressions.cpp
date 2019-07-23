@@ -52,8 +52,7 @@ static std::unordered_set<int> read_only = {
     llvm::Instruction::PHI,
 };
 
-
-void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block);
+Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
 static bool canInline(const llvm::Value* value) {
@@ -83,59 +82,59 @@ static bool canInline(const llvm::Value* value) {
     return false;
 }
 
-static void inlineOrCreateVariable(const llvm::Value* value, std::unique_ptr<Expr> expr, Func* func, Block* block) {
+static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* func, Block* block) {
     if (canInline(value)) {
-        func->createExpr(value, std::move(expr));
+        func->program->addExpr(value, expr);
         return;
     }
 
     auto var = std::make_unique<Value>(func->getVarName(), expr->getType()->clone());
-    auto assign = std::make_unique<AssignExpr>(var.get(), expr.get());
+    auto assign = std::make_unique<AssignExpr>(var.get(), expr);
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
     block->addExprAndOwnership(std::move(alloca));
     block->addExprAndOwnership(std::move(assign));
-    block->addOwnership(std::move(expr));
 
-    func->createExpr(value, std::move(var));
+    func->program->addExpr(value, func->program->addOwnership(std::move(var)));
 }
 
-static void createFuncCallParam(const llvm::Use& param, Func* func, Block* block) {
+static void createFuncCallParam(const llvm::Use& param, Program& program) {
     if (llvm::PointerType* PT = llvm::dyn_cast_or_null<llvm::PointerType>(param->getType())) {
         if (llvm::isa<llvm::ConstantPointerNull>(param)) {
-            createConstantValue(param, func, block);
+            program.exprMap[param] = createConstantValue(param, program);
         } else if (PT->getElementType()->isFunctionTy() && !param->getName().empty()) {
-            func->createExpr(param, std::make_unique<Value>(param->getName().str(), std::make_unique<VoidType>()));
+            auto val = std::make_unique<Value>(param->getName().str(), std::make_unique<VoidType>());
+            program.exprMap[param] = program.addOwnership(std::move(val));
         } else {
-            createConstantValue(param, func, block);
+            program.exprMap[param] = createConstantValue(param, program);
         }
     } else {
-        createConstantValue(param, func, block);
+        program.exprMap[param] = createConstantValue(param, program);
     }
 }
 
-static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program& program) {
     const llvm::ExtractValueInst* EVI = llvm::cast<const llvm::ExtractValueInst>(&ins);
 
     std::vector<std::unique_ptr<Expr>> indices;
-    std::unique_ptr<Type> prevType = func->getType(ins.getOperand(0)->getType());
-    Expr* expr = func->getExpr(ins.getOperand(0));
+    std::unique_ptr<Type> prevType = program.getType(ins.getOperand(0)->getType());
+    Expr* expr = program.getExpr(ins.getOperand(0));
 
     if (llvm::isa<AsmExpr>(expr)) {
-        return;
+        return nullptr;
     }
 
     for (unsigned idx : EVI->getIndices()) {
         std::unique_ptr<Expr> element = nullptr;
 
         if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType.get())) {
-            element = std::make_unique<StructElement>(func->getStruct(ST->name), expr, idx);
+            element = std::make_unique<StructElement>(program.getStruct(ST->name), expr, idx);
         }
 
         if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
             auto newVal = std::make_unique<Value>(std::to_string(idx), std::make_unique<IntType>(true));
             element = std::make_unique<ArrayElement>(expr, newVal.get());
-            block->addOwnership(std::move(newVal));
+            program.addOwnership(std::move(newVal));
         }
 
         prevType = element->getType()->clone();
@@ -143,26 +142,19 @@ static void parseExtractValueInstruction(const llvm::Instruction& ins, bool isCo
         indices.push_back(std::move(element));
     }
 
-    func->createExpr(isConstExpr ? val : &ins, std::make_unique<ExtractValueExpr>(indices));
+    return program.addOwnership(std::make_unique<ExtractValueExpr>(indices));
 }
 
 static std::unique_ptr<Expr> buildIsNan(Expr* val) {
     return std::make_unique<CallExpr>(nullptr, "!isnan", std::vector<Expr*>{val}, std::make_unique<IntegerType>("int", false));
 }
 
-static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    if (func->getExpr(ins.getOperand(0)) == nullptr) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-    Expr* val0 = func->getExpr(ins.getOperand(0));
-
-    if (func->getExpr(ins.getOperand(1)) == nullptr) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(1));
+static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program) {
+    Expr* val0 = program.getExpr(ins.getOperand(0));
+    Expr* val1 = program.getExpr(ins.getOperand(1));
+    assert(val0 && val1);
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
-    const llvm::Value* value = isConstExpr ? val : &ins;
 
     auto isOrderedExpr0 = buildIsNan(val0);
     auto isOrderedExpr1 = buildIsNan(val1);
@@ -171,59 +163,49 @@ static void parseFCmpInstruction(const llvm::Instruction& ins, bool isConstExpr,
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
     case llvm::CmpInst::FCMP_FALSE:
-        func->createExpr(value, std::make_unique<Value>("0", std::make_unique<IntegerType>("int", false)));
-        return;
+        return program.addOwnership(std::make_unique<Value>("0", std::make_unique<IntegerType>("int", false)));
     case llvm::CmpInst::FCMP_TRUE:
-        func->createExpr(value, std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
-        return;
+        return program.addOwnership(std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
 
     case llvm::CmpInst::FCMP_ORD:
-        block->addOwnership(std::move(isOrderedExpr0));
-        block->addOwnership(std::move(isOrderedExpr1));
-        func->createExpr(value, std::move(isAllOrdered));
-        return;
+        program.addOwnership(std::move(isOrderedExpr0));
+        program.addOwnership(std::move(isOrderedExpr1));
+        return program.addOwnership(std::move(isAllOrdered));
     case llvm::CmpInst::FCMP_UNO:
         // TODO: negate!!!
         assert(false);
-        block->addOwnership(std::move(isOrderedExpr0));
-        block->addOwnership(std::move(isOrderedExpr1));
-        func->createExpr(value, std::move(isAllOrdered));
-        return;
+        program.addOwnership(std::move(isOrderedExpr0));
+        program.addOwnership(std::move(isOrderedExpr1));
+        return program.addOwnership(std::move(isAllOrdered));
     }
     std::string pred = getComparePredicate(cmpInst);
     if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
         // TODO: isAllOrdered = negate isAllOrdered!!!
         assert(false);
     }
-    auto cmpExpr = std::make_unique<CmpExpr>(val0, val1, pred, false);
 
-    func->createExpr(value, std::move(cmpExpr));
+    return program.addOwnership(std::make_unique<CmpExpr>(val0, val1, pred, false));
 }
 
-static void parseICmpInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    if (func->getExpr(ins.getOperand(0)) == nullptr) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-    Expr* val0 = func->getExpr(ins.getOperand(0));
-
-    if (func->getExpr(ins.getOperand(1)) == nullptr) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(1));
+static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
+    Expr* val0 = program.getExpr(ins.getOperand(0));
+    Expr* val1 = program.getExpr(ins.getOperand(1));
+    assert(val0 && val1);
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
-    const llvm::Value* value = isConstExpr ? val : &ins;
 
-    func->createExpr(value, std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst)));
+    return program.addOwnership(std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst)));
 }
 
 
-static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    auto type = func->getType(ins.getOperand(0)->getType());
+static Expr* parseStoreInstruction(const llvm::Instruction& ins, Program& program) {
+    auto type = program.getType(ins.getOperand(0)->getType());
     if (llvm::dyn_cast_or_null<PointerType>(type.get())) {
         if (llvm::Function* function = llvm::dyn_cast_or_null<llvm::Function>(ins.getOperand(0))) {
-            if (!func->getExpr(ins.getOperand(0))) {
-                func->createExpr(ins.getOperand(0), std::make_unique<Value>("&" + function->getName().str(), std::make_unique<VoidType>()));
+            if (!program.getExpr(ins.getOperand(0))) {
+                auto val0 = std::make_unique<Value>("&" + function->getName().str(), std::make_unique<VoidType>());
+                program.addExpr(ins.getOperand(0), val0.get());
+                program.addOwnership(std::move(val0));
             }
         }
     }
@@ -232,7 +214,9 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     if (llvm::CallInst* CI = llvm::dyn_cast_or_null<llvm::CallInst>(ins.getOperand(0))) {
         if (CI->getCalledFunction()) {
             if (CI->getCalledFunction()->getName().str().compare("llvm.stacksave") == 0) {
-                return;
+                // TODO: somehow skip parsing the instruction
+                // but it should not be a problem since store is not operand of anything
+                return nullptr;
             }
         }
     }
@@ -248,11 +232,10 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
     if (isCast) {
         //inline asm with multiple outputs with casts
         if (llvm::ExtractValueInst* EVI = llvm::dyn_cast_or_null<llvm::ExtractValueInst>(inst)) {
-            if (!func->getExpr(ins.getOperand(1))) {
-                createConstantValue(ins.getOperand(1), func, block);
-            }
-            Expr* value = func->getExpr(ins.getOperand(1));
-            Expr* asmExpr = func->getExpr(EVI->getOperand(0));
+            Expr* value = program.getExpr(ins.getOperand(1));
+            assert(value);
+
+            Expr* asmExpr = program.getExpr(EVI->getOperand(0));
 
             if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
                 value = RE->expr;
@@ -260,33 +243,29 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
 
             if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(asmExpr)) {
                 AE->addOutputExpr(value, EVI->getIndices()[0]);
-                return;
+                return nullptr;
             }
         }
 
         //inline asm with single output with cast
-        if (AsmExpr* AE = llvm::dyn_cast_or_null<AsmExpr>(func->getExpr(inst))) {
-            if (!func->getExpr(ins.getOperand(1))) {
-                createConstantValue(ins.getOperand(1), func, block);
-            }
-            Expr* value = func->getExpr(ins.getOperand(1));
+        if (AsmExpr* AE = llvm::dyn_cast_or_null<AsmExpr>(program.getExpr(inst))) {
+            Expr* value = program.getExpr(ins.getOperand(1));
+            assert(value);
 
             if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
                 value = RE->expr;
             }
 
             AE->addOutputExpr(value, 0);
-            return;
+            return nullptr;
         }
     }
 
     //inline asm with multiple outputs
     if (llvm::ExtractValueInst* EVI = llvm::dyn_cast_or_null<llvm::ExtractValueInst>(ins.getOperand(0))) {
-        if (!func->getExpr(ins.getOperand(1))) {
-            createConstantValue(ins.getOperand(1), func, block);
-        }
-        Expr* value = func->getExpr(ins.getOperand(1));
-        Expr* asmExpr = func->getExpr(EVI->getOperand(0));
+        Expr* value = program.getExpr(ins.getOperand(1));
+        assert(value);
+        Expr* asmExpr = program.getExpr(EVI->getOperand(0));
 
         if (auto RE = llvm::dyn_cast_or_null<RefExpr>(value)) {
             value = RE->expr;
@@ -294,32 +273,22 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
 
         if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(asmExpr)) {
             AE->addOutputExpr(value, EVI->getIndices()[0]);
-            return;
+            return nullptr;
         }
     }
 
-    if (!func->getExpr(ins.getOperand(0))) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-    Expr* val0 = func->getExpr(ins.getOperand(0));
-
-    if (!func->getExpr(ins.getOperand(1))) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(1));
+    Expr* val0 = program.getExpr(ins.getOperand(0));
+    Expr* val1 = program.getExpr(ins.getOperand(1));
+    assert(val0 && val1);
 
     //storing to NULL
     if (val1->isZero()) {
-        auto newCast = std::make_unique<CastExpr>(val1, func->getType(ins.getOperand(1)->getType()));
+        auto newCast = std::make_unique<CastExpr>(val1, program.getType(ins.getOperand(1)->getType()));
         val1 = newCast.get();
-        block->addOwnership(std::move(newCast));
+        program.addOwnership(std::move(newCast));
     }
 
-    if (block->derefs.find(val1) == block->derefs.end()) {
-        auto deref = std::make_unique<DerefExpr>(val1);
-        block->derefs[val1] = deref.get();
-        block->addOwnership(std::move(deref));
-    }
+    auto deref = std::make_unique<DerefExpr>(val1);
 
     //inline asm with single output
     if (auto AE = llvm::dyn_cast_or_null<AsmExpr>(val0)) {
@@ -327,43 +296,24 @@ static void parseStoreInstruction(const llvm::Instruction& ins, bool isConstExpr
             val1 = RE->expr;
         }
         AE->addOutputExpr(val1, 0);
-        return;
+        return nullptr;
     }
-    auto v = isConstExpr ? val : &ins;
-    auto assign = std::make_unique<AssignExpr>(block->derefs[val1], val0);
+    auto assign = std::make_unique<AssignExpr>(program.addOwnership(std::move(deref)), val0);
 
-    if (!isConstExpr) {
-        block->addExpr(assign.get());
-    }
-    func->createExpr(v, std::move(assign));
+    return program.addOwnership(std::move(assign));
 }
 
-static void parseLoadInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    auto* v = isConstExpr ? val : &ins;
-
-    if (!func->getExpr(ins.getOperand(0))) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-
-    auto deref = std::make_unique<DerefExpr>(func->getExpr(ins.getOperand(0)));
-    inlineOrCreateVariable(v, std::move(deref), func, block);
-
+static Expr* parseLoadInstruction(const llvm::Instruction& ins, Program& program) {
+    auto deref = std::make_unique<DerefExpr>(program.getExpr(ins.getOperand(0)));
+    return program.addOwnership(std::move(deref));
 }
 
-static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    if (!func->getExpr(ins.getOperand(0))) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
+static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& program) {
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
 
-    Expr* val0 = func->getExpr(ins.getOperand(0));
-
-    if (!func->getExpr(ins.getOperand(1))) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(1));
-
-    const llvm::Value* value = isConstExpr ? val : &ins;
+    Expr* val0 = program.getExpr(ins.getOperand(0));
+    Expr* val1 = program.getExpr(ins.getOperand(1));
+    assert(val0 && val1);
 
     bool isUnsigned = !binOp->hasNoSignedWrap();
 
@@ -409,16 +359,14 @@ static void parseBinaryInstruction(const llvm::Instruction& ins, bool isConstExp
         throw std::invalid_argument("Unsupported binary instruction encountered!");
     }
 
-    inlineOrCreateVariable(value, std::move(expr), func, block);
+    return program.addOwnership(std::move(expr));
 }
 
 static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
     std::map<int, Block*> cases;
 
-    if (!func->getExpr(ins.getOperand(0))) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
     Expr* cmp = func->getExpr(ins.getOperand(0));
+    assert(cmp);
 
     Block* def = func->createBlockIfNotExist(llvm::cast<llvm::BasicBlock>(ins.getOperand(1)));
     const llvm::SwitchInst* switchIns = llvm::cast<const llvm::SwitchInst>(&ins);
@@ -436,7 +384,7 @@ static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExp
     }
 }
 
-static void parseAsmInst(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+static void parseAsmInst(const llvm::Instruction& ins, Func* func, Block* block) {
     std::string inst;
 
     switch(ins.getOpcode()) {
@@ -450,26 +398,14 @@ static void parseAsmInst(const llvm::Instruction& ins, bool isConstExpr, const l
         break;
     }
 
-    if (!isConstExpr) {
-        func->createExpr(&ins, std::make_unique<AsmExpr>(inst, std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
-        block->addExpr(func->getExpr(&ins));
-    } else {
-        func->createExpr(val, std::make_unique<AsmExpr>(inst, std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
-    }
+    func->createExpr(&ins, std::make_unique<AsmExpr>(inst, std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
+    block->addExpr(func->getExpr(&ins));
 }
 
-static void parseShiftInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    if (!func->getExpr(ins.getOperand(0))) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-    Expr* val0 = func->getExpr(ins.getOperand(0));
-
-    if (!func->getExpr(ins.getOperand(1))) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(1));
-
-    const llvm::Value* value = isConstExpr ? val : &ins;
+static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& program) {
+    Expr* val0 = program.getExpr(ins.getOperand(0));
+    Expr* val1 = program.getExpr(ins.getOperand(1));
+    assert(val0 && val1);
 
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
     bool isUnsigned = !binOp->hasNoSignedWrap();
@@ -487,7 +423,7 @@ static void parseShiftInstruction(const llvm::Instruction& ins, bool isConstExpr
         break;
     }
 
-    inlineOrCreateVariable(value, std::move(expr), func, block);
+    return program.addOwnership(std::move(expr));
 }
 std::string getRegisterString(const std::string& str) {
     std::string reg = str;
@@ -627,8 +563,8 @@ std::vector<std::string> getAsmOutputStrings(llvm::InlineAsm::ConstraintInfoVect
     return ret;
 }
 
-static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
+static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
+    const llvm::Value* value = &ins;
     const llvm::CallInst* callInst = llvm::cast<llvm::CallInst>(&ins);
     Expr* funcValue = nullptr;
     std::string funcName;
@@ -671,10 +607,6 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
             return;
         }
 
-        if (!func->getExpr(callInst->getCalledValue())) {
-            createConstantValue(callInst->getCalledValue(), func, block);
-        }
-
         funcValue = func->getExpr(callInst->getCalledValue());
     }
 
@@ -686,7 +618,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
         }
 
         if (!func->getExpr(param)) {
-            createFuncCallParam(param, func, block);
+            createFuncCallParam(param, *func->program);
         }
         params.push_back(func->getExpr(param));
         i++;
@@ -699,19 +631,16 @@ static void parseCallInstruction(const llvm::Instruction& ins, bool isConstExpr,
     //call function if it returns void, otherwise store function return value to a new variable and use this variable instead of function call
     if (llvm::dyn_cast_or_null<VoidType>(type.get())) {
         func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
-
-        if (!isConstExpr) {
-            block->addExpr(func->getExpr(&ins));
-        }
+        block->addExpr(func->getExpr(value));
     } else {
         auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type->clone());
 
         // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
-        if (value->hasNUses(0) && !isConstExpr) {
+        if (value->hasNUses(0)) {
             block->addExpr(callExpr.get());
             func->createExpr(value, std::move(callExpr));
         } else {
-            inlineOrCreateVariable(value, std::move(callExpr), func, block);
+            inlineOrCreateVariable(value, func->program->addOwnership(std::move(callExpr)), func, block);
         }
     }
 }
@@ -780,7 +709,7 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
     std::vector<Expr*> args;
     for (const llvm::Use& arg : callInst->arg_operands()) {
         if (!func->getExpr(arg.get())) {
-            createFuncCallParam(arg, func, block);
+            createFuncCallParam(arg, *func->program);
         }
 
         const llvm::AllocaInst* AI = llvm::dyn_cast_or_null<llvm::AllocaInst>(arg.get());
@@ -814,7 +743,9 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
 
                 block->addOwnership(std::move(newVar));
             } else {
-                args.push_back(func->getExpr(arg.get()));
+                auto *expr = func->getExpr(arg.get());
+                assert(expr);
+                args.push_back(expr);
             }
         } else {
             args.push_back(func->getExpr(arg.get()));
@@ -859,25 +790,24 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
         input.push_back({inputStrings[i], args[arg]});
         arg--;
     }
+
     auto asmExpr = std::make_unique<AsmExpr>(asmString, output, input, usedReg);
     block->addExpr(asmExpr.get());
     func->createExpr(&ins, std::move(asmExpr));
 }
 
-static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    if (func->getExpr(ins.getOperand(0)) == nullptr) {
-        createConstantValue(ins.getOperand(0), func, block);
-    }
-    Expr* expr = func->getExpr(ins.getOperand(0));
+static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
+    Expr* expr = program.getExpr(ins.getOperand(0));
+    assert(expr);
 
     //operand is used for initializing output in inline asm
     if (!expr || llvm::isa<AsmExpr>(expr)) {
-        return;
+        return nullptr;
     }
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
-    auto castExpr = std::make_unique<CastExpr>(expr, func->getType(CI->getDestTy()));
+    auto castExpr = std::make_unique<CastExpr>(expr, program.getType(CI->getDestTy()));
 
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
@@ -891,34 +821,25 @@ static void parseCastInstruction(const llvm::Instruction& ins, bool isConstExpr,
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
     }
 
-    inlineOrCreateVariable(isConstExpr ? val : &ins, std::move(castExpr), func, block);
+    return program.addOwnership(std::move(castExpr));
 }
 
-static void parseSelectInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+static Expr* parseSelectInstruction(const llvm::Instruction& ins, Program& program) {
     const llvm::SelectInst* SI = llvm::cast<const llvm::SelectInst>(&ins);
-    Expr* cond = func->getExpr(SI->getCondition());
+    Expr* cond = program.getExpr(SI->getCondition());
 
-    if (!func->getExpr(ins.getOperand(1))) {
-        createConstantValue(ins.getOperand(1), func, block);
-    }
-    Expr* val0 = func->getExpr(ins.getOperand(1));
+    Expr* val0 = program.getExpr(ins.getOperand(1));
+    Expr* val1 = program.getExpr(ins.getOperand(2));
+    assert(val0 && val1);
 
-    if (!func->getExpr(ins.getOperand(2))) {
-        createConstantValue(ins.getOperand(2), func, block);
-    }
-    Expr* val1 = func->getExpr(ins.getOperand(2));
-
-    const llvm::Value* value = isConstExpr ? val : &ins;
-    func->createExpr(value, std::make_unique<SelectExpr>(cond, val0, val1));
+    return program.addOwnership(std::make_unique<SelectExpr>(cond, val0, val1));
 }
 
-static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
+static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program) {
     const llvm::GetElementPtrInst* gepInst = llvm::cast<llvm::GetElementPtrInst>(&ins);
 
-    if (!func->getExpr(gepInst->getOperand(0))) {
-        createConstantValue(gepInst->getOperand(0), func, block);
-    }
-    Expr* expr = func->getExpr(gepInst->getOperand(0));
+    Expr* expr = program.getExpr(gepInst->getOperand(0));
+    assert(expr);
 
     llvm::Type* prevType = gepInst->getOperand(0)->getType();
     Expr* prevExpr = expr;
@@ -926,27 +847,25 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
 
     //if getelementptr contains null, cast it to given type
     if (expr->isZero()) {
-        auto newCast = std::make_unique<CastExpr>(expr, func->getType(prevType));
+        auto newCast = std::make_unique<CastExpr>(expr, program.getType(prevType));
         prevExpr = newCast.get();
-        block->addOwnership(std::move(newCast));
+        program.addOwnership(std::move(newCast));
     }
 
     for (auto it = llvm::gep_type_begin(gepInst); it != llvm::gep_type_end(gepInst); it++) {
-        if (!func->getExpr(it.getOperand())) {
-            createConstantValue(it.getOperand(), func, block);
-        }
-        Expr* index = func->getExpr(it.getOperand());
+        Expr* index = program.getExpr(it.getOperand());
+        assert(index);
 
         if (prevType->isPointerTy()) {
             if (index->isZero()) {
                 indices.push_back(std::make_unique<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(std::make_unique<PointerShift>(func->getType(prevType), prevExpr, index));
+                indices.push_back(std::make_unique<PointerShift>(program.getType(prevType), prevExpr, index));
             }
         }
 
         if (prevType->isArrayTy()) {
-            indices.push_back(std::make_unique<ArrayElement>(prevExpr, index, func->getType(prevType->getArrayElementType())));
+            indices.push_back(std::make_unique<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType())));
         }
 
         if (prevType->isStructTy()) {
@@ -955,23 +874,23 @@ static void parseGepInstruction(const llvm::Instruction& ins, bool isConstExpr, 
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
-            indices.push_back(std::make_unique<StructElement>(func->getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
+            indices.push_back(std::make_unique<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
         }
 
         prevType = it.getIndexedType();
         prevExpr = indices[indices.size() - 1].get();
     }
     auto newGep = std::make_unique<GepExpr>(indices);
-    inlineOrCreateVariable(isConstExpr ? val : &ins, std::make_unique<RefExpr>(newGep.get()), func, block);
-
-    block->addOwnership(std::move(newGep));
+    return program.addOwnership(std::make_unique<RefExpr>(program.addOwnership(std::move(newGep))));
 }
 
-void parsePhiInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    func->createPhiVariable(isConstExpr ? val : &ins);
+Expr* parsePhiInstruction(const llvm::Instruction& ins, Func* func) {
+    auto* expr = func->createPhiVariable(&ins);
+    func->program->addExpr(&ins, expr);
+    return expr;
 }
 
-void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block *block) {
+Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
     case llvm::Instruction::FAdd:
@@ -988,35 +907,17 @@ void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const 
     case llvm::Instruction::And:
     case llvm::Instruction::Or:
     case llvm::Instruction::Xor:
-        parseBinaryInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseBinaryInstruction(ins, program);
     case llvm::Instruction::Load:
-        parseLoadInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Store:
-        parseStoreInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseLoadInstruction(ins, program);
     case llvm::Instruction::ICmp:
-        parseICmpInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseICmpInstruction(ins, program);
     case llvm::Instruction::FCmp:
-        parseFCmpInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Switch:
-        parseSwitchInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Unreachable:
-    case llvm::Instruction::Fence:
-        parseAsmInst(ins, isConstExpr, val, func, block);
-        break;
+        return parseFCmpInstruction(ins, program);
     case llvm::Instruction::Shl:
     case llvm::Instruction::LShr:
     case llvm::Instruction::AShr:
-        parseShiftInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Call:
-        parseCallInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseShiftInstruction(ins, program);
     case llvm::Instruction::SExt:
     case llvm::Instruction::ZExt:
     case llvm::Instruction::FPToSI:
@@ -1029,34 +930,17 @@ void parseLLVMInstruction(const llvm::Instruction& ins, bool isConstExpr, const 
     case llvm::Instruction::IntToPtr:
     case llvm::Instruction::Trunc:
     case llvm::Instruction::BitCast:
-        parseCastInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseCastInstruction(ins, program);
     case llvm::Instruction::Select:
-        parseSelectInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseSelectInstruction(ins, program);
     case llvm::Instruction::GetElementPtr:
-        parseGepInstruction(ins, isConstExpr, val, func, block);
-        break;
+        return parseGepInstruction(ins, program);
     case llvm::Instruction::ExtractValue:
-        parseExtractValueInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Alloca:
-        llvm::outs() << "Alloca instructions should be removed by now!\n";
-        llvm::outs() << "But this instruction was found: '" << ins << "'\n";
-        throw std::invalid_argument("Alloca instructions should be removed by now!");
-        break;
-    case llvm::Instruction::PHI:
-        parsePhiInstruction(ins, isConstExpr, val, func, block);
-        break;
-    case llvm::Instruction::Br:
-    case llvm::Instruction::Ret:
-        // leave these for later
-        break;
+        return parseExtractValueInstruction(ins, program);
     default:
         llvm::outs() << "File contains unsupported instruction!\n";
         llvm::outs() << ins << "\n";
         throw std::invalid_argument("");
-        break;
     }
 }
 
@@ -1068,8 +952,36 @@ void createExpressions(const llvm::Module* module, Program& program) {
             auto* myBlock = func->getBlock(&block);
 
             for (const auto& ins : block) {
-                if (ins.getOpcode() != llvm::Instruction::Alloca) {
-                    parseLLVMInstruction(ins, false, nullptr, func, myBlock);
+                Expr* expr = nullptr;
+                switch (ins.getOpcode()) {
+                case llvm::Instruction::Alloca:
+                    break;
+                case llvm::Instruction::Switch:
+                    parseSwitchInstruction(ins, false, nullptr, func, myBlock);
+                    break;
+                case llvm::Instruction::Br:
+                case llvm::Instruction::Ret:
+                    // leave these for later
+                    break;
+                case llvm::Instruction::PHI:
+                    parsePhiInstruction(ins, func);
+                    break;
+                case llvm::Instruction::Store:
+                    expr = parseStoreInstruction(ins, program);
+                    if (expr)
+                        myBlock->addExpr(expr);
+                    break;
+                case llvm::Instruction::Call:
+                    parseCallInstruction(ins, func, myBlock);
+                    break;
+                case llvm::Instruction::Unreachable:
+                case llvm::Instruction::Fence:
+                    parseAsmInst(ins, func, myBlock);
+                    break;
+                default:
+                    expr = parseLLVMInstruction(ins, program);
+                    program.addExpr(&ins, expr);
+                    inlineOrCreateVariable(&ins, expr, func, myBlock);
                 }
             }
 

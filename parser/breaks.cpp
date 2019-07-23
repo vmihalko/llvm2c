@@ -6,17 +6,14 @@
 
 #include <llvm/IR/Instruction.h>
 
-static void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
-
+static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     //no condition
     if (ins.getNumOperands() == 1) {
         Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
-        func->createExpr(value, std::make_unique<IfExpr>(trueBlock));
-
-        if (!isConstExpr) {
-            block->addExpr(func->getExpr(&ins));
-        }
+        auto ifExpr = std::make_unique<IfExpr>(trueBlock);
+        func->program->exprMap[&ins] = ifExpr.get();
+        block->addExpr(ifExpr.get());
+        func->program->addOwnership(std::move(ifExpr));
         return;
     }
 
@@ -25,21 +22,19 @@ static void parseBrInstruction(const llvm::Instruction& ins, bool isConstExpr, c
     Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
     Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
 
-    func->createExpr(value, std::make_unique<IfExpr>(cmp, trueBlock, falseBlock));
-
-    if (!isConstExpr) {
-        block->addExpr(func->getExpr(&ins));
-    }
+    auto ifExpr = std::make_unique<IfExpr>(cmp, trueBlock, falseBlock);
+    func->createExpr(&ins, std::move(ifExpr));
+    block->addExpr(func->getExpr(&ins));
 }
 
-static void parseRetInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    const llvm::Value* value = isConstExpr ? val : &ins;
+static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
+    const llvm::Value* value = &ins;
 
     if (ins.getNumOperands() == 0) {
         func->createExpr(value, std::make_unique<RetExpr>());
     } else {
         if (func->getExpr(ins.getOperand(0)) == nullptr) {
-            createConstantValue(ins.getOperand(0), func, block);
+            createConstantValue(ins.getOperand(0), *func->program);
         }
         Expr* expr = func->getExpr(ins.getOperand(0));
 
@@ -59,9 +54,9 @@ void parseBreaks(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 auto opcode = ins.getOpcode();
                 if (opcode == llvm::Instruction::Br) {
-                    parseBrInstruction(ins, false, nullptr, func, myBlock);
+                    parseBrInstruction(ins, func, myBlock);
                 } else if (opcode == llvm::Instruction::Ret) {
-                    parseRetInstruction(ins, false, nullptr, func, myBlock);
+                    parseRetInstruction(ins, func, myBlock);
                 }
             }
         }

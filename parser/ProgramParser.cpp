@@ -21,7 +21,8 @@ Program ProgramParser::parse(const std::string& file) {
     parseStructs(mod, result);
     findMetadataNames(mod, result);
     findDeclaredFunctions(mod, result);
-    parseGlobalVars(mod, result);
+    computeGlobalVarsOrder(mod, result);
+    initializeGlobalVars(mod, result);
 
     createFunctions(mod, result);
     nameFunctions(mod, result);
@@ -29,6 +30,7 @@ Program ProgramParser::parse(const std::string& file) {
     createBlocks(mod, result);
     createAllocas(mod, result);
     parseMetadataTypes(mod, result);
+    createConstants(mod, result);
     createExpressions(mod, result);
     addPhis(mod, result);
     parseBreaks(mod, result);

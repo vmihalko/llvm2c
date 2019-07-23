@@ -124,3 +124,16 @@ Expr* Program::addOwnership(std::unique_ptr<Expr> expr) {
     ownership.push_back(std::move(expr));
     return result;
 }
+
+Expr* Program::getExpr(const llvm::Value* value) {
+    auto it = exprMap.find(value);
+    if (it == exprMap.end()) {
+        return nullptr;
+    }
+
+    return it->second;
+}
+
+void Program::addExpr(const llvm::Value* value, Expr* expr) {
+    exprMap[value] = expr;
+}
