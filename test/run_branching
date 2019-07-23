@@ -49,3 +49,5 @@ if [[ $BR -eq 0 ]]; then
 else
 	echo "$BR branching tests failed!"
 fi
+
+exit $BR

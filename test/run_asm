@@ -111,3 +111,5 @@ if [[ $ASM -eq 0 ]]; then
 else
 	echo "$ASM inline asm tests failed!"
 fi
+
+exit $ASM

@@ -50,3 +50,5 @@ if [[ $BR -eq 0 ]]; then
 else
 	echo "$BR $LABEL tests failed!"
 fi
+
+exit $BR

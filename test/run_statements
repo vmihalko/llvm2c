@@ -49,3 +49,5 @@ if [[ $ST -eq 0 ]]; then
 else
 	echo "$ST statement tests failed!"
 fi
+
+exit $ST

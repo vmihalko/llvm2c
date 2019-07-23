@@ -84,3 +84,5 @@ if [[ $MATH -eq 0 ]]; then
 else
 	echo "$MATH math tests failed!"
 fi
+
+exit $MATH

@@ -48,3 +48,5 @@ if [[ $STD -eq 0 ]]; then
 else
 	echo "$STD standard library tests failed!"
 fi
+
+exit $STD

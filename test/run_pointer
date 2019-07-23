@@ -49,3 +49,5 @@ if [[ $PTR -eq 0 ]]; then
 else
 	echo "$PTR pointer tests failed!"
 fi
+
+exit $PTR

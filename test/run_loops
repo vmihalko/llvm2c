@@ -49,3 +49,5 @@ if [[ $LOOP -eq 0 ]]; then
 else
 	echo "$LOOP loop tests failed!"
 fi
+
+exit $LOOP

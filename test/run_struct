@@ -49,3 +49,5 @@ if [[ $STRUCT -eq 0 ]]; then
 else
 	echo "$STRUCT struct tests failed!"
 fi
+
+exit $STRUCT
