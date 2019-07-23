@@ -12,7 +12,7 @@ protected:
 };
 
 void deleteRedundantCasts(const llvm::Module* module, Program& program) {
-    assert(program.isPassCompleted(PassType::DeleteRedundantCasts));
+    assert(program.isPassCompleted(PassType::CreateExpressions));
 
     RedundantCastsVisitor rcv;
 
