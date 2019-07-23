@@ -96,6 +96,19 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         }
     }
 
+    if (const auto* CAZ = llvm::dyn_cast_or_null<llvm::ConstantAggregateZero>(val)) {
+        std::vector<Expr*> values;
+
+        for (int i = 0; i < CAZ->getNumElements(); ++i) {
+            auto* elem = CAZ->getSequentialElement();
+            values.push_back(createConstantValue(elem, program));
+        }
+
+        auto ai = std::make_unique<AggregateInitializer>(std::move(values));
+
+        return program.addOwnership(std::move(ai));
+    }
+
     if (const llvm::ConstantAggregate* CA = llvm::dyn_cast_or_null<llvm::ConstantAggregate>(val)) {
         std::vector<Expr*> values;
 
