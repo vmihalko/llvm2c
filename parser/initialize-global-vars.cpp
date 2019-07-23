@@ -3,51 +3,17 @@
 #include "../core/Block.h"
 #include "../type/Type.h"
 
+#include "constval.h"
+
 #include <llvm/IR/Instruction.h>
 
 #include <regex>
 #include <unordered_set>
 
-using GVarSet = std::unordered_set<const llvm::GlobalValue*>;
+Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
+static Expr* getInitValue(const llvm::Constant* val, Program& program);
 
-static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized);
-static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized);
-
-static Expr* createFromConstantExpr(llvm::ConstantExpr* expr, GVarSet& initialized) {
-    const llvm::Instruction* ins = expr->getAsInstruction();
-    switch (ins->getOpcode()) {
-    default:
-        assert(false && "unknown expression used in a global variable initializer");
-    }
-}
-
-static Expr* createUndefValue(const llvm::Type* ty, Program& program) {
-    if (ty->isIntegerTy()) {
-        auto zero = std::make_unique<Value>("0", program.getType(ty));
-        return program.addOwnership(std::move(zero));
-    }
-
-    std::vector<Expr*> values;
-
-    if (auto* ST = llvm::dyn_cast_or_null<llvm::SequentialType>(ty)) {
-        for (auto i = 0; i < ST->getNumElements(); ++i) {
-            values.push_back(createUndefValue(ST->getElementType(), program));
-        }
-
-    } else if (auto* ST = llvm::dyn_cast_or_null<llvm::StructType>(ty)) {
-        for (auto i = 0; i < ST->getNumElements(); ++i) {
-            values.push_back(createUndefValue(ST->getElementType(i), program));
-        }
-    } else {
-        ty->print(llvm::errs(), true);
-        assert(false && "globalVars: unrecognized type of undef value");
-    }
-
-    auto init = std::make_unique<AggregateInitializer>(values);
-    return program.addOwnership(std::move(init));
-}
-
-static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& initialized) {
+static Expr* getInitValue(const llvm::Constant* val, Program& program) {
     std::string name = val->getName().str();
 
     if (llvm::isa<llvm::Function>(val)) {
@@ -64,10 +30,7 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
 
     if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
         auto RE = program.getGlobalRef(GV);
-        if (!RE) {
-            parseGlobalVar(*GV, program, initialized);
-            RE = program.getGlobalRef(GV);
-        }
+        assert(RE && "initialize-global-vars: global value does not have a ref");
 
         return RE;
     }
@@ -129,7 +92,7 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
             if (!elem)
                 break;
 
-            values.push_back(getInitValue(elem, program, initialized));
+            values.push_back(getInitValue(elem, program));
         }
 
         auto ai = std::make_unique<AggregateInitializer>(values);
@@ -141,7 +104,7 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
         std::vector<Expr*> values;
 
         for (int i = 0; i < CDS->getNumElements(); ++i) {
-            values.push_back(getInitValue(CDS->getElementAsConstant(i), program, initialized));
+            values.push_back(getInitValue(CDS->getElementAsConstant(i), program));
         }
 
         auto ai = std::make_unique<AggregateInitializer>(values);
@@ -154,7 +117,9 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
     }
 
     if (auto* CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast_or_null<llvm::ConstantExpr>(val))) {
-        return createFromConstantExpr(CE, initialized);
+        if (auto* inst = CE->getAsInstruction()) {
+            return parseLLVMInstruction(*inst, program);
+        }
     }
 
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
@@ -166,44 +131,16 @@ static Expr* getInitValue(const llvm::Constant* val, Program& program, GVarSet& 
     return program.addOwnership(std::move(ai));
 }
 
-void parseGlobalVars(const llvm::Module* module, Program& program) {
-    GVarSet initialized;
-
+void initializeGlobalVars(const llvm::Module* module, Program& program) {
     for (const llvm::GlobalVariable& gvar : module->globals()) {
         if (llvm::isa<llvm::Function>(&gvar)) {
             continue;
         }
 
-        parseGlobalVar(gvar, program, initialized);
+        if (gvar.hasInitializer()) {
+            auto* ref = program.getGlobalVar(&gvar);
+            auto* var = llvm::cast<GlobalValue>(ref->expr);
+            var->value = getInitValue(gvar.getInitializer(), program);
+        }
     }
-}
-
-static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program, GVarSet& initialized) {
-    // do not initialize twice
-    if (initialized.find(&gvar) != initialized.end()) {
-        return;
-    }
-
-    std::string gvarName = gvar.getName().str();
-    std::replace(gvarName.begin(), gvarName.end(), '.', '_');
-
-    std::regex varName("var[0-9]+");
-    if (std::regex_match(gvarName, varName)) {
-        program.globalVarNames.insert(gvarName);
-    }
-
-    Expr* value = nullptr;
-
-    llvm::PointerType* PT = llvm::cast<llvm::PointerType>(gvar.getType());
-
-    auto var = std::make_unique<GlobalValue>(gvarName, nullptr, program.getType(PT->getElementType()));
-    var->getType()->isStatic = gvar.hasInternalLinkage();
-
-    program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get());
-
-    if (gvar.hasInitializer()) {
-        var->value = getInitValue(gvar.getInitializer(), program, initialized);
-    }
-
-    program.globalVars.push_back(std::move(var));
 }
