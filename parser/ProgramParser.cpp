@@ -19,10 +19,10 @@ Program ProgramParser::parse(const std::string& file) {
 
     determineIncludes(mod, result);
     parseStructs(mod, result);
-    findMetadataNames(mod, result);
     findDeclaredFunctions(mod, result);
     computeGlobalVarsOrder(mod, result);
     createFunctions(mod, result);
+    findMetadataNames(mod, result);
     nameFunctions(mod, result);
 
     createConstants(mod, result);
