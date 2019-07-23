@@ -27,6 +27,8 @@ static void createArgs(Program& program, const llvm::Function* llvmFunc, Func* f
 }
 
 void createFunctionParameters(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateFunctions));
+
     for (const llvm::Function& func : module->functions()) {
         auto* myFunc = program.getFunction(&func);
 
@@ -36,5 +38,6 @@ void createFunctionParameters(const llvm::Module* module, Program& program) {
 
     }
 
+    program.addPass(PassType::CreateFunctionParameters);
 }
 

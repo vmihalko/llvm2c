@@ -17,6 +17,7 @@ static void deleteExprFromBlock(Block* block, Expr* toDelete) {
 }
 
 void deleteUnusedVariables(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::AddPhis));
     for (const llvm::Function& func : module->functions()) {
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
@@ -39,7 +40,8 @@ void deleteUnusedVariables(const llvm::Module* module, Program& program) {
                     }
                 }
             }
-
         }
     }
+
+    program.addPass(PassType::DeleteUnusedVariables);
 }

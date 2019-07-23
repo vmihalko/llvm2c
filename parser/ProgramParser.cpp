@@ -22,11 +22,12 @@ Program ProgramParser::parse(const std::string& file) {
     findMetadataNames(mod, result);
     findDeclaredFunctions(mod, result);
     computeGlobalVarsOrder(mod, result);
+    createFunctions(mod, result);
+    nameFunctions(mod, result);
+
     createConstants(mod, result);
     initializeGlobalVars(mod, result);
 
-    createFunctions(mod, result);
-    nameFunctions(mod, result);
     createFunctionParameters(mod, result);
     createBlocks(mod, result);
     createAllocas(mod, result);

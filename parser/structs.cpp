@@ -33,4 +33,6 @@ void parseStructs(const llvm::Module* module, Program& program) {
 
         program.addStruct(std::move(structExpr));
     }
+
+    program.addPass(PassType::ParseStructs);
 }

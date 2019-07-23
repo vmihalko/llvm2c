@@ -49,6 +49,8 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
     std::unordered_set<const llvm::GlobalVariable*> visited;
     std::vector<const llvm::GlobalVariable*> order;
 
+    assert(program.isPassCompleted(PassType::ParseStructs));
+
     for (const llvm::GlobalVariable& gvar : module->globals()) {
         if (llvm::isa<llvm::Function>(&gvar)) {
             continue;
@@ -66,4 +68,6 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
     for (const auto* gvar : order) {
         parseGlobalVar(*gvar, program);
     }
+
+    program.addPass(PassType::ComputeGlobalVarsOrder);
 }

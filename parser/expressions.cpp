@@ -946,6 +946,10 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
 
 
 void createExpressions(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateConstants));
+    assert(program.isPassCompleted(PassType::CreateAllocas));
+    assert(program.isPassCompleted(PassType::CreateFunctionParameters));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -987,4 +991,6 @@ void createExpressions(const llvm::Module* module, Program& program) {
 
         }
     }
+
+    program.addPass(PassType::CreateExpressions);
 }

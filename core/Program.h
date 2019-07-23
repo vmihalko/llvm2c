@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <set>
+#include <unordered_set>
 
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/IR/Module.h>
@@ -10,6 +11,7 @@
 #include "Func.h"
 #include "../expr/Expr.h"
 #include "../type/TypeHandler.h"
+#include "PassType.h"
 
 class ProgramParser;
 
@@ -40,6 +42,8 @@ public:
 
     // expressions that are owned by program (used in initializers of global variables)
     std::vector<std::unique_ptr<Expr>> ownership;
+
+    std::unordered_set<PassType> passes;
 
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
@@ -164,4 +168,8 @@ public:
     Expr* getExpr(const llvm::Value* value);
 
     void addExpr(const llvm::Value* value, Expr* expr);
+
+    bool isPassCompleted(PassType pass) const;
+
+    void addPass(PassType pass);
 };

@@ -14,6 +14,8 @@ static void convertToSignedIntPtr(PointerType* pt) {
 }
 
 void fixMainParameters(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateFunctionParameters));
+
     for (const llvm::Function& func : module->functions()) {
         auto* myFunc = program.getFunction(&func);
 
@@ -34,4 +36,6 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::FixMainParameters);
 }

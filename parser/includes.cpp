@@ -121,4 +121,6 @@ void determineIncludes(const llvm::Module* module, Program& program) {
         }
 
     }
+
+    program.addPass(PassType::DetermineIncludes);
 }

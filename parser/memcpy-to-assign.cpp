@@ -22,6 +22,8 @@ const llvm::Value* stripCast(const llvm::Value* val) {
 }
 
 void memcpyToAssignment(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -100,4 +102,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
 
         }
     }
+
+    program.addPass(PassType::MemcpyToAssignment);
 }

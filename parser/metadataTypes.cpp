@@ -26,6 +26,8 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
 }
 
 void parseMetadataTypes(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateBlocks));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -44,4 +46,6 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
 
         }
     }
+
+    program.addPass(PassType::ParseMetadataTypes);
 }

@@ -19,6 +19,9 @@ static bool isSafeToInline(const llvm::BasicBlock* llvmBlock, const Block* block
 }
 
 void identifyInlinableBlocks(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+    assert(program.isPassCompleted(PassType::ParseBreaks));
+
     for (const llvm::Function& func : module->functions()) {
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
@@ -36,4 +39,6 @@ void identifyInlinableBlocks(const llvm::Module* module, Program& program) {
         myBlock->doInline = false;
         myBlock->isFirst = true;
     }
+
+    program.addPass(PassType::IdentifyInlinableBlocks);
 }

@@ -15,6 +15,9 @@ static void deleteExprFromBlock(Block* block, Expr* toDelete) {
 
 
 void extractVars(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateAllocas));
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+
     for (const auto& func : module->functions()) {
         auto* function = program.getFunction(&func);
 
@@ -39,4 +42,6 @@ void extractVars(const llvm::Module* module, Program& program) {
         }
 
     }
+
+    program.addPass(PassType::ExtractVars);
 }

@@ -11,6 +11,9 @@
 #include <unordered_set>
 
 void initializeGlobalVars(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateConstants));
+    assert(program.isPassCompleted(PassType::ComputeGlobalVarsOrder));
+
     for (const llvm::GlobalVariable& gvar : module->globals()) {
         if (llvm::isa<llvm::Function>(&gvar)) {
             continue;
@@ -22,4 +25,6 @@ void initializeGlobalVars(const llvm::Module* module, Program& program) {
             var->value = createConstantValue(gvar.getInitializer(), program);
         }
     }
+
+    program.addPass(PassType::InitializeGlobalVars);
 }

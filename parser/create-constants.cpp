@@ -18,6 +18,10 @@ static void createConstantsForOperands(const llvm::User* ins, Program& program) 
 }
 
 void createConstants(const llvm::Module* mod, Program& program) {
+
+    assert(program.isPassCompleted(PassType::ComputeGlobalVarsOrder));
+    assert(program.isPassCompleted(PassType::CreateFunctions));
+
     for (const auto& gvar : mod->globals()) {
         if (gvar.hasInitializer()) {
             auto* init = gvar.getInitializer();
@@ -34,4 +38,6 @@ void createConstants(const llvm::Module* mod, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::CreateConstants);
 }

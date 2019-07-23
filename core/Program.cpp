@@ -137,3 +137,11 @@ Expr* Program::getExpr(const llvm::Value* value) {
 void Program::addExpr(const llvm::Value* value, Expr* expr) {
     exprMap[value] = expr;
 }
+
+bool Program::isPassCompleted(PassType pass) const {
+    return passes.find(pass) != passes.end();
+}
+
+void Program::addPass(PassType pass) {
+    passes.insert(pass);
+}

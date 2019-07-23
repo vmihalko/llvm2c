@@ -13,6 +13,8 @@ protected:
 };
 
 void refDeref(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+
     RefDerefVisitor rdv;
 
     for (const llvm::Function& func : module->functions()) {
@@ -26,6 +28,8 @@ void refDeref(const llvm::Module* module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::RefDeref);
 }
 
 Expr* RefDerefVisitor::simplify(Expr* expr) {

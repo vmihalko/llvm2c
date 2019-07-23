@@ -46,6 +46,8 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
 
 
 void parseBreaks(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::AddPhis));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -61,4 +63,6 @@ void parseBreaks(const llvm::Module* module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::ParseBreaks);
 }

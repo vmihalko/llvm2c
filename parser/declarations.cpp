@@ -42,4 +42,6 @@ void findDeclaredFunctions(const llvm::Module *module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::FindDeclaredFunctions);
 }

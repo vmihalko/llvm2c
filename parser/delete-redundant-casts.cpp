@@ -12,6 +12,8 @@ protected:
 };
 
 void deleteRedundantCasts(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::DeleteRedundantCasts));
+
     RedundantCastsVisitor rcv;
 
     for (const llvm::Function& func : module->functions()) {
@@ -26,6 +28,7 @@ void deleteRedundantCasts(const llvm::Module* module, Program& program) {
             }
         }
     }
+    program.addPass(PassType::DeleteRedundantCasts);
 }
 
 Expr* RedundantCastsVisitor::simplify(Expr* expr) {

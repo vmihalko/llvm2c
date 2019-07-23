@@ -17,6 +17,7 @@ protected:
 };
 
 void arrowify(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
 
     ArrowifyVisitor visitor;
     for (const llvm::Function& func : module->functions()) {
@@ -35,6 +36,8 @@ void arrowify(const llvm::Module* module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::Arrowify);
 }
 
 Expr* ArrowifyVisitor::simplify(Expr* expr) {

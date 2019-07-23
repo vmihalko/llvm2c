@@ -4,6 +4,8 @@
 #include "../core/Block.h"
 
 void createAllocas(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateBlocks));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -26,4 +28,6 @@ void createAllocas(const llvm::Module* module, Program& program) {
 
         }
     }
+
+    program.addPass(PassType::CreateAllocas);
 }

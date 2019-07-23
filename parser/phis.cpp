@@ -29,6 +29,9 @@ static void parsePhiInstruction(const llvm::Instruction& ins, Func* func, Progra
 }
 
 void addPhis(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+    assert(!program.isPassCompleted(PassType::ParseBreaks));
+
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         for (const auto& block : function) {
@@ -41,4 +44,6 @@ void addPhis(const llvm::Module* module, Program& program) {
             }
         }
     }
+
+    program.addPass(PassType::AddPhis);
 }
