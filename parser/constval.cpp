@@ -46,9 +46,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
 
 
     if (llvm::isa<llvm::Function>(val)) {
-        auto f = std::make_unique<Value>(val->getName().str(), std::make_unique<PointerType>(std::make_unique<CharType>(false)));
-        auto ref = std::make_unique<RefExpr>(f.get());
-        program.addOwnership(std::move(f));
+        auto ref = std::make_unique<Value>(val->getName().str(), std::make_unique<PointerType>(std::make_unique<CharType>(false)));
         return program.addOwnership(std::move(ref));
     }
 
