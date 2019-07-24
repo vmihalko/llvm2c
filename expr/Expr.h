@@ -336,9 +336,6 @@ public:
 
     void accept(ExprVisitor& visitor) override;
 
-    const Type* getType() const override;
-    Type* getType() override;
-
     static bool classof(const Expr* expr);
 };
 
