@@ -29,6 +29,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
     }
 
     auto init = std::make_unique<AggregateInitializer>(values);
+    init->setType(program.getType(ty));
     return program.addOwnership(std::move(init));
 }
 
@@ -107,6 +108,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         }
 
         auto ai = std::make_unique<AggregateInitializer>(std::move(values));
+        ai->setType(program.getType(val->getType()));
 
         return program.addOwnership(std::move(ai));
     }
@@ -123,6 +125,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         }
 
         auto ai = std::make_unique<AggregateInitializer>(std::move(values));
+        ai->setType(program.getType(val->getType()));
 
         return program.addOwnership(std::move(ai));
     }
@@ -135,6 +138,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         }
 
         auto ai = std::make_unique<AggregateInitializer>(values);
+        ai->setType(program.getType(val->getType()));
 
         return program.addOwnership(std::move(ai));
     }
