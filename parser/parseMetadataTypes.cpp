@@ -7,8 +7,13 @@
 static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
+    Expr* referred = block->func->getExpr(referredVal);
 
-    if (Value* variable = static_cast<Value*>(block->func->getExpr(referredVal))) {
+    if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
+        referred = re->expr;
+    }
+
+    if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
         llvm::DIBasicType* type = llvm::dyn_cast_or_null<llvm::DIBasicType>(localVar->getType());
@@ -26,7 +31,7 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
 }
 
 void parseMetadataTypes(const llvm::Module* module, Program& program) {
-    assert(program.isPassCompleted(PassType::CreateBlocks));
+    assert(program.isPassCompleted(PassType::CreateAllocas));
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
