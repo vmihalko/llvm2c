@@ -3,6 +3,10 @@
 Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 
 Expr* createUndefValue(const llvm::Type* ty, Program& program) {
+    if (ty->isPointerTy()) {
+        return program.addOwnership(std::make_unique<Value>("0", program.getType(ty)));
+    }
+
     if (ty->isIntegerTy()) {
         auto zero = std::make_unique<Value>("0", program.getType(ty));
         return program.addOwnership(std::move(zero));
