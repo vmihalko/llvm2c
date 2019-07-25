@@ -5,6 +5,13 @@
 
 static void createConstantsForOperands(const llvm::User* ins, Program& program) {
     for (const auto& op : ins->operands()) {
+
+        // assumption: the GV that is an operand of this has already been initialized
+        // reason: pass ComputeGlobalVarsOrder has been completed
+        if (auto GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(op.get())) {
+            continue;
+        }
+
         if (auto *user = llvm::dyn_cast_or_null<llvm::User>(op.get())) {
             createConstantsForOperands(user, program);
         }
