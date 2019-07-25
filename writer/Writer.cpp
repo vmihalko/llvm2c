@@ -182,14 +182,21 @@ void Writer::functionHead(const Func* func) {
 
 void Writer::functionDeclarations(const Program& program) {
     wr.comment("function declarations");
+    std::vector<Func*> declarations;
+
     for (const auto& decl : program.functions) {
         auto& func = decl.second;
         if (!isFunctionPrinted(func.get())) {
             continue;
         }
 
-        functionHead(func.get());
+        declarations.push_back(func.get());
+    }
 
+    std::sort(declarations.begin(), declarations.end());
+
+    for (const auto* func : declarations) {
+        functionHead(func);
         wr.endFunctionDecl();
     }
 }
