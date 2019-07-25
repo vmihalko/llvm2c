@@ -1,0 +1,48 @@
+#!/bin/bash
+
+if ! [[ -e llvm2c ]]; then
+	echo "llvm2c not found!"
+	exit 1
+fi
+
+LABEL="globals"
+FOLDER=$LABEL
+
+echo "Running $LABEL tests..."
+
+BR=0
+DIR=`mktemp -d`
+
+for f in $FOLDER/*.c; do
+	clang "$f" -o $DIR/orig 2>/dev/null
+	clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $DIR/temp.ll #2>/dev/null
+    opt -mem2reg -o $DIR/temp2.ll -S $DIR/temp.ll
+    [ -f $DIR/temp2.ll ] || exit 1
+    mv $DIR/temp2.ll $DIR/temp.ll
+	./llvm2c $DIR/temp.ll --o $DIR/temp.c # >> /dev/null
+	if [[ $? != 0 ]]; then
+		echo "llvm2c failed to translate $f!"
+		BR=$((BR+1))
+	else
+		clang $DIR/temp.c -o $DIR/new 2>/dev/null
+		if [[ $? != 0 ]]; then
+			echo "Clang could not compile translated file $f!"
+			BR=$((BR+1))
+		else
+          if ! diff $f.expect $DIR/temp.c; then
+            BR=$((BR+1))
+          fi
+		fi
+	fi
+    rm -f $DIR/*
+done
+
+rm -rf $DIR
+
+if [[ $BR -eq 0 ]]; then
+	echo "All $LABEL tests passed!"
+else
+	echo "$BR $LABEL tests failed!"
+fi
+
+exit $BR
