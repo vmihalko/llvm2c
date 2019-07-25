@@ -13,7 +13,7 @@ echo "Running $LABEL tests..."
 BR=0
 DIR=`mktemp -d`
 
-for f in $FOLDER/*.c; do
+for f in inputs/$FOLDER/*.c; do
 	clang "$f" -o $DIR/orig 2>/dev/null
 	clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $DIR/temp.ll #2>/dev/null
     opt -mem2reg -o $DIR/temp2.ll -S $DIR/temp.ll
@@ -29,7 +29,7 @@ for f in $FOLDER/*.c; do
 			echo "Clang could not compile translated file $f!"
 			BR=$((BR+1))
 		else
-          if ! diff -y --suppress-common-lines $f.expect $DIR/temp.c; then
+          if ! diff -y --suppress-common-lines expected/$FOLDER/$(basename $f) $DIR/temp.c; then
 			echo "Translated C file is different than expected"
             BR=$((BR+1))
           fi
