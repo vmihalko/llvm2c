@@ -193,7 +193,7 @@ void Writer::functionDeclarations(const Program& program) {
         declarations.push_back(func.get());
     }
 
-    std::sort(declarations.begin(), declarations.end());
+    std::sort(declarations.begin(), declarations.end(), [](const Func* a, const Func* b){ return a->name <= b->name;});
 
     for (const auto* func : declarations) {
         functionHead(func);
