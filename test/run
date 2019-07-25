@@ -17,25 +17,52 @@ echo "Running $LABEL tests..."
 
 FAILED=0
 TEMPDIR=`mktemp -d`
+LDFLAGS=""
+
+if [[ "$LABEL" == "math" ]]; then
+    LDFLAGS="$LDFLABS -lm"
+fi
+
+if [[ "$LABEL" == "standard_lib" ]]; then
+    LDFLAGS="$LDFLABS -lm"
+fi
+
+
 for f in inputs/$FOLDER/*.c; do
     echo "Testing $f"
-    clang "$f" -o $TEMPDIR/orig 2>/dev/null
+    clang $LDFLAGS "$f" -o $TEMPDIR/orig
     clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
+
+    if [[ $LABEL = "phi" ]]; then
+        opt -mem2reg $TEMPDIR/temp.ll -o $TEMPDIR/temp.ll
+    fi
+
     ./llvm2c $TEMPDIR/temp.ll --o $TEMPDIR/temp.c # >> /dev/null
+
     if [[ $? != 0 ]]; then
-        echo -e "\t[NOK] llvm2c failed to translate $f!"
+        echo -e "\n\t[NOK] llvm2c failed to translate $f!"
         FAILED=$((FAILED+1))
     else
-        clang $TEMPDIR/temp.c -o $TEMPDIR/new 2>/dev/null
+        clang $LDFLAGS $TEMPDIR/temp.c -o $TEMPDIR/new
         if [[ $? != 0 ]]; then
-            echo -e "\t[NOK] Clang could not compile translated file $f!"
+            echo -e "\n\t[NOK] Clang could not compile translated file $f!"
             FAILED=$((FAILED+1))
         else
-          if ! diff -y --suppress-common-lines expected/$FOLDER/$(basename $f) $TEMPDIR/temp.c; then
-            echo -e "\t[NOK] Translated C file is different than expected"
-            FAILED=$((FAILED+1))
+          for i in `seq -10 10`; do
+              $TEMPDIR/orig $i
+              ORIG=$?
+              $TEMPDIR/new $i
+              if [[ $ORIG != $? ]]; then
+                  echo -e "\t[NOK] Test $f failed with input $i!"
+                  FAILED=$((FAILED+1))
+              fi
+          done
+
+          if diff -y --suppress-common-lines expected/$FOLDER/$(basename $f) $TEMPDIR/temp.c; then
+              echo -e "\n\t[OK ] Files are as expected"
           else
-            echo -e "\t[OK ] Files are equal"
+              echo -e "\n\t[NOK] Translated C file is different than expected"
+              FAILED=$((FAILED+1))
           fi
         fi
     fi
