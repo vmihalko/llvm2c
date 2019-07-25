@@ -21,13 +21,11 @@ int main(int var0, char** var1){
     unsigned char** var4;
     unsigned char* var5;
     unsigned long var6;
-    unsigned long var7;
-    unsigned int var8;
     block0: ;
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    if (var3 != 3) {
+    if (var3 != 2) {
         var2 = -1;
         return var2;
     } else {
@@ -36,14 +34,21 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            __asm__("mov    %%rbx, %%rax;   \n\tadd    %%rcx, %%rax;   \n\t"
-        : "=a" (var8)
-        : "c" (var7), "b" (var6)
-        : 
-    );
-            var2 = var8;
-            return var2;
+            switch (var6) {
+                case -5:
+                    var2 = 10;
+                    return var2;
+                case 0:
+                    var2 = 1;
+                    return var2;
+                case 2:
+                    var2 = -1;
+                    return var2;
+                default:
+                    var2 = 123;
+                    return var2;
+}
+;
         }
     }
 }

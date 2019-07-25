@@ -45,17 +45,17 @@ int main(int var0, char** var1){
         : "=a" (var8)
         : "b" (var7), "a" (var6)
         : 
-    );;
+    );
                 __asm__("subl %%ebx, %%eax;"
         : "=a" (var8)
         : "b" (10), "a" (var8)
         : 
-    );;
+    );
                 __asm__("imull %%ebx, %%eax;"
         : "=a" (var8)
         : "b" (var7), "a" (var8)
         : 
-    );;
+    );
                 var2 = var8;
                 return var2;
             }

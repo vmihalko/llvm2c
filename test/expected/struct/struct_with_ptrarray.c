@@ -1,11 +1,19 @@
 
 // struct declarations
+struct s_test;
+struct s_arrptr;
 
 // anonymous struct declarations
 
 // type definitions
 
 // struct definitions
+struct s_test {
+    unsigned int structVar0;
+};
+struct s_arrptr {
+    struct s_test (*structVar1)[1];
+};
 
 // anonymous struct definitions
 
@@ -21,13 +29,14 @@ int main(int var0, char** var1){
     unsigned char** var4;
     unsigned char* var5;
     unsigned long var6;
-    unsigned long var7;
-    unsigned int var8;
+    struct s_test var7;
+    struct s_test var8[1];
+    struct s_arrptr var9;
     block0: ;
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    if (var3 != 3) {
+    if (var3 != 2) {
         var2 = -1;
         return var2;
     } else {
@@ -36,13 +45,10 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            __asm__("mov    %%rbx, %%rax;   \n\tadd    %%rcx, %%rax;   \n\t"
-        : "=a" (var8)
-        : "c" (var7), "b" (var6)
-        : 
-    );
-            var2 = var8;
+            var7.structVar0 = ((unsigned int)var6);
+            memcpy((unsigned char*)(&var8[0]), (unsigned char*)(&var7), 4);
+            var9.structVar1 = ((struct s_test (*)[1])(&var8[0]));
+            var2 = (*var9.structVar1)[0].structVar0;
             return var2;
         }
     }

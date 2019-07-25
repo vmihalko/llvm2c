@@ -4,6 +4,7 @@
 // anonymous struct declarations
 
 // type definitions
+typedef unsigned long(* typeDef_0)(unsigned long);
 
 // struct definitions
 
@@ -13,6 +14,7 @@
 
 // function declarations
 int main(int var0, char** var1);
+unsigned long square(unsigned long var0);
 unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
 
 int main(int var0, char** var1){
@@ -21,13 +23,12 @@ int main(int var0, char** var1){
     unsigned char** var4;
     unsigned char* var5;
     unsigned long var6;
-    unsigned long var7;
-    unsigned int var8;
+    typeDef_0 var7;
     block0: ;
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    if (var3 != 3) {
+    if (var3 != 2) {
         var2 = -1;
         return var2;
     } else {
@@ -36,16 +37,18 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            __asm__("mov    %%rbx, %%rax;   \n\tadd    %%rcx, %%rax;   \n\t"
-        : "=a" (var8)
-        : "c" (var7), "b" (var6)
-        : 
-    );
-            var2 = var8;
+            var7 = square;
+            var2 = ((unsigned int)var7(var6));
             return var2;
         }
     }
+}
+
+unsigned long square(unsigned long var0){
+    unsigned long var1;
+    block0: ;
+    var1 = var0;
+    return ((long)var1) * ((long)var1);
 }
 
 

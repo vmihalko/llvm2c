@@ -1,11 +1,15 @@
 
 // struct declarations
+struct s_t;
 
 // anonymous struct declarations
 
 // type definitions
 
 // struct definitions
+struct s_t {
+    unsigned int structVar0;
+};
 
 // anonymous struct definitions
 
@@ -21,13 +25,12 @@ int main(int var0, char** var1){
     unsigned char** var4;
     unsigned char* var5;
     unsigned long var6;
-    unsigned long var7;
-    unsigned int var8;
+    struct s_t var7;
     block0: ;
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    if (var3 != 3) {
+    if (var3 != 2) {
         var2 = -1;
         return var2;
     } else {
@@ -36,13 +39,8 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            __asm__("mov    %%rbx, %%rax;   \n\tadd    %%rcx, %%rax;   \n\t"
-        : "=a" (var8)
-        : "c" (var7), "b" (var6)
-        : 
-    );
-            var2 = var8;
+            var7.structVar0 = ((unsigned int)var6);
+            var2 = var7.structVar0;
             return var2;
         }
     }

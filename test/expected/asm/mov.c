@@ -23,7 +23,7 @@ int main(){
         : "=c" (var1)
         : 
         : "%rbx"
-    );;
+    );
     return (unsigned int)var1;
 }
 
