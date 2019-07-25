@@ -172,7 +172,7 @@ void ExprWriter::visit(AsmExpr& expr) {
         ss << expr.clobbers;
     }
 
-    ss << std::endl << "    );";
+    ss << std::endl << "    )";
 
 }
 
