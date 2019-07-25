@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# View diffs of input and corresponding output files
+diff="vim -O"
+
+for FOLDER in `ls inputs`; do
+    for f in inputs/$FOLDER/*.c; do
+        $diff $f expected/$FOLDER/`basename $f`
+
+        echo "Press enter to continue"
+        read
+    done
+done
