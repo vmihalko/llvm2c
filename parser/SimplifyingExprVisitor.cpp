@@ -33,11 +33,17 @@ void SimplifyingExprVisitor::visit(SwitchExpr& expr) {
 
 void SimplifyingExprVisitor::visit(AsmExpr& expr) {
     for (auto& pair : expr.output) {
+        if (!pair.second)
+            continue;
+
         pair.second->accept(*this);
         pair.second = simplify(pair.second);
     }
 
     for (auto& pair : expr.input) {
+        if (!pair.second)
+            continue;
+
         pair.second->accept(*this);
         pair.second = simplify(pair.second);
     }
