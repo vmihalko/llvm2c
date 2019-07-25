@@ -21,9 +21,6 @@ for f in inputs/$FOLDER/*.c; do
     echo "Testing $f"
     clang "$f" -o $TEMPDIR/orig 2>/dev/null
     clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
-    #opt -mem2reg -o $TEMPDIR/temp2.ll -S $TEMPDIR/temp.ll
-    #[ -f $TEMPDIR/temp2.ll ] || exit 1
-    #mv $TEMPDIR/temp2.ll $TEMPDIR/temp.ll
     ./llvm2c $TEMPDIR/temp.ll --o $TEMPDIR/temp.c # >> /dev/null
     if [[ $? != 0 ]]; then
         echo -e "\t[NOK] llvm2c failed to translate $f!"

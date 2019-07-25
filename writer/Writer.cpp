@@ -243,6 +243,8 @@ void Writer::writeBlock(const Block* block) {
 }
 
 void Writer::functionDefinitions(const Program& program) {
+    std::vector<const Func*> functions;
+
     for (const auto& pair : program.functions) {
         const auto* func = pair.second.get();
         if (func->isDeclaration) {
@@ -252,6 +254,13 @@ void Writer::functionDefinitions(const Program& program) {
         if (!isFunctionPrinted(func)) {
             continue;
         }
+
+        functions.push_back(func);
+    }
+
+    std::sort(functions.begin(), functions.end(), [](const Func* a, const Func* b){ return a->name <= b->name;});
+
+    for (const auto* func : functions) {
 
         functionHead(func);
         wr.startFunctionBody();
