@@ -33,10 +33,8 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
     if (ins.getNumOperands() == 0) {
         func->createExpr(value, std::make_unique<RetExpr>());
     } else {
-        if (func->getExpr(ins.getOperand(0)) == nullptr) {
-            createConstantValue(ins.getOperand(0), *func->program);
-        }
         Expr* expr = func->getExpr(ins.getOperand(0));
+        assert(expr);
 
         func->createExpr(value, std::make_unique<RetExpr>(expr));
     }
