@@ -5,23 +5,22 @@
 #include <regex>
 #include <unordered_set>
 
-static std::unordered_set<const llvm::GlobalVariable*> computeTopo(const llvm::Constant* con, std::vector<const llvm::GlobalVariable*>& order) {
-    std::unordered_set<const llvm::GlobalVariable*> visited;
+static void computeTopo(const llvm::Constant* con, std::vector<const llvm::GlobalVariable*>& order, std::unordered_set<const llvm::GlobalVariable*>& visited) {
+    if (auto gvar = llvm::dyn_cast_or_null<llvm::GlobalVariable>(con)) {
+        if (!visited.insert(gvar).second) {
+            return;
+        }
+    }
 
     for (const auto& operand : con->operands()) {
         if (auto constOp = llvm::dyn_cast_or_null<llvm::Constant>(operand.get())) {
-            // watch out for self-loops
-            if (constOp != con)
-                computeTopo(constOp, order);
+            computeTopo(constOp, order, visited);
         }
     }
 
     if (auto gvar = llvm::dyn_cast_or_null<llvm::GlobalVariable>(con)) {
         order.push_back(gvar);
-        visited.insert(gvar);
     }
-
-    return visited;
 }
 
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
@@ -61,8 +60,7 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
             continue;
         }
 
-        auto newVisited = computeTopo(&gvar, order);
-        std::move(newVisited.begin(), newVisited.end(), std::inserter(visited, visited.end()));
+        computeTopo(&gvar, order, visited);
     }
 
     for (const auto* gvar : order) {
