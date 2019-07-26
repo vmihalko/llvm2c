@@ -16,9 +16,9 @@ void Writer::writeProgram(const Program& program) {
     wr.line("");
     anonymousStructDefinitions(program);
     wr.line("");
-    globalVarDefinitions(program);
-    wr.line("");
     functionDeclarations(program);
+    wr.line("");
+    globalVarDefinitions(program);
     wr.line("");
     functionDefinitions(program);
     wr.line("");
