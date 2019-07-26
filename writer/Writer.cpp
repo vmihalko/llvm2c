@@ -14,8 +14,6 @@ void Writer::writeProgram(const Program& program) {
     wr.line("");
     structDefinitions(program);
     wr.line("");
-    anonymousStructDefinitions(program);
-    wr.line("");
     functionDeclarations(program);
     wr.line("");
     globalVarDefinitions(program);
@@ -54,7 +52,7 @@ void Writer::structDeclarations(const Program& program) {
     }
 }
 
-void Writer::structDefinition(const Program& program, const Struct* strct, std::unordered_set<std::string>& printed) {
+void Writer::structDefinition(const Program& program, const Struct* strct, std::unordered_set<const Struct*>& printed) {
     for (const auto& item : strct->items) {
         auto type = item.first.get();
         if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
@@ -74,8 +72,12 @@ void Writer::structDefinition(const Program& program, const Struct* strct, std::
         }
     }
 
-    if (!printed.insert(strct->name).second)
+    auto it = printed.find(strct);
+    if (it != printed.end()) {
         return;
+    }
+
+    printed.insert(it, strct);
 
     wr.startStruct(strct->name);
 
@@ -91,9 +93,14 @@ void Writer::structDefinition(const Program& program, const Struct* strct, std::
 
 void Writer::structDefinitions(const Program& program) {
     wr.comment("struct definitions");
-    std::unordered_set<std::string> printed;
+    std::unordered_set<const Struct*> printed;
 
     for (const auto& strct : program.structs) {
+        structDefinition(program, strct.get(), printed);
+    }
+
+    for (const auto& pair : program.unnamedStructs) {
+        const auto& strct = pair.second;
         structDefinition(program, strct.get(), printed);
     }
 }
@@ -198,16 +205,6 @@ void Writer::functionDeclarations(const Program& program) {
     for (const auto* func : declarations) {
         functionHead(func);
         wr.endFunctionDecl();
-    }
-}
-
-void Writer::anonymousStructDefinitions(const Program& program) {
-    wr.comment("anonymous struct definitions");
-    std::unordered_set<std::string> printed;
-
-    for (const auto& pair : program.unnamedStructs) {
-        const auto& strct = pair.second;
-        structDefinition(program, strct.get(), printed);
     }
 }
 
