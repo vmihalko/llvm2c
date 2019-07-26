@@ -50,7 +50,7 @@ int main(int var0, char** var1){
     if (((int)var8) < ((int)(var7 + 10))) {
         var6 = (((long)(((long)var6) + ((long)var8))) - ((long)var7));
         var8 = (((int)var8) + ((int)1));
-goto block7;
+        goto block7;
     } else {
         var7 = (((int)var7) + ((int)1));
         goto block5;

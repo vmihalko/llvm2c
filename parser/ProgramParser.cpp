@@ -45,9 +45,9 @@ Program ProgramParser::parse(const std::string& file) {
     addSignCasts(mod, result);
     deleteRedundantCasts(mod, result);
     extractVars(mod, result);
-
-    // read-only passes
     identifyInlinableBlocks(mod, result);
+    inlineBlocks(mod, result);
+
 
     return result;
 }

@@ -29,3 +29,4 @@ void arrowify(const llvm::Module* module, Program& program);
 void memcpyToAssignment(const llvm::Module* module, Program& program);
 void computeGlobalVarsOrder(const llvm::Module* module, Program& program);
 void createConstants(const llvm::Module* mod, Program& program);
+void inlineBlocks(const llvm::Module* mod, Program& program);

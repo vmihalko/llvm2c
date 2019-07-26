@@ -43,7 +43,7 @@ int main(int var0, char** var1){
     if (((long)var8) < ((long)var6)) {
         var7 = (((int)var7) + ((int)var8));
         var8 = (((int)var8) + ((int)1));
-goto block5;
+        goto block5;
     } else {
         var2 = var7;
         return var2;

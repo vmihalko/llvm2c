@@ -42,10 +42,10 @@ int main(int var0, char** var1){
     var7 = (((int)var7) + ((int)1));
     if (((int)var7) < ((int)10)) {
 goto block5;
-        } else {
-            var2 = ((unsigned int)var6);
-            return var2;
-        }
+    } else {
+        var2 = ((unsigned int)var6);
+        return var2;
+    }
 }
 
 

@@ -27,7 +27,7 @@ unsigned long fact(unsigned long var0){
     if (((long)var3) <= ((long)var1)) {
         var2 = (var2 * var3);
         var3 = (((long)var3) + ((long)1));
-goto block1;
+        goto block1;
     } else {
         return var2;
     }

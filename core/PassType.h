@@ -16,6 +16,7 @@ enum class PassType {
     ParseBreaks,
     AddPhis,
     IdentifyInlinableBlocks,
+    InlineBlocks,
     RefDeref,
     FixMainParameters,
     AddSignCasts,

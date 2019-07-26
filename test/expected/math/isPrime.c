@@ -34,7 +34,7 @@ unsigned int isPrime(unsigned long var0){
             return var1;
         } else {
             var3 = (((int)var3) + ((int)1));
-goto block3;
+            goto block3;
         }
     } else {
         var1 = 1;
