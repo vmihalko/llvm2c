@@ -33,6 +33,15 @@ void SimplifyingExprVisitor::visit(IfExpr& ifExpr) {
 void SimplifyingExprVisitor::visit(SwitchExpr& expr) {
     expr.cmp->accept(*this);
     expr.cmp = simplify(expr.cmp);
+
+    for (auto& pair : expr.cases) {
+        pair.second->accept(*this);
+        pair.second = simplify(pair.second);
+    }
+
+    expr.def->accept(*this);
+    expr.def = simplify(expr.def);
+
 }
 
 void SimplifyingExprVisitor::visit(AsmExpr& expr) {

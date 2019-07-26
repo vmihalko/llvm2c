@@ -362,8 +362,19 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     return program.addOwnership(std::move(expr));
 }
 
+static Expr* createListOfOneGoto(Block* container, Block* gotoTarget) {
+    auto gotoExpr = std::make_unique<GotoExpr>(gotoTarget);
+    std::vector<Expr*> exprs { gotoExpr.get() };
+    auto list = std::make_unique<ExprList>(std::move(exprs));
+
+    container->addOwnership(std::move(gotoExpr));
+    auto* result = list.get();
+    container->addOwnership(std::move(list));
+    return result;
+}
+
 static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExpr, const llvm::Value* val, Func* func, Block* block) {
-    std::map<int, Block*> cases;
+    std::map<int, Expr*> cases;
 
     Expr* cmp = func->getExpr(ins.getOperand(0));
     assert(cmp);
@@ -373,14 +384,15 @@ static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExp
 
     for (const auto& switchCase : switchIns->cases()) {
         CaseHandle caseHandle = static_cast<CaseHandle>(&switchCase);
-        cases[caseHandle->getCaseValue()->getSExtValue()] = func->createBlockIfNotExist(caseHandle->getCaseSuccessor());
+        Block *target = func->createBlockIfNotExist(caseHandle->getCaseSuccessor());
+        cases[caseHandle->getCaseValue()->getSExtValue()] = createListOfOneGoto(block, target);
     }
 
     if (!isConstExpr) {
-        func->createExpr(&ins, std::make_unique<SwitchExpr>(cmp, def, cases));
+        func->createExpr(&ins, std::make_unique<SwitchExpr>(cmp, createListOfOneGoto(block, def), cases));
         block->addExpr(func->getExpr(&ins));
     } else {
-        func->createExpr(val, std::make_unique<SwitchExpr>(cmp, def, cases));
+        func->createExpr(val, std::make_unique<SwitchExpr>(cmp, createListOfOneGoto(block, def), cases));
     }
 }
 

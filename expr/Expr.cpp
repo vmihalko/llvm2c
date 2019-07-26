@@ -134,7 +134,7 @@ bool IfExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_IfExpr;
 }
 
-SwitchExpr::SwitchExpr(Expr* cmp, Block* def, std::map<int, Block*> cases)
+SwitchExpr::SwitchExpr(Expr* cmp, Expr* def, std::map<int, Expr*> cases)
     : ExprBase(EK_SwitchExpr),
       cmp(cmp),
       def(def),

@@ -257,10 +257,10 @@ public:
 class SwitchExpr : public ExprBase {
 public:
     Expr* cmp; //expression used in switch
-    Block* def; //default
-    std::map<int, Block*> cases; //cases of switch
+    Expr* def; //default
+    std::map<int, Expr*> cases; //cases of switch
 
-    SwitchExpr(Expr*, Block*, std::map<int, Block*>);
+    SwitchExpr(Expr*, Expr*, std::map<int, Expr*>);
 
     void accept(ExprVisitor& visitor) override;
 

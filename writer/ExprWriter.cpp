@@ -112,18 +112,24 @@ void ExprWriter::visit(SwitchExpr& expr) {
         const auto& label = lb_block.first;
         const auto& block = lb_block.second;
 
-        indent();
-        ss << "    case " << label << ":" << std::endl;
         indentCount++;
-        gotoOrInline(block, true);
+        indent();
+        ss << "case " << label << ":" << std::endl;
+        indentCount++;
+        indent();
+        block->accept(*this);
+        indentCount--;
         indentCount--;
     }
 
     if (expr.def) {
-        indent();
-        ss << "    default:" << std::endl;
         indentCount++;
-        gotoOrInline(expr.def, true);
+        indent();
+        ss << "default:" << std::endl;
+        indentCount++;
+        indent();
+        expr.def->accept(*this);
+        indentCount--;
         indentCount--;
     }
 
