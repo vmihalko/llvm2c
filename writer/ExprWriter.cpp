@@ -144,7 +144,9 @@ void ExprWriter::visit(SwitchExpr& expr) {
 
 void ExprWriter::visit(AsmExpr& expr) {
     ss << "__asm__(\"" << expr.inst << "\"" << std::endl;
-    ss << "        : ";
+    indentCount++;
+    indent();
+    ss << ": ";
     if (!expr.output.empty()) {
         bool first = true;
         for (const auto& out : expr.output) {
@@ -162,7 +164,9 @@ void ExprWriter::visit(AsmExpr& expr) {
         }
     }
 
-    ss << std::endl << "        : ";
+    ss << std::endl;
+    indent();
+    ss << ": ";
 
     if (!expr.input.empty()) {
         bool first = true;
@@ -178,13 +182,16 @@ void ExprWriter::visit(AsmExpr& expr) {
         }
     }
 
-    ss << std::endl << "        : ";
+    ss << std::endl;
+    indent();
+    ss << ": ";
 
     if (!expr.clobbers.empty()) {
         ss << expr.clobbers;
     }
 
-    ss << std::endl << "    )";
+    ss << std::endl;
+    indent();
 
 }
 
