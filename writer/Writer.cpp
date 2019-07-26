@@ -233,7 +233,7 @@ void Writer::writeBlock(const Block* block) {
     for (const auto& expr : block->expressions) {
         wr.indent(1);
         expr->accept(ew);
-        if (!llvm::isa<IfExpr>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<GotoExpr>(expr) && !llvm::isa<SwitchExpr>(expr)) {
             wr.line(";");
         }
     }

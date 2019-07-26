@@ -46,7 +46,6 @@ int main(int var0, char** var1){
                     var2 = 123;
                     return var2;
 }
-;
         }
     }
 }

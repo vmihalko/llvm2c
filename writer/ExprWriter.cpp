@@ -399,7 +399,7 @@ void ExprWriter::gotoOrInline(Block* block, bool doIndent) {
             if (doIndent)
                 indent();
             expr->accept(*this);
-            if (!llvm::isa<IfExpr>(expr)) {
+            if (!llvm::isa<IfExpr>(expr) && !llvm::isa<GotoExpr>(expr) && !llvm::isa<SwitchExpr>(expr)) {
                 ss << ";" << std::endl;
             }
         }

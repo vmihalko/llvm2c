@@ -51,7 +51,6 @@ int main(int var0, char** var1){
         default:
             return var3_phi;
 }
-;
     var3_phi = 0;
 }
 
