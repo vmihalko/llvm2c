@@ -36,10 +36,10 @@ int main(int var0, char** var1){
         } else {
             var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
             __asm__("mov    %%rbx, %%rax;   \n\tadd    %%rcx, %%rax;   \n\t"
-        : "=a" (var8)
-        : "c" (var7), "b" (var6)
-        : 
-    );
+                : "=a" (var8)
+                : "c" (var7), "b" (var6)
+                : 
+            );
             var2 = var8;
             return var2;
         }
