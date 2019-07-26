@@ -103,7 +103,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         std::vector<Expr*> values;
 
         for (int i = 0; i < CAZ->getNumElements(); ++i) {
-            auto* elem = CAZ->getSequentialElement();
+            auto* elem = CAZ->getElementValue(i);
             values.push_back(createConstantValue(elem, program));
         }
 
