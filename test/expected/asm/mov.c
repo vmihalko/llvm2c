@@ -9,10 +9,10 @@
 
 // anonymous struct definitions
 
-// global variable definitions
-
 // function declarations
 int main();
+
+// global variable definitions
 
 int main(){
     unsigned int var0;

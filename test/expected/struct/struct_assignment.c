@@ -14,13 +14,13 @@ struct s_mystruct {
 
 // anonymous struct definitions
 
-// global variable definitions
-struct s_mystruct __const_get_struct_result = {0,97,};
-static unsigned int counter = 0;
-
 // function declarations
 unsigned long get_struct();
 int main(int var0, char** var1);
+
+// global variable definitions
+struct s_mystruct __const_get_struct_result = {0,97,};
+static unsigned int counter = 0;
 
 unsigned long get_struct(){
     struct s_mystruct var0;

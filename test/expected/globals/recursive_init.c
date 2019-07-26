@@ -14,11 +14,11 @@ struct s_list {
 
 // anonymous struct definitions
 
-// global variable definitions
-struct s_list mylist = {0,&mylist,};
-
 // function declarations
 int main(int var0, char** var1);
+
+// global variable definitions
+struct s_list mylist = {0,&mylist,};
 
 int main(int var0, char** var1){
     unsigned int var2;

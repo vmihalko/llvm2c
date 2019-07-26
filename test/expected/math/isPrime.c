@@ -9,12 +9,12 @@
 
 // anonymous struct definitions
 
-// global variable definitions
-
 // function declarations
 unsigned int isPrime(unsigned long var0);
 int main(int var0, char** var1);
 unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
+
+// global variable definitions
 
 unsigned int isPrime(unsigned long var0){
     unsigned int var1;

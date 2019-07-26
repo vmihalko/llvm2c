@@ -9,12 +9,12 @@
 
 // anonymous struct definitions
 
-// global variable definitions
-
 // function declarations
 unsigned char (*get_me())[5];
 int main(int var0, char** var1);
 unsigned char* malloc(unsigned long var0);
+
+// global variable definitions
 
 unsigned char (*get_me())[5]{
     unsigned char* var0;

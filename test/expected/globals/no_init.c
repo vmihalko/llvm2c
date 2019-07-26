@@ -20,11 +20,11 @@ struct s_parent {
 
 // anonymous struct definitions
 
-// global variable definitions
-struct s_parent p = {{0,0,},0,0,};
-
 // function declarations
 int main(int var0, char** var1);
+
+// global variable definitions
+struct s_parent p = {{0,0,},0,0,};
 
 int main(int var0, char** var1){
     unsigned int var2;

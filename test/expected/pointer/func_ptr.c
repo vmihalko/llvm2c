@@ -10,12 +10,12 @@ typedef unsigned long(* typeDef_0)(unsigned long);
 
 // anonymous struct definitions
 
-// global variable definitions
-
 // function declarations
 int main(int var0, char** var1);
 unsigned long square(unsigned long var0);
 unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
+
+// global variable definitions
 
 int main(int var0, char** var1){
     unsigned int var2;

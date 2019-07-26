@@ -9,12 +9,12 @@
 
 // anonymous struct definitions
 
-// global variable definitions
-unsigned char _str[7] = {37,46,49,108,102,10,0,};
-
 // function declarations
 int main();
 unsigned int printf(unsigned char* var0, ...);
+
+// global variable definitions
+unsigned char _str[7] = {37,46,49,108,102,10,0,};
 
 int main(){
     unsigned int var0;
