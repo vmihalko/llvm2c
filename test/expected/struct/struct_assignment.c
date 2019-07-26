@@ -12,8 +12,6 @@ struct s_mystruct {
     unsigned char structVar1;
 };
 
-// anonymous struct definitions
-
 // function declarations
 unsigned long get_struct();
 int main(int var0, char** var1);

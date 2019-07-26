@@ -7,8 +7,6 @@
 
 // struct definitions
 
-// anonymous struct definitions
-
 // function declarations
 unsigned char (*get_me())[5];
 int main(int var0, char** var1);

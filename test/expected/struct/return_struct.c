@@ -13,8 +13,6 @@ struct s_mystruct {
     unsigned int structVar2;
 };
 
-// anonymous struct definitions
-
 // function declarations
 struct s_mystruct* get_mystruct();
 int main(int var0, char** var1);

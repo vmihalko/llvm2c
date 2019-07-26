@@ -12,8 +12,6 @@ struct s_list {
     struct s_list* structVar1;
 };
 
-// anonymous struct definitions
-
 // function declarations
 int main(int var0, char** var1);
 

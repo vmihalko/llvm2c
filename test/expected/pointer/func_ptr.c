@@ -8,8 +8,6 @@ typedef unsigned long(* typeDef_0)(unsigned long);
 
 // struct definitions
 
-// anonymous struct definitions
-
 // function declarations
 int main(int var0, char** var1);
 unsigned long square(unsigned long var0);

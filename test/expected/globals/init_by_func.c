@@ -12,8 +12,6 @@ struct s_mystruct {
     typeDef_0 structVar0;
 };
 
-// anonymous struct definitions
-
 // function declarations
 int main(int var0, char** var1);
 unsigned int square(unsigned int var0);

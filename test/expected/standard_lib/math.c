@@ -7,8 +7,6 @@
 
 // struct definitions
 
-// anonymous struct definitions
-
 // function declarations
 int main();
 unsigned int printf(unsigned char* var0, ...);

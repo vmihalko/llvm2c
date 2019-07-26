@@ -15,8 +15,6 @@ struct s_two {
     struct s_one structVar0;
 };
 
-// anonymous struct definitions
-
 // function declarations
 int main(int var0, char** var1);
 unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);

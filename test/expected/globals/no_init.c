@@ -18,8 +18,6 @@ struct s_parent {
     unsigned long structVar2;
 };
 
-// anonymous struct definitions
-
 // function declarations
 int main(int var0, char** var1);
 

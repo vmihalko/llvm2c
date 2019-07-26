@@ -7,8 +7,6 @@
 
 // struct definitions
 
-// anonymous struct definitions
-
 // function declarations
 unsigned int digitSum(unsigned long var0);
 int main(int var0, char** var1);
