@@ -210,11 +210,8 @@ bool PointerShift::classof(const Expr* expr) {
     return expr->getKind() == EK_PointerShift;
 }
 
-GepExpr::GepExpr(std::vector<std::unique_ptr<Expr>>& indices)
-    : ExprBase(EK_GepExpr) {
-    for (auto& index : indices) {
-        this->indices.push_back(std::move(index));
-    }
+GepExpr::GepExpr(std::vector<Expr*>&& indices)
+    : ExprBase(EK_GepExpr), indices(std::move(indices)) {
 
     setType(this->indices[this->indices.size() - 1]->getType()->clone());
 }

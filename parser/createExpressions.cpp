@@ -855,7 +855,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
 
     llvm::Type* prevType = gepInst->getOperand(0)->getType();
     Expr* prevExpr = expr;
-    std::vector<std::unique_ptr<Expr>> indices;
+    std::vector<Expr*> indices;
 
     //if getelementptr contains null, cast it to given type
     if (expr->isZero()) {
@@ -870,14 +870,14 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
 
         if (prevType->isPointerTy()) {
             if (index->isZero()) {
-                indices.push_back(std::make_unique<DerefExpr>(prevExpr));
+                indices.push_back(program.addOwnership(std::make_unique<DerefExpr>(prevExpr)));
             } else {
-                indices.push_back(std::make_unique<PointerShift>(program.getType(prevType), prevExpr, index));
+                indices.push_back(program.addOwnership(std::make_unique<PointerShift>(program.getType(prevType), prevExpr, index)));
             }
         }
 
         if (prevType->isArrayTy()) {
-            indices.push_back(std::make_unique<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType())));
+            indices.push_back(program.addOwnership(std::make_unique<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType()))));
         }
 
         if (prevType->isStructTy()) {
@@ -886,13 +886,13 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
-            indices.push_back(std::make_unique<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
+            indices.push_back(program.addOwnership(std::make_unique<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue())));
         }
 
         prevType = it.getIndexedType();
-        prevExpr = indices[indices.size() - 1].get();
+        prevExpr = indices[indices.size() - 1];
     }
-    auto newGep = std::make_unique<GepExpr>(indices);
+    auto newGep = std::make_unique<GepExpr>(std::move(indices));
     return program.addOwnership(std::make_unique<RefExpr>(program.addOwnership(std::move(newGep))));
 }
 

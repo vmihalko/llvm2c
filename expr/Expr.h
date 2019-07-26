@@ -330,8 +330,8 @@ public:
  */
 class GepExpr : public ExprBase {
 public:
-    std::vector<std::unique_ptr<Expr>> indices; //sequence of StructElement, ArrayElement and PointerShift expressions
-    GepExpr(std::vector<std::unique_ptr<Expr>>&);
+    std::vector<Expr*> indices; //sequence of StructElement, ArrayElement and PointerShift expressions
+    GepExpr(std::vector<Expr*>&&);
 
     void accept(ExprVisitor& visitor) override;
 
