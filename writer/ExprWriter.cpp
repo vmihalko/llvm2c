@@ -91,16 +91,22 @@ void ExprWriter::visit(IfExpr& expr) {
     ss << "if (";
     expr.cmp->accept(*this);
     ss << ") {" << std::endl;
+    indentCount++;
+    indent();
     expr.trueList->accept(*this);
+    indentCount--;
     indent();
     ss << "} else {" << std::endl;
+    indentCount++;
+    indent();
     expr.falseList->accept(*this);
+    indentCount--;
     indent();
     ss << "}" << std::endl;
 }
 
 void ExprWriter::visit(GotoExpr& expr) {
-    gotoOrInline(expr.target, false);
+    ss << "goto " << expr.target->blockName;
 }
 
 void ExprWriter::visit(SwitchExpr& expr) {
@@ -394,33 +400,15 @@ void ExprWriter::visit(ArrowExpr& expr) {
 }
 
 void ExprWriter::visit(ExprList& exprList) {
+    bool first = true;
     for (const auto& expr : exprList.expressions) {
+        if (!first)
+            indent();
+        first = false;
         expr->accept(*this);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<GotoExpr>(expr) && !llvm::isa<SwitchExpr>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
             ss << ";" << std::endl;
         }
-    }
-}
-
-void ExprWriter::gotoOrInline(Block* block, bool doIndent) {
-    if (block->doInline) {
-        indentCount += 1;
-        if (forceBlockLabels) {
-            if (doIndent)
-                indent();
-            ss << block->blockName << ": ;" << std::endl;
-        }
-        for (const auto& expr : block->expressions) {
-            if (doIndent)
-                indent();
-            expr->accept(*this);
-            if (!llvm::isa<IfExpr>(expr) && !llvm::isa<GotoExpr>(expr) && !llvm::isa<SwitchExpr>(expr)) {
-                ss << ";" << std::endl;
-            }
-        }
-        indentCount -= 1;
-    } else {
-        ss << "goto " << block->blockName << ";" << std::endl;
     }
 }
 
