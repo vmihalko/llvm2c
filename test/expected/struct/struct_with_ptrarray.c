@@ -43,10 +43,10 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7.structVar0 = ((unsigned int)var6);
-            memcpy((unsigned char*)(&var8[0]), (unsigned char*)(&var7), 4);
-            var9.structVar1 = ((struct s_test (*)[1])(&var8[0]));
-            var2 = (*var9.structVar1)[0].structVar0;
+            (var7.structVar0) = ((unsigned int)var6);
+            memcpy((unsigned char*)(&(var8[0])), (unsigned char*)(&var7), 4);
+            (var9.structVar1) = ((struct s_test (*)[1])(&(var8[0])));
+            var2 = (((*(var9.structVar1))[0]).structVar0);
             return var2;
         }
     }

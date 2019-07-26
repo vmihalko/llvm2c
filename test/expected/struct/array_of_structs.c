@@ -46,7 +46,7 @@ int main(int var0, char** var1){
     }
     block5: ;
     if (((int)var8) < ((int)5)) {
-        var7[(long)var8].structVar0 = ((unsigned int)(((long)var6) + ((long)var8)));
+        ((var7[(long)var8]).structVar0) = ((unsigned int)(((long)var6) + ((long)var8)));
         var8 = (((int)var8) + ((int)1));
 goto block5;
     } else {
@@ -56,7 +56,7 @@ goto block5;
     }
     block9: ;
     if (((int)var10) < ((int)5)) {
-        var9 = (((int)var9) + ((int)var7[(long)var10].structVar0));
+        var9 = (((int)var9) + ((int)((var7[(long)var10]).structVar0)));
         var10 = (((int)var10) + ((int)1));
 goto block9;
     } else {

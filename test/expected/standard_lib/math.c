@@ -22,7 +22,7 @@ int main(){
     var1 = 1.23E+2;
     var1 = ((float)log10((double)var1));
     var1 = ((float)pow((double)var1, 2.0E+0));
-    printf(&_str[0], floor((double)var1));
+    printf(&(_str[0]), floor((double)var1));
     return 0;
 }
 

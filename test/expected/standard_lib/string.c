@@ -21,9 +21,9 @@ int main(){
     unsigned char var2[20];
     block0: ;
     var0 = 0;
-    memcpy((unsigned char*)(&var1), &__const_main_test1[0], 20);
-    memcpy(&var2[0], &var1[0], 11);
-    printf(&_str[0], &var2[0]);
+    memcpy((unsigned char*)(&var1), &(__const_main_test1[0]), 20);
+    memcpy(&(var2[0]), &(var1[0]), 11);
+    printf(&(_str[0]), &(var2[0]));
     return 0;
 }
 

@@ -26,7 +26,7 @@ int main(int var0, char** var1){
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    return (unsigned int)mylist.structVar0;
+    return (unsigned int)(mylist.structVar0);
 }
 
 

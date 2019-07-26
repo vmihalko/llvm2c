@@ -37,8 +37,8 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7.structVar0 = ((unsigned int)var6);
-            var2 = var7.structVar0;
+            (var7.structVar0) = ((unsigned int)var6);
+            var2 = (var7.structVar0);
             return var2;
         }
     }

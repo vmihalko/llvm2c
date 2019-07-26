@@ -28,11 +28,11 @@ int main(){
     block0: ;
     var0 = 0;
     var1 = malloc(20);
-    strcpy(var1, &_str[0]);
-    printf(&_str_1[0], var1);
+    strcpy(var1, &(_str[0]));
+    printf(&(_str_1[0]), var1);
     var1 = realloc(var1, 40);
-    strcat(var1, &_str_2[0]);
-    printf(&_str_3[0], var1);
+    strcat(var1, &(_str_2[0]));
+    printf(&(_str_3[0]), var1);
     free(var1);
     return 0;
 }

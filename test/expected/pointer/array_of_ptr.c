@@ -33,8 +33,8 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var7[2] = (&var6);
-            var2 = ((unsigned int)(*var7[2]));
+            (var7[2]) = (&var6);
+            var2 = ((unsigned int)(*(var7[2])));
             return var2;
         }
     }

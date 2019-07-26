@@ -32,7 +32,7 @@ int main(int var0, char** var1){
     var2 = 0;
     var3 = var0;
     var4 = var1;
-    return (unsigned int)(p.structVar0).structVar4;
+    return (unsigned int)((p.structVar0).structVar4);
 }
 
 

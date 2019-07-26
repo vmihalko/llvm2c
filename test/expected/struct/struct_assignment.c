@@ -38,7 +38,7 @@ int main(int var0, char** var1){
     var3 = var0;
     var4 = var1;
     (*((unsigned long*)(&var5))) = get_struct();
-    return ((int)counter) + ((int)var5.structVar1);
+    return ((int)counter) + ((int)(var5.structVar1));
 }
 
 

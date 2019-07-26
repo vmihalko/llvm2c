@@ -39,7 +39,7 @@ int main(int var0, char** var1){
             var2 = -1;
             return var2;
         } else {
-            var2 = test.structVar0((unsigned int)var6);
+            var2 = (test.structVar0)((unsigned int)var6);
             return var2;
         }
     }
