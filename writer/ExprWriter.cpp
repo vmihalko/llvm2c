@@ -387,6 +387,15 @@ void ExprWriter::visit(ArrowExpr& expr) {
     ss << expr.strct->items[expr.element].second;
 }
 
+void ExprWriter::visit(ExprList& exprList) {
+    for (const auto& expr : exprList.expressions) {
+        expr->accept(*this);
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<GotoExpr>(expr) && !llvm::isa<SwitchExpr>(expr)) {
+            ss << ";" << std::endl;
+        }
+    }
+}
+
 void ExprWriter::gotoOrInline(Block* block, bool doIndent) {
     if (block->doInline) {
         indentCount += 1;

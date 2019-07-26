@@ -42,6 +42,7 @@ public:
     void visit(ArrowExpr& expr) override;
     void visit(LogicalAnd& expr) override;
     void visit(LogicalOr& expr) override;
+    void visit(ExprList& expr) override;
 
     virtual ~SimplifyingExprVisitor() = default;
 };

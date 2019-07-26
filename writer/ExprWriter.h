@@ -60,6 +60,7 @@ public:
     void visit(LogicalAnd& expr) override;
     void visit(LogicalOr& expr) override;
     void visit(GotoExpr& expr) override;
+    void visit(ExprList& expr) override;
 
     virtual ~ExprWriter() = default;
 };

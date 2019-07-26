@@ -57,6 +57,8 @@ public:
         EK_ArrowExpr,
         EK_LogicalAnd,
         EK_LogicalOr,
+
+        EK_ExprList,
     };
 private:
     const ExprKind kind;
@@ -102,6 +104,17 @@ public:
     bool isSimple() const override {
         return false;
     }
+};
+
+class ExprList : public ExprBase {
+public:
+    std::vector<Expr*> expressions;
+
+    ExprList(std::vector<Expr*>&& expressions);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
 };
 
 /**
@@ -404,3 +417,4 @@ public:
 
     static bool classof(const Expr* expr);
 };
+

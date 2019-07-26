@@ -312,3 +312,13 @@ void GotoExpr::accept(ExprVisitor& visitor) {
 bool GotoExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GotoExpr;
 }
+
+ExprList::ExprList(std::vector<Expr*>&& expressions) : ExprBase(EK_ExprList), expressions(std::move(expressions)) {}
+
+void ExprList::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool ExprList::classof(const Expr* expr) {
+    return expr->getKind() == EK_ExprList;
+}

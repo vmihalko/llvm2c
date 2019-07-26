@@ -36,6 +36,7 @@ class ArrowExpr;
 class LogicalAnd;
 class LogicalOr;
 class GotoExpr;
+class ExprList;
 
 class ExprVisitor {
 public:
@@ -75,5 +76,7 @@ public:
     virtual void visit(LogicalAnd& expr) {}
     virtual void visit(LogicalOr& expr) {}
     virtual void visit(GotoExpr& expr) {}
+    virtual void visit(ExprList& expr) {}
+
     virtual ~ExprVisitor() = default;
 };
