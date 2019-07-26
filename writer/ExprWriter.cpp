@@ -191,7 +191,10 @@ void ExprWriter::visit(AsmExpr& expr) {
     }
 
     ss << std::endl;
+
+    indentCount--;
     indent();
+    ss << ")";
 
 }
 
