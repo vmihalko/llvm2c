@@ -308,8 +308,6 @@ public:
     void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
-
-    bool isSimple() const override;
 };
 
 /**

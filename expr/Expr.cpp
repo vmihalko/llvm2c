@@ -233,10 +233,6 @@ bool GepExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GepExpr;
 }
 
-bool GepExpr::isSimple() const {
-    return true;
-}
-
 SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
     ExprBase(EK_SelectExpr),
     left(l),
