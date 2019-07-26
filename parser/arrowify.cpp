@@ -9,9 +9,6 @@
 class ArrowifyVisitor : public SimplifyingExprVisitor {
 public:
     std::vector<std::unique_ptr<Expr>> ownership;
-
-    void visit(GepExpr& expr) override;
-
 protected:
     Expr* simplify(Expr* expr) override;
 };
@@ -52,21 +49,4 @@ Expr* ArrowifyVisitor::simplify(Expr* expr) {
     }
 
     return expr;
-}
-
-void ArrowifyVisitor::visit(GepExpr& expr) {
-    for (auto it = expr.indices.begin(); it != expr.indices.end(); ++it) {
-        (*it)->accept(*this);
-        auto uptr = std::move(*it);
-
-        if (auto* SE = llvm::dyn_cast_or_null<StructElement>(uptr.get())) {
-            if (auto* DE = llvm::dyn_cast_or_null<DerefExpr>(SE->expr)) {
-                auto arrow = std::make_unique<ArrowExpr>(SE->strct, DE->expr, SE->element);
-                ownership.push_back(std::move(uptr));
-                uptr = std::move(arrow);
-            }
-        }
-
-        *it = std::move(uptr);
-    }
 }
