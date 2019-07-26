@@ -59,6 +59,7 @@ public:
     void visit(AggregateInitializer& ai) override;
     void visit(LogicalAnd& expr) override;
     void visit(LogicalOr& expr) override;
+    void visit(GotoExpr& expr) override;
 
     virtual ~ExprWriter() = default;
 };

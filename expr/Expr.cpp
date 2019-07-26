@@ -126,12 +126,6 @@ IfExpr::IfExpr(Expr* cmp, Block* trueBlock, Block* falseBlock)
       trueBlock(trueBlock),
       falseBlock(falseBlock) {}
 
-IfExpr::IfExpr(Block* trueBlock)
-    : ExprBase(EK_IfExpr),
-      cmp(nullptr),
-      trueBlock(trueBlock),
-      falseBlock(nullptr) {}
-
 void IfExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
@@ -307,4 +301,14 @@ void LogicalOr::accept(ExprVisitor& visitor) {
 
 bool LogicalOr::classof(const Expr* expr) {
     return expr->getKind() == EK_LogicalOr;
+}
+
+GotoExpr::GotoExpr(Block* target) : ExprBase(EK_GotoExpr), target(target) { }
+
+void GotoExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool GotoExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_GotoExpr;
 }

@@ -88,19 +88,19 @@ void ExprWriter::visit(GlobalValue& expr) {
 }
 
 void ExprWriter::visit(IfExpr& expr) {
-    if (expr.cmp) {
-        ss << "if (";
-        expr.cmp->accept(*this);
-        ss << ") {" << std::endl;
-        gotoOrInline(expr.trueBlock, true);
-        indent();
-        ss << "} else {" << std::endl;
-        gotoOrInline(expr.falseBlock, true);
-        indent();
-        ss << "}" << std::endl;
-    } else {
-        gotoOrInline(expr.trueBlock, false);
-    }
+    ss << "if (";
+    expr.cmp->accept(*this);
+    ss << ") {" << std::endl;
+    gotoOrInline(expr.trueBlock, true);
+    indent();
+    ss << "} else {" << std::endl;
+    gotoOrInline(expr.falseBlock, true);
+    indent();
+    ss << "}" << std::endl;
+}
+
+void ExprWriter::visit(GotoExpr& expr) {
+    gotoOrInline(expr.target, false);
 }
 
 void ExprWriter::visit(SwitchExpr& expr) {

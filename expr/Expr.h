@@ -26,6 +26,7 @@ public:
         EK_Value,
         EK_GlobalValue,
         EK_IfExpr,
+        EK_GotoExpr,
         EK_SwitchExpr,
         EK_AsmExpr,
         EK_CallExpr,
@@ -222,6 +223,21 @@ public:
 
     static bool classof(const Expr* expr);
 };
+
+/**
+ * @brief The GotoExpr class represents br instruction in C as a goto statement.
+ */
+class GotoExpr : public ExprBase {
+public:
+    Block* target; //else goto falseBlock
+
+    GotoExpr(Block* target);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
 
 /**
  * @brief The SwitchExpr class represents switch.

@@ -9,11 +9,10 @@
 static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     //no condition
     if (ins.getNumOperands() == 1) {
-        Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
-        auto ifExpr = std::make_unique<IfExpr>(trueBlock);
-        func->program->exprMap[&ins] = ifExpr.get();
-        block->addExpr(ifExpr.get());
-        func->program->addOwnership(std::move(ifExpr));
+        Block* target = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
+        auto gotoExpr = std::make_unique<GotoExpr>(target);
+        func->program->exprMap[&ins] = gotoExpr.get();
+        block->addExprAndOwnership(std::move(gotoExpr));
         return;
     }
 
