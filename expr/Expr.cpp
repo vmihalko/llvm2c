@@ -120,11 +120,11 @@ bool GlobalValue::isSimple() const {
     return true;
 }
 
-IfExpr::IfExpr(Expr* cmp, Block* trueBlock, Block* falseBlock)
+IfExpr::IfExpr(Expr* cmp, Expr* trueList, Expr* falseList)
     : ExprBase(EK_IfExpr),
       cmp(cmp),
-      trueBlock(trueBlock),
-      falseBlock(falseBlock) {}
+      trueList(trueList),
+      falseList(falseList) {}
 
 void IfExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

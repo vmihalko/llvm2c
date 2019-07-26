@@ -91,10 +91,10 @@ void ExprWriter::visit(IfExpr& expr) {
     ss << "if (";
     expr.cmp->accept(*this);
     ss << ") {" << std::endl;
-    gotoOrInline(expr.trueBlock, true);
+    expr.trueList->accept(*this);
     indent();
     ss << "} else {" << std::endl;
-    gotoOrInline(expr.falseBlock, true);
+    expr.falseList->accept(*this);
     indent();
     ss << "}" << std::endl;
 }

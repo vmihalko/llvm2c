@@ -6,6 +6,17 @@
 
 #include <llvm/IR/Instruction.h>
 
+static Expr* createListOfOneGoto(Block* container, Block* gotoTarget) {
+    auto gotoExpr = std::make_unique<GotoExpr>(gotoTarget);
+    std::vector<Expr*> exprs { gotoExpr.get() };
+    auto list = std::make_unique<ExprList>(std::move(exprs));
+
+    container->addOwnership(std::move(gotoExpr));
+    auto* result = list.get();
+    container->addOwnership(std::move(list));
+    return result;
+}
+
 static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     //no condition
     if (ins.getNumOperands() == 1) {
@@ -21,7 +32,8 @@ static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* 
     Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
     Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
 
-    auto ifExpr = std::make_unique<IfExpr>(cmp, trueBlock, falseBlock);
+    auto ifExpr = std::make_unique<IfExpr>(cmp, createListOfOneGoto(block, trueBlock), createListOfOneGoto(block, falseBlock));
+
     func->createExpr(&ins, std::move(ifExpr));
     block->addExpr(func->getExpr(&ins));
 }

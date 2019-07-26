@@ -226,11 +226,10 @@ public:
 class IfExpr : public ExprBase {
 public:
     Expr* cmp; //expression used as a condition
-    Block* trueBlock; //goto trueBlock if condition is true
-    Block* falseBlock; //else goto falseBlock
+    Expr* trueList;
+    Expr* falseList;
 
-    IfExpr(Expr*, Block*, Block*);
-    IfExpr(Block* trueBlock);
+    IfExpr(Expr*, Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
 

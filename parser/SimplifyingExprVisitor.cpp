@@ -20,10 +20,14 @@ void SimplifyingExprVisitor::visit(ExtractValueExpr& expr) {
 }
 
 void SimplifyingExprVisitor::visit(IfExpr& ifExpr) {
-    if (ifExpr.cmp) {
-        ifExpr.cmp->accept(*this);
-        ifExpr.cmp = simplify(ifExpr.cmp);
-    }
+    ifExpr.cmp->accept(*this);
+    ifExpr.cmp = simplify(ifExpr.cmp);
+
+    ifExpr.trueList->accept(*this);
+    ifExpr.trueList = simplify(ifExpr.trueList);
+
+    ifExpr.falseList->accept(*this);
+    ifExpr.falseList = simplify(ifExpr.falseList);
 }
 
 void SimplifyingExprVisitor::visit(SwitchExpr& expr) {
