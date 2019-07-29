@@ -71,8 +71,13 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
 
     if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
         if (CFP->isInfinity()) {
-            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
-            return program.addOwnership(std::move(call));
+            if (CFP->isNegative()) {
+                auto call = std::make_unique<CallExpr>(nullptr, "-__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
+                return program.addOwnership(std::move(call));
+            } else {
+                auto call = std::make_unique<CallExpr>(nullptr, "__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
+                return program.addOwnership(std::move(call));
+            }
         } else if (CFP->isNaN()){
             auto param = std::make_unique<Value>("\"\"", std::make_unique<PointerType>(std::make_unique<CharType>(true)));
             auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
