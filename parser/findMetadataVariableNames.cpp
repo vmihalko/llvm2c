@@ -18,15 +18,14 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
         llvm::DIBasicType* type = llvm::dyn_cast_or_null<llvm::DIBasicType>(localVar->getType());
 
-        if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
-            if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(variable->getType())) {
-                IT->unsignedType = true;
-            }
+        if (!localVar->getName().empty()) {
+            variable->valueName = localVar->getName();
         }
     }
 }
 
-void parseMetadataTypes(const llvm::Module* module, Program& program) {
+
+void findMetadataVariableNames(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateAllocas));
 
     for (const auto& function : module->functions()) {
@@ -48,5 +47,5 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
         }
     }
 
-    program.addPass(PassType::ParseMetadataTypes);
+    program.addPass(PassType::FindMetadataVariableNames);
 }

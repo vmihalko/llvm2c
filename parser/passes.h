@@ -8,6 +8,7 @@ void parseStructs(const llvm::Module* module, Program& program);
 void parseFunctions(const llvm::Module* module, Program& program);
 void determineIncludes(const llvm::Module* module, Program& program);
 void findMetadataFunctionNames(const llvm::Module* module, Program& program);
+void findMetadataVariableNames(const llvm::Module* module, Program& program);
 void createFunctions(const llvm::Module* module, Program& program);
 void createFunctionParameters(const llvm::Module* module, Program& program);
 void createBlocks(const llvm::Module* module, Program& program);
