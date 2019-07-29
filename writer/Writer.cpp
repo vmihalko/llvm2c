@@ -41,6 +41,9 @@ void Writer::includes(const Program& program) {
 
     if (program.hasPthread)
         wr.include("pthread.h");
+
+    if (program.hasCMath)
+        wr.include("math.h");
 }
 
 void Writer::structDeclarations(const Program& program) {

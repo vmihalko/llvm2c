@@ -91,6 +91,7 @@ public:
     bool hasString = false; //program uses "string.h"
     bool hasStdio = false; //program uses "stdio.h"
     bool hasPthread = false; //program uses "pthread.h"
+    bool hasCMath = false;
 
     bool includes; //program uses includes instead of declarations for standard library functions, for testing purposes only
     bool noFuncCasts; //program removes any function call casts, for testing purposes only

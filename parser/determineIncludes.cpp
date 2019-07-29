@@ -120,6 +120,10 @@ void determineIncludes(const llvm::Module* module, Program& program) {
             program.hasPthread = true;
         }
 
+        if (isCMath(name)) {
+            program.hasCMath = true;
+        }
+
     }
 
     program.addPass(PassType::DetermineIncludes);
