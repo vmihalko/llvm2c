@@ -6,7 +6,7 @@
 
 #include <regex>
 
-void findMetadataNames(const llvm::Module* module, Program& program) {
+void findMetadataFunctionNames(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateFunctions));
 
     for (const llvm::Function& func : module->functions()) {
@@ -32,5 +32,5 @@ void findMetadataNames(const llvm::Module* module, Program& program) {
         }
     }
 
-    program.addPass(PassType::FindMetadataNames);
+    program.addPass(PassType::FindMetadataFunctionNames);
 }

@@ -4,7 +4,7 @@ enum class PassType {
     ParseStructs,
     ParseFunctions,
     DetermineIncludes,
-    FindMetadataNames,
+    FindMetadataFunctionNames,
     CreateFunctions,
     CreateFunctionParameters,
     CreateBlocks,
