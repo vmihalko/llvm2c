@@ -77,3 +77,13 @@ void MinusExpr::accept(ExprVisitor& visitor) {
 bool MinusExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_MinusExpr;
 }
+
+LogicalNot::LogicalNot(Expr* expr) : UnaryExpr(expr, EK_LogicalNot) {}
+
+void LogicalNot::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool LogicalNot::classof(const Expr* expr) {
+    return expr->getKind() == EK_LogicalNot;
+}

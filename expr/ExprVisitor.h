@@ -35,6 +35,7 @@ class AggregateInitializer;
 class ArrowExpr;
 class LogicalAnd;
 class LogicalOr;
+class LogicalNot;
 class GotoExpr;
 class ExprList;
 class MinusExpr;
@@ -79,6 +80,7 @@ public:
     virtual void visit(GotoExpr& expr) {}
     virtual void visit(ExprList& expr) {}
     virtual void visit(MinusExpr& expr) {}
+    virtual void visit(LogicalNot& expr) {}
 
     virtual ~ExprVisitor() = default;
 };

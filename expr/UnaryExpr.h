@@ -71,3 +71,12 @@ public:
 
     static bool classof(const Expr* expr);
 };
+
+class LogicalNot : public UnaryExpr {
+public:
+    LogicalNot(Expr*);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};

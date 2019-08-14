@@ -57,6 +57,7 @@ public:
         EK_ArrowExpr,
         EK_LogicalAnd,
         EK_LogicalOr,
+        EK_LogicalNot,
 
         EK_ExprList,
         EK_MinusExpr,

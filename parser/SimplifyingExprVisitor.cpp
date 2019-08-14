@@ -262,3 +262,8 @@ void SimplifyingExprVisitor::visit(MinusExpr& expr) {
     expr.expr->accept(*this);
     expr.expr = simplify(expr.expr);
 }
+
+void SimplifyingExprVisitor::visit(LogicalNot& expr) {
+    expr.expr->accept(*this);
+    expr.expr = simplify(expr.expr);
+}
