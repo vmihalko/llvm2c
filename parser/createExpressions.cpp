@@ -146,7 +146,7 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
 }
 
 static std::unique_ptr<Expr> buildIsNan(Expr* val) {
-    return std::make_unique<CallExpr>(nullptr, "!isnan", std::vector<Expr*>{val}, std::make_unique<IntegerType>("int", false));
+    return std::make_unique<CallExpr>(nullptr, "isnan", std::vector<Expr*>{val}, std::make_unique<IntegerType>("int", false));
 }
 
 static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program) {
@@ -156,8 +156,8 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
 
-    auto isOrderedExpr0 = buildIsNan(val0);
-    auto isOrderedExpr1 = buildIsNan(val1);
+    auto isOrderedExpr0 = std::make_unique<LogicalNot>(buildIsNan(val0));
+    auto isOrderedExpr1 = std::make_unique<LogicalNot>(buildIsNan(val1));
     auto isAllOrdered = std::make_unique<LogicalAnd>(isOrderedExpr0.get(), isOrderedExpr1.get());
 
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
