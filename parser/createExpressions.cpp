@@ -155,10 +155,11 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
     assert(val0 && val1);
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
-
-    auto isOrderedExpr0 = std::make_unique<LogicalNot>(buildIsNan(val0));
-    auto isOrderedExpr1 = std::make_unique<LogicalNot>(buildIsNan(val1));
-    std::unique_ptr<Expr> isAllOrdered = std::make_unique<LogicalAnd>(isOrderedExpr0.get(), isOrderedExpr1.get());
+    auto isNan0 = program.addOwnership(buildIsNan(val0));
+    auto isNan1 = program.addOwnership(buildIsNan(val1));
+    auto isOrderedExpr0 = program.addOwnership(std::make_unique<LogicalNot>(isNan0));
+    auto isOrderedExpr1 = program.addOwnership(std::make_unique<LogicalNot>(isNan1));
+    Expr* isAllOrdered = program.addOwnership(std::make_unique<LogicalAnd>(isOrderedExpr0, isOrderedExpr1));
 
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
@@ -168,17 +169,13 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return program.addOwnership(std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
 
     case llvm::CmpInst::FCMP_ORD:
-        program.addOwnership(std::move(isOrderedExpr0));
-        program.addOwnership(std::move(isOrderedExpr1));
-        return program.addOwnership(std::move(isAllOrdered));
+        return isAllOrdered;
     case llvm::CmpInst::FCMP_UNO:
-        program.addOwnership(std::move(isOrderedExpr0));
-        program.addOwnership(std::move(isOrderedExpr1));
-        return program.addOwnership(std::make_unique<LogicalNot>(program.addOwnership(std::move(isAllOrdered))));
+        return program.addOwnership(std::make_unique<LogicalNot>(isAllOrdered));
     }
     std::string pred = getComparePredicate(cmpInst);
     if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
-        isAllOrdered = std::make_unique<LogicalNot>(program.addOwnership(std::move(isAllOrdered)));
+        isAllOrdered = program.addOwnership(std::make_unique<LogicalNot>(isAllOrdered));
     }
 
     auto cmpExpr = program.addOwnership(std::make_unique<CmpExpr>(val0, val1, pred, false));
