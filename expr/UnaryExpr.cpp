@@ -68,3 +68,12 @@ bool CastExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_CastExpr;
 }
 
+MinusExpr::MinusExpr(Expr* expr) : UnaryExpr(expr, EK_MinusExpr) {}
+
+void MinusExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool MinusExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_MinusExpr;
+}

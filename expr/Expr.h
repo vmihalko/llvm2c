@@ -59,6 +59,7 @@ public:
         EK_LogicalOr,
 
         EK_ExprList,
+        EK_MinusExpr,
     };
 private:
     const ExprKind kind;

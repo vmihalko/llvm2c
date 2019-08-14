@@ -62,3 +62,12 @@ public:
 
     static bool classof(const Expr* expr);
 };
+
+class MinusExpr : public UnaryExpr {
+public:
+    MinusExpr(Expr*);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};

@@ -454,3 +454,8 @@ void ExprWriter::visit(LogicalOr& expr) {
     ss << " || ";
     parensIfNotSimple(expr.rhs);
 }
+
+void ExprWriter::visit(MinusExpr& expr) {
+    ss << "-";
+    parensIfNotSimple(expr.expr);
+}
