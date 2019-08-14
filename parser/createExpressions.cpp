@@ -158,7 +158,7 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
 
     auto isOrderedExpr0 = std::make_unique<LogicalNot>(buildIsNan(val0));
     auto isOrderedExpr1 = std::make_unique<LogicalNot>(buildIsNan(val1));
-    auto isAllOrdered = std::make_unique<LogicalAnd>(isOrderedExpr0.get(), isOrderedExpr1.get());
+    std::unique_ptr<Expr> isAllOrdered = std::make_unique<LogicalAnd>(isOrderedExpr0.get(), isOrderedExpr1.get());
 
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
@@ -172,19 +172,17 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         program.addOwnership(std::move(isOrderedExpr1));
         return program.addOwnership(std::move(isAllOrdered));
     case llvm::CmpInst::FCMP_UNO:
-        // TODO: negate!!!
-        assert(false);
         program.addOwnership(std::move(isOrderedExpr0));
         program.addOwnership(std::move(isOrderedExpr1));
-        return program.addOwnership(std::move(isAllOrdered));
+        return program.addOwnership(std::make_unique<LogicalNot>(program.addOwnership(std::move(isAllOrdered))));
     }
     std::string pred = getComparePredicate(cmpInst);
     if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
-        // TODO: isAllOrdered = negate isAllOrdered!!!
-        assert(false);
+        isAllOrdered = std::make_unique<LogicalNot>(program.addOwnership(std::move(isAllOrdered)));
     }
 
-    return program.addOwnership(std::make_unique<CmpExpr>(val0, val1, pred, false));
+    auto cmpExpr = program.addOwnership(std::make_unique<CmpExpr>(val0, val1, pred, false));
+    return program.addOwnership(std::make_unique<LogicalAnd>(isAllOrdered, cmpExpr));
 }
 
 static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
