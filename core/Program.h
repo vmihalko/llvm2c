@@ -166,6 +166,11 @@ public:
 
     Expr* addOwnership(std::unique_ptr<Expr> expr);
 
+    template<typename T, typename ...Args>
+    Expr* makeExpr(Args&&... args) {
+        return addOwnership(std::make_unique<T>(std::forward<Args>(args)...));
+    }
+
     Expr* getExpr(const llvm::Value* value);
 
     void addExpr(const llvm::Value* value, Expr* expr);
