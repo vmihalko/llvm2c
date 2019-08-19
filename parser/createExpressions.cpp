@@ -142,7 +142,7 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
         indices.push_back(std::move(element));
     }
 
-    return program.addOwnership(std::make_unique<ExtractValueExpr>(indices));
+    return program.makeExpr<ExtractValueExpr>(std::move(indices));
 }
 
 static std::unique_ptr<Expr> buildIsNan(Expr* val) {
@@ -157,29 +157,29 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
     auto isNan0 = program.addOwnership(buildIsNan(val0));
     auto isNan1 = program.addOwnership(buildIsNan(val1));
-    auto isOrderedExpr0 = program.addOwnership(std::make_unique<LogicalNot>(isNan0));
-    auto isOrderedExpr1 = program.addOwnership(std::make_unique<LogicalNot>(isNan1));
-    Expr* isAllOrdered = program.addOwnership(std::make_unique<LogicalAnd>(isOrderedExpr0, isOrderedExpr1));
+    auto isOrderedExpr0 = program.makeExpr<LogicalNot>(isNan0);
+    auto isOrderedExpr1 = program.makeExpr<LogicalNot>(isNan1);
+    Expr* isAllOrdered = program.makeExpr<LogicalAnd>(isOrderedExpr0, isOrderedExpr1);
 
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
     case llvm::CmpInst::FCMP_FALSE:
-        return program.addOwnership(std::make_unique<Value>("0", std::make_unique<IntegerType>("int", false)));
+        return program.makeExpr<Value>("0", std::make_unique<IntegerType>("int", false));
     case llvm::CmpInst::FCMP_TRUE:
-        return program.addOwnership(std::make_unique<Value>("1", std::make_unique<IntegerType>("int", false)));
+        return program.makeExpr<Value>("1", std::make_unique<IntegerType>("int", false));
 
     case llvm::CmpInst::FCMP_ORD:
         return isAllOrdered;
     case llvm::CmpInst::FCMP_UNO:
-        return program.addOwnership(std::make_unique<LogicalNot>(isAllOrdered));
+        return program.makeExpr<LogicalNot>(isAllOrdered);
     }
     std::string pred = getComparePredicate(cmpInst);
     if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
-        isAllOrdered = program.addOwnership(std::make_unique<LogicalNot>(isAllOrdered));
+        isAllOrdered = program.makeExpr<LogicalNot>(isAllOrdered);
     }
 
-    auto cmpExpr = program.addOwnership(std::make_unique<CmpExpr>(val0, val1, pred, false));
-    return program.addOwnership(std::make_unique<LogicalAnd>(isAllOrdered, cmpExpr));
+    auto cmpExpr = program.makeExpr<CmpExpr>(val0, val1, pred, false);
+    return program.makeExpr<LogicalAnd>(isAllOrdered, cmpExpr);
 }
 
 static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
@@ -189,7 +189,7 @@ static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
 
-    return program.addOwnership(std::make_unique<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst)));
+    return program.makeExpr<CmpExpr>(val0, val1, getComparePredicate(cmpInst), isIntegerCompareUnsigned(cmpInst));
 }
 
 
@@ -839,7 +839,7 @@ static Expr* parseSelectInstruction(const llvm::Instruction& ins, Program& progr
     Expr* val1 = program.getExpr(ins.getOperand(2));
     assert(val0 && val1);
 
-    return program.addOwnership(std::make_unique<SelectExpr>(cond, val0, val1));
+    return program.makeExpr<SelectExpr>(cond, val0, val1);
 }
 
 static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program) {
@@ -865,14 +865,14 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
 
         if (prevType->isPointerTy()) {
             if (index->isZero()) {
-                indices.push_back(program.addOwnership(std::make_unique<DerefExpr>(prevExpr)));
+                indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(program.addOwnership(std::make_unique<PointerShift>(program.getType(prevType), prevExpr, index)));
+                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
             }
         }
 
         if (prevType->isArrayTy()) {
-            indices.push_back(program.addOwnership(std::make_unique<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType()))));
+            indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType())));
         }
 
         if (prevType->isStructTy()) {
@@ -881,14 +881,14 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
-            indices.push_back(program.addOwnership(std::make_unique<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue())));
+            indices.push_back(program.makeExpr<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
         }
 
         prevType = it.getIndexedType();
         prevExpr = indices[indices.size() - 1];
     }
     auto newGep = std::make_unique<GepExpr>(std::move(indices));
-    return program.addOwnership(std::make_unique<RefExpr>(program.addOwnership(std::move(newGep))));
+    return program.makeExpr<RefExpr>(program.addOwnership(std::move(newGep)));
 }
 
 Expr* parsePhiInstruction(const llvm::Instruction& ins, Func* func) {

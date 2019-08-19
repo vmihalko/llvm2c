@@ -4,7 +4,7 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 
 Expr* createUndefValue(const llvm::Type* ty, Program& program) {
     if (ty->isPointerTy()) {
-        return program.addOwnership(std::make_unique<Value>("0", program.getType(ty)));
+        return program.makeExpr<Value>("0", program.getType(ty));
     }
 
     if (ty->isIntegerTy()) {
@@ -39,7 +39,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
     }
 
     if (auto CPN = llvm::dyn_cast_or_null<llvm::ConstantPointerNull>(val)) {
-        return program.addOwnership(std::make_unique<Value>("0", program.getType(val->getType())));
+        return program.makeExpr<Value>("0", program.getType(val->getType()));
     }
 
     if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
@@ -66,7 +66,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             value = std::to_string(CI->getSExtValue());
         }
 
-        return program.addOwnership(std::make_unique<Value>(value, program.getType(CI->getType())));
+        return program.makeExpr<Value>(value, program.getType(CI->getType()));
     }
 
     if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
@@ -74,7 +74,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             if (CFP->isNegative()) {
                 auto call = std::make_unique<CallExpr>(nullptr, "__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
                 auto* callPtr = program.addOwnership(std::move(call));
-                return program.addOwnership(std::make_unique<MinusExpr>(callPtr));
+                return program.makeExpr<MinusExpr>(callPtr);
             } else {
                 auto call = std::make_unique<CallExpr>(nullptr, "__builtin_inff", std::vector<Expr*>{}, program.getType(CFP->getType()));
                 return program.addOwnership(std::move(call));
@@ -91,7 +91,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
                 auto* callPtr = program.addOwnership(std::move(call));
                 program.addOwnership(std::move(param));
-                return program.addOwnership(std::make_unique<MinusExpr>(callPtr));
+                return program.makeExpr<MinusExpr>(callPtr);
             } else {
                 llvm::SmallVector<char, 32> string;
                 CFPvalue = "";
@@ -101,7 +101,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 }
             }
 
-            return program.addOwnership(std::make_unique<Value>(CFPvalue, program.getType(CFP->getType())));
+            return program.makeExpr<Value>(CFPvalue, program.getType(CFP->getType()));
         }
     }
 
