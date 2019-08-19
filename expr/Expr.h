@@ -180,7 +180,7 @@ class ExtractValueExpr : public ExprBase {
 public:
     std::vector<std::unique_ptr<Expr>> indices; //sequence of StructElement and ArrayElements expressions
 
-    ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&);
+    ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&&);
 
     void accept(ExprVisitor& visitor) override;
 

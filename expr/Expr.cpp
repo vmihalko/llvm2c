@@ -59,13 +59,11 @@ bool ArrayElement::classof(const Expr* expr) {
     return expr->getKind() == EK_ArrayElement;
 }
 
-ExtractValueExpr::ExtractValueExpr(std::vector<std::unique_ptr<Expr>>& indices)
+ExtractValueExpr::ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&& indices)
     : ExprBase(EK_ExtractValueExpr) {
-    for (auto& idx : indices) {
-        this->indices.push_back(std::move(idx));
-    }
 
-    setType(this->indices[this->indices.size() - 1]->getType()->clone());
+    this->indices = std::move(indices);
+    setType(this->indices.back()->getType()->clone());
 }
 
 void ExtractValueExpr::accept(ExprVisitor& visitor) {
