@@ -174,12 +174,18 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return program.makeExpr<LogicalNot>(isAllOrdered);
     }
     std::string pred = getComparePredicate(cmpInst);
-    if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
-        isAllOrdered = program.makeExpr<LogicalNot>(isAllOrdered);
-    }
 
     auto cmpExpr = program.makeExpr<CmpExpr>(val0, val1, pred, false);
-    return program.makeExpr<LogicalAnd>(isAllOrdered, cmpExpr);
+
+    if (llvm::CmpInst::isOrdered(cmpInst->getPredicate())) {
+        return program.makeExpr<LogicalAnd>(isAllOrdered, cmpExpr);
+    } else if (llvm::CmpInst::isUnordered(cmpInst->getPredicate())) {
+        auto isUnordered = program.makeExpr<LogicalNot>(isAllOrdered);
+        return program.makeExpr<LogicalOr>(isUnordered, cmpExpr);
+    }
+
+    cmpInst->print(llvm::errs(), true);
+    assert(false && "parseFCmpInstruction: unknown compare predicate");
 }
 
 static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
