@@ -161,6 +161,9 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
     auto isOrderedExpr1 = program.makeExpr<LogicalNot>(isNan1);
     Expr* isAllOrdered = program.makeExpr<LogicalAnd>(isOrderedExpr0, isOrderedExpr1);
 
+    // include CMath, because we need it for checking isNan
+    program.hasCMath = true;
+
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
     case llvm::CmpInst::FCMP_FALSE:
