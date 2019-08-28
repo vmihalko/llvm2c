@@ -1,7 +1,7 @@
 #pragma once
 
 class Struct;
-class StructElement;
+class AggregateElement;
 class ArrayElement;
 class ExtractValueExpr;
 class Value;
@@ -43,7 +43,7 @@ class MinusExpr;
 class ExprVisitor {
 public:
     virtual void visit(Struct& expr) {}
-    virtual void visit(StructElement& expr) {}
+    virtual void visit(AggregateElement& expr) {}
     virtual void visit(ArrayElement& expr) {}
     virtual void visit(ExtractValueExpr& expr) {}
     virtual void visit(Value& expr) {}

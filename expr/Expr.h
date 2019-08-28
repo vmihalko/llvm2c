@@ -20,7 +20,7 @@ class Expr {
 public:
     enum ExprKind {
         EK_Struct,
-        EK_StructElement,
+        EK_AggregateElement,
         EK_ArrayElement,
         EK_ExtractValueExpr,
         EK_Value,
@@ -119,15 +119,12 @@ public:
     static bool classof(const Expr* expr);
 };
 
-/**
- * @brief The Struct class represents struct with all the information needed for using it.
- */
-class Struct : public ExprBase {
+class Aggregate : public ExprBase {
 public:
     std::string name;
     std::vector<std::pair<std::unique_ptr<Type>, std::string>> items; //elements of the struct
 
-    Struct(const std::string&);
+    Aggregate(const std::string& name, ExprKind kind);
 
     /**
      * @brief addItem Adds new struct element to the vector items.
@@ -135,6 +132,18 @@ public:
      * @param name Name of the element
      */
     void addItem(std::unique_ptr<Type> type, const std::string& name);
+
+    static bool classof(const Expr* expr);
+
+    void accept(ExprVisitor& visitor) override = 0;
+};
+
+/**
+ * @brief The Struct class represents struct with all the information needed for using it.
+ */
+class Struct : public Aggregate {
+public:
+    Struct(const std::string&);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -144,13 +153,13 @@ public:
 /**
  * @brief The StructElement class represents access to element of a struct.
  */
-class StructElement : public ExprBase {
+class AggregateElement : public ExprBase {
 public:
-    Struct* strct; //struct being accessed
+    Aggregate* strct; //struct being accessed
     Expr* expr; //expression being accessed
     unsigned element; //number of the element
 
-    StructElement(Struct*, Expr*, unsigned);
+    AggregateElement(Aggregate*, Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -384,11 +393,11 @@ public:
  */
 class ArrowExpr : public ExprBase {
 public:
-    Struct* strct; //struct being accessed
+    Aggregate* strct; //struct being accessed
     Expr* expr; //expression being accessed
     unsigned element; //number of the element
 
-    ArrowExpr(Struct*, Expr*, unsigned);
+    ArrowExpr(Aggregate*, Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
 

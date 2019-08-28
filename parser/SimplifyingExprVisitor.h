@@ -11,7 +11,7 @@ class SimplifyingExprVisitor : public ExprVisitor
 protected:
     virtual Expr* simplify(Expr* expr) = 0;
 public:
-    void visit(StructElement& expr) override;
+    void visit(AggregateElement& expr) override;
     void visit(ArrayElement& expr) override;
     void visit(ExtractValueExpr& expr) override;
     void visit(IfExpr& expr) override;

@@ -55,7 +55,7 @@ void ExprWriter::visit(Struct& expr) {
     ss << "};";
 }
 
-void ExprWriter::visit(StructElement& elem) {
+void ExprWriter::visit(AggregateElement& elem) {
     parensIfNotSimple(elem.expr);
 
     if (llvm::dyn_cast_or_null<PointerType>(elem.expr->getType())) {

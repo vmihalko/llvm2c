@@ -128,7 +128,7 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
         std::unique_ptr<Expr> element = nullptr;
 
         if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType.get())) {
-            element = std::make_unique<StructElement>(program.getStruct(ST->name), expr, idx);
+            element = std::make_unique<AggregateElement>(program.getStruct(ST->name), expr, idx);
         }
 
         if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
@@ -890,7 +890,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
-            indices.push_back(program.makeExpr<StructElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
+            indices.push_back(program.makeExpr<AggregateElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
         }
 
         prevType = it.getIndexedType();

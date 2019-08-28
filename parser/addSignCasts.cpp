@@ -15,7 +15,7 @@ class SignCastsVisitor : public ExprVisitor {
 public:
     SignCastsVisitor(Block* block) : block(block) {}
 
-    void visit(StructElement& expr) override;
+    void visit(AggregateElement& expr) override;
     void visit(ArrayElement& expr) override;
     void visit(ExtractValueExpr& expr) override;
     void visit(IfExpr& expr) override;
@@ -90,7 +90,7 @@ void SignCastsVisitor::visit(CmpExpr& expr) {
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
 }
 
-void SignCastsVisitor::visit(StructElement& expr) {
+void SignCastsVisitor::visit(AggregateElement& expr) {
     expr.expr->accept(*this);
 }
 

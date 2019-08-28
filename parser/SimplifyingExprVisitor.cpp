@@ -1,6 +1,6 @@
 #include "SimplifyingExprVisitor.h"
 
-void SimplifyingExprVisitor::visit(StructElement& expr) {
+void SimplifyingExprVisitor::visit(AggregateElement& expr) {
     expr.expr->accept(*this);
     expr.expr = simplify(expr.expr);
 }

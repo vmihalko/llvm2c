@@ -25,7 +25,7 @@ public:
     void gotoOrInline(Block* block, bool doIndent);
 
     void visit(Struct& expr) override;
-    void visit(StructElement& expr) override;
+    void visit(AggregateElement& expr) override;
     void visit(ArrayElement& expr) override;
     void visit(ExtractValueExpr& expr) override;
     void visit(Value& expr) override;

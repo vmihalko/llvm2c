@@ -4,12 +4,8 @@
 #include "llvm/Support/raw_ostream.h"
 
 Struct::Struct(const std::string& name)
-    : ExprBase(EK_Struct), name(name) {
+    : Aggregate(name, EK_Struct) {
     setType(std::make_unique<StructType>(this->name));
-}
-
-void Struct::addItem(std::unique_ptr<Type> type, const std::string& name) {
-    items.push_back(std::make_pair(std::move(type), name));
 }
 
 void Struct::accept(ExprVisitor& visitor) {
@@ -20,20 +16,30 @@ bool Struct::classof(const Expr* expr) {
     return expr->getKind() == EK_Struct;
 }
 
-StructElement::StructElement(Struct* strct, Expr* expr, unsigned element)
-    : ExprBase(EK_StructElement),
+Aggregate::Aggregate(const std::string& name, ExprKind kind): ExprBase(kind), name(name) { }
+
+void Aggregate::addItem(std::unique_ptr<Type> type, const std::string& name) {
+    items.push_back(std::make_pair(std::move(type), name));
+}
+
+bool Aggregate::classof(const Expr* expr) {
+    return expr->getKind() == EK_Struct || expr->getKind() == EK_Union;
+}
+
+AggregateElement::AggregateElement(Aggregate* strct, Expr* expr, unsigned element)
+    : ExprBase(EK_AggregateElement),
       strct(strct),
       expr(expr),
       element(element) {
     setType(strct->items[element].first->clone());
 }
 
-void StructElement::accept(ExprVisitor& visitor) {
+void AggregateElement::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-bool StructElement::classof(const Expr* expr) {
-    return expr->getKind() == EK_StructElement;
+bool AggregateElement::classof(const Expr* expr) {
+    return expr->getKind() == EK_AggregateElement;
 }
 
 ArrayElement::ArrayElement(Expr* expr, Expr* elem)
@@ -262,7 +268,7 @@ void AggregateInitializer::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-ArrowExpr::ArrowExpr(Struct* strct, Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), strct(strct), expr(expr), element(element) {
+ArrowExpr::ArrowExpr(Aggregate* strct, Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), strct(strct), expr(expr), element(element) {
     setType(strct->items[element].first->clone());
 }
 
