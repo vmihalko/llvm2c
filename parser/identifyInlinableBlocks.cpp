@@ -12,7 +12,7 @@ static bool isSafeToInline(const llvm::BasicBlock* llvmBlock, const Block* block
 
     if (block->expressions.size() == 1) {
         const Expr* fst = block->expressions.front();
-        return llvm::isa<RetExpr>(fst) || llvm::isa<GotoExpr>(fst);
+        return llvm::isa<RetExpr>(fst);
     }
 
     return false;
