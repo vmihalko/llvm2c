@@ -5,6 +5,13 @@
 #include <llvm/IRReader/IRReader.h>
 #include <iostream>
 
+#define RUN_PASS(pass) \
+    do {\
+        puts("    Starting pass: " #pass );\
+        pass(mod, result); \
+    } while (0);
+
+
 Program ProgramParser::parse(const std::string& file) {
     Program result;
     llvm::LLVMContext context;
@@ -17,38 +24,38 @@ Program ProgramParser::parse(const std::string& file) {
 
     const auto* mod = module.get();
 
-    determineIncludes(mod, result);
-    parseStructs(mod, result);
-    findDeclaredFunctions(mod, result);
-    computeGlobalVarsOrder(mod, result);
-    createFunctions(mod, result);
-    findMetadataFunctionNames(mod, result);
-    nameFunctions(mod, result);
+    std::cerr << "Parser start" << std::endl;
+    RUN_PASS(determineIncludes);
+    RUN_PASS(parseStructs);
+    RUN_PASS(findDeclaredFunctions);
+    RUN_PASS(computeGlobalVarsOrder);
+    RUN_PASS(createFunctions);
+    RUN_PASS(findMetadataFunctionNames);
+    RUN_PASS(nameFunctions);
 
-    createConstants(mod, result);
-    initializeGlobalVars(mod, result);
+    RUN_PASS(createConstants);
+    RUN_PASS(initializeGlobalVars);
 
-    createFunctionParameters(mod, result);
-    createBlocks(mod, result);
-    createAllocas(mod, result);
-    //findMetadataVariableNames(mod, result);
-    parseMetadataTypes(mod, result);
-    createExpressions(mod, result);
-    addPhis(mod, result);
-    parseBreaks(mod, result);
+    RUN_PASS(createFunctionParameters);
+    RUN_PASS(createBlocks);
+    RUN_PASS(createAllocas);
 
-    // transformations of resulting expressions
-    refDeref(mod, result);
-    memcpyToAssignment(mod, result);
-    arrowify(mod, result);
-    deleteUnusedVariables(mod, result);
-    fixMainParameters(mod, result);
-    addSignCasts(mod, result);
-    deleteRedundantCasts(mod, result);
-    extractVars(mod, result);
-    identifyInlinableBlocks(mod, result);
-    inlineBlocks(mod, result);
+    RUN_PASS(parseMetadataTypes);
+    RUN_PASS(createExpressions);
+    RUN_PASS(addPhis);
+    RUN_PASS(parseBreaks);
 
+    RUN_PASS(refDeref);
+    RUN_PASS(memcpyToAssignment);
+    RUN_PASS(arrowify);
+    RUN_PASS(deleteUnusedVariables);
+    RUN_PASS(fixMainParameters);
+    RUN_PASS(addSignCasts);
+    RUN_PASS(deleteRedundantCasts);
+    RUN_PASS(extractVars);
+    RUN_PASS(identifyInlinableBlocks);
+    RUN_PASS(inlineBlocks);
+    std::cerr << "Parser end" << std::endl;
 
     return result;
 }
