@@ -41,7 +41,7 @@ Expr* ArrowifyVisitor::simplify(Expr* expr) {
 
     if (auto* SE = llvm::dyn_cast_or_null<AggregateElement>(expr)) {
         if (auto* DE = llvm::dyn_cast_or_null<DerefExpr>(SE->expr)) {
-            auto arrow = std::make_unique<ArrowExpr>(SE->strct, DE->expr, SE->element);
+            auto arrow = std::make_unique<ArrowExpr>(DE->expr, SE->element);
             auto* result = arrow.get();
             ownership.push_back(std::move(arrow));
             return result;

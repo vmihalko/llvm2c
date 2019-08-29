@@ -6,20 +6,28 @@
 
 #include <boost/lambda/lambda.hpp>
 
-std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
+Type* TypeHandler::getType(const llvm::Type* type) {
     if (typeDefs.find(type) != typeDefs.end()) {
-        return typeDefs[type]->clone();
+        return typeDefs[type].get();
+    }
+    
+    auto it = typeCache.find(type);
+    if (it != typeCache.end()) {
+        return it->second.get();
     }
 
     if (type->isArrayTy()) {
-        return std::make_unique<ArrayType>(getType(type->getArrayElementType()), type->getArrayNumElements());
+        auto ty = std::make_unique<ArrayType>(getType(type->getArrayElementType()), type->getArrayNumElements());
+        typeCache.insert(it, std::make_pair(type, std::move(ty)));
     }
 
     if (type->isVoidTy()) {
-        return std::make_unique<VoidType>();
+        auto ty = std::make_unique<VoidType>();
+        typeCache.insert(it, std::make_pair(type, std::move(ty)));
     }
 
     if (type->isIntegerTy()) {
+        std::unique_ptr<Type> ty;
         const auto intType = static_cast<const llvm::IntegerType*>(type);
         if (intType->getBitWidth() == 1) {
             return std::make_unique<IntType>(true);
@@ -70,7 +78,7 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
                     auto paramType = getType(FT->getParamType(i));
                     param = paramType->toString();
 
-                    if (auto PT = llvm::dyn_cast_or_null<PointerType>(paramType.get())) {
+                    if (auto PT = llvm::dyn_cast_or_null<PointerType>(paramType)) {
                         if (PT->isArrayPointer) {
                             param += " (";
                             for (unsigned i = 0; i < PT->levels; i++) {
@@ -80,7 +88,7 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
                         }
                     }
 
-                    if (auto AT = llvm::dyn_cast_or_null<ArrayType>(paramType.get())) {
+                    if (auto AT = llvm::dyn_cast_or_null<ArrayType>(paramType)) {
                         param += AT->sizeToString();
                     }
 
@@ -106,7 +114,7 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
 
             typeDefs[type] = std::make_unique<FunctionPointerType>(getType(FT->getReturnType())->toString() + "(*", getTypeDefName(), ")" + paramsToString);
             sortedTypeDefs.push_back(static_cast<FunctionPointerType*>(typeDefs[type].get()));
-            return typeDefs[type]->clone();
+            return typeDefs[type].get();
         }
 
         return std::make_unique<PointerType>(getType(PT->getPointerElementType()));
@@ -130,64 +138,11 @@ std::unique_ptr<Type> TypeHandler::getType(const llvm::Type* type) {
     return nullptr;
 }
 
-std::unique_ptr<Type> TypeHandler::getBinaryType(const Type* left, const Type* right) {
-    if (const auto LDT = llvm::dyn_cast_or_null<const LongDoubleType>(left)) {
-        return std::make_unique<LongDoubleType>();
-    }
-    if (const auto LDT = llvm::dyn_cast_or_null<const LongDoubleType>(right)) {
-        return std::make_unique<LongDoubleType>();
-    }
+Type* TypeHandler::getBinaryType(Type* left, Type* right) {
+    if (left != nullptr) 
+        return left;
 
-    if (const auto DT = llvm::dyn_cast_or_null<const DoubleType>(left)) {
-        return std::make_unique<DoubleType>();
-    }
-    if (const auto DT = llvm::dyn_cast_or_null<const DoubleType>(right)) {
-        return std::make_unique<DoubleType>();
-    }
-
-    if (const auto FT = llvm::dyn_cast_or_null<const FloatType>(left)) {
-        return std::make_unique<FloatType>();
-    }
-    if (const auto FT = llvm::dyn_cast_or_null<const FloatType>(right)) {
-        return std::make_unique<FloatType>();
-    }
-
-    if (const auto UI = llvm::dyn_cast_or_null<const Int128>(left)) {
-        return std::make_unique<Int128>();
-    }
-    if (const auto UI = llvm::dyn_cast_or_null<const Int128>(right)) {
-        return std::make_unique<Int128>();
-    }
-
-    if (const auto LT = llvm::dyn_cast_or_null<const LongType>(left)) {
-        return std::make_unique<LongType>(LT->unsignedType);
-    }
-    if (const auto LT = llvm::dyn_cast_or_null<const LongType>(right)) {
-        return std::make_unique<LongType>(LT->unsignedType);
-    }
-
-    if (const auto IT = llvm::dyn_cast_or_null<const IntType>(left)) {
-        return std::make_unique<IntType>(IT->unsignedType);
-    }
-    if (const auto IT = llvm::dyn_cast_or_null<const IntType>(right)) {
-        return std::make_unique<IntType>(IT->unsignedType);
-    }
-
-    if (const auto ST = llvm::dyn_cast_or_null<const ShortType>(left)) {
-        return std::make_unique<ShortType>(ST->unsignedType);
-    }
-    if (const auto ST = llvm::dyn_cast_or_null<const ShortType>(right)) {
-        return std::make_unique<ShortType>(ST->unsignedType);
-    }
-
-    if (const auto CT = llvm::dyn_cast_or_null<const CharType>(left)) {
-        return std::make_unique<CharType>(CT->unsignedType);
-    }
-    if (const auto CT = llvm::dyn_cast_or_null<const CharType>(right)) {
-        return std::make_unique<CharType>(CT->unsignedType);
-    }
-
-    return nullptr;
+    return right;
 }
 
 std::string TypeHandler::getStructName(const std::string& structName) {

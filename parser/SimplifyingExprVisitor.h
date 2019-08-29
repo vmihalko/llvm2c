@@ -45,6 +45,7 @@ public:
     void visit(ExprList& expr) override;
     void visit(MinusExpr& expr) override;
     void visit(LogicalNot& expr) override;
+    void visit(DoWhile& expr) override;
 
     virtual ~SimplifyingExprVisitor() = default;
 };

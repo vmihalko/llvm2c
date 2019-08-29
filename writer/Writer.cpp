@@ -55,7 +55,7 @@ void Writer::structDeclarations(const Program& program) {
     }
 }
 
-void Writer::structDefinition(const Program& program, const Struct* strct, std::unordered_set<const Struct*>& printed) {
+void Writer::structDefinition(const Program& program, const StructType* strct, std::unordered_set<const StructType*>& printed) {
     for (const auto& item : strct->items) {
         auto type = item.first.get();
         if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
@@ -96,7 +96,7 @@ void Writer::structDefinition(const Program& program, const Struct* strct, std::
 
 void Writer::structDefinitions(const Program& program) {
     wr.comment("struct definitions");
-    std::unordered_set<const Struct*> printed;
+    std::unordered_set<const StructType*> printed;
 
     for (const auto& strct : program.structs) {
         structDefinition(program, strct.get(), printed);

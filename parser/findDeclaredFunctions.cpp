@@ -28,7 +28,7 @@ void findDeclaredFunctions(const llvm::Module *module, Program& program) {
     for(const llvm::Function& func : module->functions()) {
         if (func.hasName()) {
             if (func.isDeclaration() || llvm::Function::isInternalLinkage(func.getLinkage())) {
-                if (func.getName().str().substr(0, 8) != "llvm.dbg") {
+                if (func.getName().str().substr(0, 8) != "llvm.dbg" && func.getName() != "isnan") {
                     if (!program.isFunctionDeclared(&func)) {
                         declareFunc(&func, program);
                     }

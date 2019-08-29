@@ -30,10 +30,10 @@ public:
     //expressions
     llvm::DenseMap<const llvm::Function*, std::unique_ptr<Func>> functions; //map containing function definitions
 
-    std::vector<std::unique_ptr<Struct>> structs; // vector of parsed structs
+    std::vector<std::unique_ptr<StructType>> structs; // vector of parsed structs
     std::vector<std::unique_ptr<GlobalValue>> globalVars; // vector of parsed global variables
     llvm::DenseMap<const llvm::GlobalVariable*, std::unique_ptr<RefExpr>> globalRefs; //map containing references to global variables
-    llvm::DenseMap<const llvm::StructType*, std::unique_ptr<Struct>> unnamedStructs; // map containing unnamed structs
+    llvm::DenseMap<const llvm::StructType*, std::unique_ptr<StructType>> unnamedStructs; // map containing unnamed structs
 
     llvm::DenseMap<const llvm::Value*, Expr*> exprMap; // DenseMap used for mapping llvm::Value to Expr
 
@@ -67,13 +67,6 @@ public:
      * Used for repeated calling of print and saveFile.
      */
     void unsetAllInit();
-
-    /**
-     * @brief saveStruct Saves parsed Struct into the file. If Struct contains other Struct, then the other is saved first.
-     * @param strct Struct for saving
-     * @param file Opened file for saving the struct.
-     */
-    void saveStruct(Struct* strct, std::ofstream& file);
 
     /**
      * @brief getIncludeString Returns string containing all includes program uses.
@@ -110,14 +103,14 @@ public:
      * @param strct LLVM StructType
      * @return Pointer to Struct expression if the struct is found, nullptr otherwise
      */
-    Struct* getStruct(const llvm::StructType* strct) const;
+    StructType* getStruct(const llvm::StructType* strct) const;
 
     /**
      * @brief getStruct Returns pointer to the Struct with the given name.
      * @param name Name of the struct
      * @return Pointer to Struct expression if the struct is found, nullptr otherwise
      */
-    Struct* getStruct(const std::string& name) const;
+    StructType* getStruct(const std::string& name) const;
 
     /**
      * @brief getGlobalVar Returns corresponding refference to GlobalValue expression.
@@ -158,7 +151,7 @@ public:
      */
     std::string getStructVarName();
 
-    void addStruct(std::unique_ptr<Struct> strct);
+    void addStruct(std::unique_ptr<StructType> strct);
 
     const std::set<std::string>& getGlobalVarNames() const;
 

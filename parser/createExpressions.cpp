@@ -128,7 +128,7 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
         std::unique_ptr<Expr> element = nullptr;
 
         if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType.get())) {
-            element = std::make_unique<AggregateElement>(program.getStruct(ST->name), expr, idx);
+            element = std::make_unique<AggregateElement>(expr, idx);
         }
 
         if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
@@ -812,21 +812,43 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
     func->createExpr(&ins, std::move(asmExpr));
 }
 
-static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
+static bool isCCastLossy(const llvm::Type* from, const llvm::Type* to) {
+    // conversions between floating points and integers are lossy
+    return (from->isFloatingPointTy() && to->isIntegerTy())
+        || (from->isIntegerTy() && to->isFloatingPointTy());
+}
+
+static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
     Expr* expr = program.getExpr(ins.getOperand(0));
     assert(expr);
 
     //operand is used for initializing output in inline asm
     if (!expr || llvm::isa<AsmExpr>(expr)) {
-        return nullptr;
+        return;
     }
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
-    auto castExpr = std::make_unique<CastExpr>(expr, program.getType(CI->getDestTy()));
+
+    if (ins.getOpcode() == llvm::Instruction::BitCast) {
+        if (isCCastLossy(ins.getOperand(0)->getType(), CI->getDestTy())) {
+            // TODO: union magic
+            /* auto var = program.makeExpr<Value>(func->getVarName(), ...); */
+            /* std::vector<Expr*> inside { */
+            /*     program.makeExpr<StackAlloc>(var), */
+            /* }; */
+            return;
+        } // else continue
+    }
+
+    auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
 
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
+    }
+
+    if (ins.getOpcode() == llvm::Instruction::FPToSI) {
+        static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
     }
 
     if (llvm::isa<llvm::ZExtInst>(CI)) {
@@ -837,7 +859,9 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
         static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
     }
 
-    return program.addOwnership(std::move(castExpr));
+    program.addExpr(&ins, castExpr);
+
+    return;
 }
 
 static Expr* parseSelectInstruction(const llvm::Instruction& ins, Program& program) {
@@ -890,7 +914,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
-            indices.push_back(program.makeExpr<AggregateElement>(program.getStruct(llvm::cast<llvm::StructType>(prevType)), prevExpr, CI->getSExtValue()));
+            indices.push_back(program.makeExpr<AggregateElement>(prevExpr, CI->getSExtValue()));
         }
 
         prevType = it.getIndexedType();
@@ -934,19 +958,6 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::LShr:
     case llvm::Instruction::AShr:
         return parseShiftInstruction(ins, program);
-    case llvm::Instruction::SExt:
-    case llvm::Instruction::ZExt:
-    case llvm::Instruction::FPToSI:
-    case llvm::Instruction::SIToFP:
-    case llvm::Instruction::FPTrunc:
-    case llvm::Instruction::FPExt:
-    case llvm::Instruction::FPToUI:
-    case llvm::Instruction::UIToFP:
-    case llvm::Instruction::PtrToInt:
-    case llvm::Instruction::IntToPtr:
-    case llvm::Instruction::Trunc:
-    case llvm::Instruction::BitCast:
-        return parseCastInstruction(ins, program);
     case llvm::Instruction::Select:
         return parseSelectInstruction(ins, program);
     case llvm::Instruction::GetElementPtr:
@@ -997,6 +1008,20 @@ void createExpressions(const llvm::Module* module, Program& program) {
                 case llvm::Instruction::Unreachable:
                 case llvm::Instruction::Fence:
                     parseAsmInst(ins, func, myBlock);
+                    break;
+                case llvm::Instruction::SExt:
+                case llvm::Instruction::ZExt:
+                case llvm::Instruction::FPToSI:
+                case llvm::Instruction::SIToFP:
+                case llvm::Instruction::FPTrunc:
+                case llvm::Instruction::FPExt:
+                case llvm::Instruction::FPToUI:
+                case llvm::Instruction::UIToFP:
+                case llvm::Instruction::PtrToInt:
+                case llvm::Instruction::IntToPtr:
+                case llvm::Instruction::Trunc:
+                case llvm::Instruction::BitCast:
+                    parseCastInstruction(ins, func, myBlock, program);
                     break;
                 default:
                     expr = parseLLVMInstruction(ins, program);

@@ -30,7 +30,7 @@ private:
     void anonymousStructDefinitions(const Program& program);
     void functionDefinitions(const Program& program);
     void typedefs(const Program& program);
-    void structDefinition(const Program& program, const Struct* strct, std::unordered_set<const Struct*>& printed);
+    void structDefinition(const Program& program, const StructType* strct, std::unordered_set<const StructType*>& printed);
     bool isFunctionPrinted(const Func* func) const;
     void functionHead(const Func* func);
     void writeBlock(const Block* block);

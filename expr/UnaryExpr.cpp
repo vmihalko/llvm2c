@@ -9,13 +9,13 @@
 UnaryExpr::UnaryExpr(Expr *expr, ExprKind kind): ExprBase(kind) {
     this->expr = expr;
     if (expr) {
-        setType(expr->getType()->clone());
+        setType(expr->getType());
     }
 }
 
 RefExpr::RefExpr(Expr* expr) :
     UnaryExpr(expr, EK_RefExpr) {
-    setType(std::make_unique<PointerType>(expr->getType()->clone()));
+    setType(std::make_unique<PointerType>(expr->getType()));
 }
 
 void RefExpr::accept(ExprVisitor& visitor) {
@@ -29,7 +29,7 @@ bool RefExpr::classof(const Expr* expr) {
 DerefExpr::DerefExpr(Expr* expr) :
     UnaryExpr(expr, EK_DerefExpr) {
     if (auto PT = llvm::dyn_cast_or_null<PointerType>(expr->getType())) {
-        setType(PT->type->clone());
+        setType(PT->type);
     }
 }
 
@@ -55,9 +55,9 @@ bool RetExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_RetExpr;
 }
 
-CastExpr::CastExpr(Expr* expr, std::unique_ptr<Type> type)
+CastExpr::CastExpr(Expr* expr, Type* type)
     : UnaryExpr(expr, EK_CastExpr) {
-    setType(std::move(type));
+    setType(type);
 }
 
 void CastExpr::accept(ExprVisitor& visitor) {
@@ -68,7 +68,9 @@ bool CastExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_CastExpr;
 }
 
-MinusExpr::MinusExpr(Expr* expr) : UnaryExpr(expr, EK_MinusExpr) {}
+MinusExpr::MinusExpr(Expr* expr) : UnaryExpr(expr, EK_MinusExpr) {
+    setType(expr->getType());
+}
 
 void MinusExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -78,7 +80,9 @@ bool MinusExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_MinusExpr;
 }
 
-LogicalNot::LogicalNot(Expr* expr) : UnaryExpr(expr, EK_LogicalNot) {}
+LogicalNot::LogicalNot(Expr* expr) : UnaryExpr(expr, EK_LogicalNot) {
+    setType(expr->getType());
+}
 
 void LogicalNot::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

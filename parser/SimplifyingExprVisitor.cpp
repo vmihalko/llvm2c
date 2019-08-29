@@ -267,3 +267,11 @@ void SimplifyingExprVisitor::visit(LogicalNot& expr) {
     expr.expr->accept(*this);
     expr.expr = simplify(expr.expr);
 }
+
+void SimplifyingExprVisitor::visit(DoWhile& expr) {
+    expr.cond->accept(*this);
+    expr.body->accept(*this);
+
+    expr.cond = simplify(expr.cond);
+    expr.body = simplify(expr.body);
+}

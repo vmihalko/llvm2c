@@ -1,6 +1,5 @@
 #pragma once
 
-class Struct;
 class AggregateElement;
 class ArrayElement;
 class ExtractValueExpr;
@@ -39,10 +38,10 @@ class LogicalNot;
 class GotoExpr;
 class ExprList;
 class MinusExpr;
+class DoWhile;
 
 class ExprVisitor {
 public:
-    virtual void visit(Struct& expr) {}
     virtual void visit(AggregateElement& expr) {}
     virtual void visit(ArrayElement& expr) {}
     virtual void visit(ExtractValueExpr& expr) {}
@@ -81,6 +80,7 @@ public:
     virtual void visit(ExprList& expr) {}
     virtual void visit(MinusExpr& expr) {}
     virtual void visit(LogicalNot& expr) {}
+    virtual void visit(DoWhile& expr) {}
 
     virtual ~ExprVisitor() = default;
 };

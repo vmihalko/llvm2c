@@ -10,50 +10,50 @@ void ExprWriter::indent() {
 
 ExprWriter::ExprWriter(std::ostream& os, bool noFuncCasts, bool forceBlockLabels): ss(os), noFuncCasts(noFuncCasts), forceBlockLabels(forceBlockLabels) { }
 
-void ExprWriter::visit(Struct& expr) {
-    ss << "struct ";
-    ss << expr.name << " {" << std::endl;
+/* void ExprWriter::visit(Struct& expr) { */
+/*     ss << "struct "; */
+/*     ss << expr.name << " {" << std::endl; */
 
-    for (const auto& item : expr.items) {
-        std::string faPointer;
+/*     for (const auto& item : expr.items) { */
+/*         std::string faPointer; */
 
-        ss << "    " << item.first->toString();
+/*         ss << "    " << item.first->toString(); */
 
-        if (auto PT = llvm::dyn_cast_or_null<PointerType>(item.first.get())) {
-            if (PT->isArrayPointer) {
-                faPointer = " (";
-                for (unsigned i = 0; i < PT->levels; i++) {
-                    faPointer += "*";
-                }
-                faPointer += item.second + ")" + PT->sizes;
-            }
-        }
+/*         if (auto PT = llvm::dyn_cast_or_null<PointerType>(item.first.get())) { */
+/*             if (PT->isArrayPointer) { */
+/*                 faPointer = " ("; */
+/*                 for (unsigned i = 0; i < PT->levels; i++) { */
+/*                     faPointer += "*"; */
+/*                 } */
+/*                 faPointer += item.second + ")" + PT->sizes; */
+/*             } */
+/*         } */
 
-        if (faPointer.empty()) {
-            ss << " ";
+/*         if (faPointer.empty()) { */
+/*             ss << " "; */
 
-            if (auto AT = llvm::dyn_cast_or_null<ArrayType>(item.first.get())) {
-                if (AT->isPointerArray && AT->pointer->isArrayPointer) {
-                    ss << "(";
-                    for (unsigned i = 0; i < AT->pointer->levels; i++) {
-                      ss << "*";
-                    }
-                    ss << item.second << AT->sizeToString() << ")" << AT->pointer->sizes;
-                } else {
-                    ss << item.second << AT->sizeToString();
-                }
-            } else {
-                ss << item.second;
-            }
-        } else {
-            ss << faPointer;
-        }
+/*             if (auto AT = llvm::dyn_cast_or_null<ArrayType>(item.first.get())) { */
+/*                 if (AT->isPointerArray && AT->pointer->isArrayPointer) { */
+/*                     ss << "("; */
+/*                     for (unsigned i = 0; i < AT->pointer->levels; i++) { */
+/*                       ss << "*"; */
+/*                     } */
+/*                     ss << item.second << AT->sizeToString() << ")" << AT->pointer->sizes; */
+/*                 } else { */
+/*                     ss << item.second << AT->sizeToString(); */
+/*                 } */
+/*             } else { */
+/*                 ss << item.second; */
+/*             } */
+/*         } else { */
+/*             ss << faPointer; */
+/*         } */
 
-        ss << ";\n";
-    }
+/*         ss << ";\n"; */
+/*     } */
 
-    ss << "};";
-}
+/*     ss << "};"; */
+/* } */
 
 void ExprWriter::visit(AggregateElement& elem) {
     parensIfNotSimple(elem.expr);
@@ -64,7 +64,8 @@ void ExprWriter::visit(AggregateElement& elem) {
         ss << ".";
     }
 
-    ss << elem.strct->items[elem.element].second;
+    auto ty = llvm::dyn_cast<AggregateType>(elem.expr->getType());
+    ss << ty->items[elem.element].second;
 }
 
 void ExprWriter::visit(ArrayElement& ae) {
@@ -406,7 +407,8 @@ void ExprWriter::visit(StackAlloc& expr) {
 void ExprWriter::visit(ArrowExpr& expr) {
     parensIfNotSimple(expr.expr);
     ss << "->";
-    ss << expr.strct->items[expr.element].second;
+    auto ty = llvm::dyn_cast<AggregateType>(expr.expr->getType());
+    ss << ty->items[expr.element].second;
 }
 
 void ExprWriter::visit(ExprList& exprList) {
@@ -463,4 +465,12 @@ void ExprWriter::visit(MinusExpr& expr) {
 void ExprWriter::visit(LogicalNot& expr) {
     ss << "!";
     parensIfNotSimple(expr.expr);
+}
+
+void ExprWriter::visit(DoWhile& expr) {
+    ss << "do {" << std::endl;
+    expr.body->accept(*this);
+    ss << "} while (";
+    expr.cond->accept(*this);
+    ss << ");" << std::endl;
 }

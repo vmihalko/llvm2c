@@ -51,11 +51,11 @@ std::string Func::getVarName() {
 	return varName;
 }
 
-Struct* Func::getStruct(const llvm::StructType* strct) const {
+StructType* Func::getStruct(const llvm::StructType* strct) const {
 	return program->getStruct(strct);
 }
 
-Struct* Func::getStruct(const std::string& name) const {
+StructType* Func::getStruct(const std::string& name) const {
 	return program->getStruct(name);
 }
 

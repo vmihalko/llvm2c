@@ -19,7 +19,6 @@ class Block;
 class Expr {
 public:
     enum ExprKind {
-        EK_Struct,
         EK_AggregateElement,
         EK_ArrayElement,
         EK_ExtractValueExpr,
@@ -61,6 +60,7 @@ public:
 
         EK_ExprList,
         EK_MinusExpr,
+        EK_DoWhile,
     };
 private:
     const ExprKind kind;
@@ -72,7 +72,7 @@ public:
     virtual void accept(ExprVisitor& visitor) = 0;
     virtual const Type* getType() const = 0;
     virtual Type* getType() = 0;
-    virtual void setType(std::unique_ptr<Type>) = 0;
+    virtual void setType(Type*) = 0;
     virtual bool isZero() const = 0;
     virtual bool isSimple() const = 0;
 };
@@ -82,21 +82,21 @@ public:
  */
 class ExprBase : public Expr {
 private:
-    std::unique_ptr<Type> type;
+    Type* type;
 
 public:
     ExprBase(ExprKind kind) : Expr(kind) {}
 
     const Type* getType() const override {
-        return type.get();
+        return type;
     }
 
     Type* getType() override {
-        return type.get();
+        return type;
     }
 
-    void setType(std::unique_ptr<Type> type) override {
-        this->type = std::move(type);
+    void setType(Type* type) override {
+        this->type = type;
     }
 
     bool isZero() const override {
@@ -119,47 +119,15 @@ public:
     static bool classof(const Expr* expr);
 };
 
-class Aggregate : public ExprBase {
-public:
-    std::string name;
-    std::vector<std::pair<std::unique_ptr<Type>, std::string>> items; //elements of the struct
-
-    Aggregate(const std::string& name, ExprKind kind);
-
-    /**
-     * @brief addItem Adds new struct element to the vector items.
-     * @param type Type of the element
-     * @param name Name of the element
-     */
-    void addItem(std::unique_ptr<Type> type, const std::string& name);
-
-    static bool classof(const Expr* expr);
-
-    void accept(ExprVisitor& visitor) override = 0;
-};
-
-/**
- * @brief The Struct class represents struct with all the information needed for using it.
- */
-class Struct : public Aggregate {
-public:
-    Struct(const std::string&);
-
-    void accept(ExprVisitor& visitor) override;
-
-    static bool classof(const Expr* expr);
-};
-
 /**
  * @brief The StructElement class represents access to element of a struct.
  */
 class AggregateElement : public ExprBase {
 public:
-    Aggregate* strct; //struct being accessed
     Expr* expr; //expression being accessed
     unsigned element; //number of the element
 
-    AggregateElement(Aggregate*, Expr*, unsigned);
+    AggregateElement(Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -175,7 +143,7 @@ public:
     Expr* element; //expression representing index of the element
 
     ArrayElement(Expr*, Expr*);
-    ArrayElement(Expr*, Expr*, std::unique_ptr<Type>);
+    ArrayElement(Expr*, Expr*, Type*);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -203,8 +171,8 @@ class Value : public ExprBase {
 public:
     std::string valueName;
 
-    Value(const std::string&, std::unique_ptr<Type>);
-    Value(const std::string&, std::unique_ptr<Type>, ExprKind kind);
+    Value(const std::string&, Type*);
+    Value(const std::string&, Type*, ExprKind kind);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -222,7 +190,7 @@ class GlobalValue : public Value {
 public:
     Expr* value;
 
-    GlobalValue(const std::string&, Expr*, std::unique_ptr<Type>);
+    GlobalValue(const std::string&, Expr*, Type*);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -311,7 +279,7 @@ public:
     std::vector<Expr*> params; //parameters of the function call
     Expr* funcValue; //expression in case of calling function pointer
 
-    CallExpr(Expr*, const std::string&, std::vector<Expr*>, std::unique_ptr<Type>);
+    CallExpr(Expr*, const std::string&, std::vector<Expr*>, Type*);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -325,11 +293,11 @@ public:
  */
 class PointerShift : public ExprBase {
 public:
-    std::unique_ptr<Type> ptrType; //type of the pointer
+    Type* ptrType; //type of the pointer
     Expr* pointer; //expression being shifted
     Expr* move; //expression representing number used for shifting
 
-    PointerShift(std::unique_ptr<Type>, Expr*, Expr*);
+    PointerShift(Type*, Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -393,11 +361,10 @@ public:
  */
 class ArrowExpr : public ExprBase {
 public:
-    Aggregate* strct; //struct being accessed
     Expr* expr; //expression being accessed
     unsigned element; //number of the element
 
-    ArrowExpr(Aggregate*, Expr*, unsigned);
+    ArrowExpr(Expr*, unsigned);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -428,3 +395,14 @@ public:
     static bool classof(const Expr* expr);
 };
 
+class DoWhile : public Expr {
+public:
+    Expr* body;
+    Expr* cond;
+
+    DoWhile(Expr* body, Expr* cond);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};

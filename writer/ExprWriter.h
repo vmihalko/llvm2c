@@ -24,7 +24,6 @@ public:
 
     void gotoOrInline(Block* block, bool doIndent);
 
-    void visit(Struct& expr) override;
     void visit(AggregateElement& expr) override;
     void visit(ArrayElement& expr) override;
     void visit(ExtractValueExpr& expr) override;
@@ -63,6 +62,7 @@ public:
     void visit(ExprList& expr) override;
     void visit(MinusExpr& expr) override;
     void visit(LogicalNot& expr) override;
+    void visit(DoWhile& expr) override;
 
     virtual ~ExprWriter() = default;
 };

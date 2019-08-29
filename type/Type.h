@@ -33,7 +33,6 @@ public:
 
     Type(TypeKind kind): kind(kind) {}
     virtual ~Type() = default;
-    virtual std::unique_ptr<Type> clone() const = 0;
     virtual void print() const = 0;
     virtual std::string toString() const = 0;
 
@@ -80,7 +79,6 @@ public:
     FunctionPointerType(const std::string&, const std::string&, const std::string&);
     FunctionPointerType(const FunctionPointerType&);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -93,17 +91,30 @@ public:
     static bool classof(const Type* type);
 };
 
+class AggregateType : public Type {
+public:
+    std::string name;
+    std::vector<std::pair<Type*, std::string>> items; //elements of the struct
+
+    AggregateType(TypeKind kind, const std::string& name);
+
+    void addItem(Type* type, const std::string& name);
+
+    static bool classof(const Type* type);
+
+    virtual ~AggregateType() = default;
+};
+
 /**
  * @brief The StructType class represents struct as a type.
  */
-class StructType : public Type {
+class StructType : public AggregateType {
 public:
     std::string name;
 
     StructType(const std::string&);
     StructType(const StructType&);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -115,7 +126,7 @@ public:
  */
 class PointerType : public Type {
 public:
-    std::unique_ptr<Type> type;
+    Type* type;
     unsigned levels; //number of pointers (for instance int** is level 2), used for easier printing
 
     bool isArrayPointer; //indicates whether the pointer is pointing to array
@@ -124,10 +135,9 @@ public:
     bool isStructPointer; //indicates whether the pointer is pointing to struct
     std::string structName; //name of the struct
 
-    PointerType(std::unique_ptr<Type>);
+    PointerType(Type*);
     PointerType(const PointerType& other);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -141,7 +151,7 @@ public:
  */
 class ArrayType : public Type {
 public:
-    std::unique_ptr<Type> type;
+    Type* type;
     unsigned int size;
 
     bool isStructArray; //indicates whether the array contains structs
@@ -150,10 +160,9 @@ public:
     bool isPointerArray; //indicates whether the array contains pointers
     PointerType* pointer; //pointers contained in array
 
-    ArrayType(std::unique_ptr<Type>, unsigned int);
+    ArrayType(Type*, unsigned int);
     ArrayType(const ArrayType&);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -171,7 +180,6 @@ public:
 class VoidType : public Type {
 public:
     VoidType();
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -192,7 +200,6 @@ public:
     IntegerType(const std::string&, bool, TypeKind);
     IntegerType(const IntegerType&);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -206,7 +213,6 @@ class CharType : public IntegerType {
 public:
     CharType(bool);
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -218,7 +224,6 @@ class IntType : public IntegerType {
 public:
     IntType(bool);
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -230,7 +235,6 @@ class ShortType : public IntegerType {
 public:
     ShortType(bool);
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -242,7 +246,6 @@ class LongType : public IntegerType {
 public:
     LongType(bool);
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -254,7 +257,6 @@ class Int128 : public IntegerType {
 public:
     Int128();
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -271,7 +273,6 @@ public:
     FloatingPointType(const std::string&, TypeKind kind);
     FloatingPointType(const FloatingPointType&);
 
-    std::unique_ptr<Type> clone() const override;
     void print() const override;
     std::string toString() const override;
 
@@ -285,7 +286,6 @@ class FloatType : public FloatingPointType {
 public:
     FloatType();
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -297,7 +297,6 @@ class DoubleType : public FloatingPointType {
 public:
     DoubleType();
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };
@@ -309,7 +308,6 @@ class LongDoubleType : public FloatingPointType {
 public:
     LongDoubleType();
 
-    std::unique_ptr<Type> clone() const override;
 
     static bool classof(const Type* type);
 };

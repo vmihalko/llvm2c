@@ -5,8 +5,8 @@
 
 #include <llvm/IR/Instruction.h>
 
-static std::unique_ptr<Struct> createVarargStruct(std::string structName) {
-    auto structExpr = std::make_unique<Struct>(structName);
+static std::unique_ptr<StructType> createVarargStruct(std::string structName) {
+    auto structExpr = std::make_unique<StructType>(structName);
     structExpr->addItem(std::make_unique<IntType>(true), "gp_offset");
     structExpr->addItem(std::make_unique<IntType>(true), "fp_offset");
     structExpr->addItem(std::make_unique<PointerType>(std::make_unique<VoidType>()), "overflow_arg_area");
@@ -25,7 +25,7 @@ void parseStructs(const llvm::Module* module, Program& program) {
             continue;
         }
 
-        auto structExpr = std::make_unique<Struct>(structName);
+        auto structExpr = std::make_unique<StructType>(structName);
 
         for (llvm::Type* type : structType->elements()) {
             structExpr->addItem(program.getType(type), program.getStructVarName());

@@ -56,7 +56,7 @@ public:
  */
 class CastExpr : public UnaryExpr {
 public:
-    CastExpr(Expr*, std::unique_ptr<Type>);
+    CastExpr(Expr*, Type*);
 
     void accept(ExprVisitor& visitor) override;
 

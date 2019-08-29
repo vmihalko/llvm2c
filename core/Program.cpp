@@ -22,7 +22,7 @@ std::string Program::getAnonStructName() {
 	return name;
 }
 
-Struct* Program::getStruct(const llvm::StructType* strct) const {
+StructType* Program::getStruct(const llvm::StructType* strct) const {
 	std::string structName = TypeHandler::getStructName(strct->getName().str());
 
 	for (const auto& structElem : structs) {
@@ -38,7 +38,7 @@ Struct* Program::getStruct(const llvm::StructType* strct) const {
 	return nullptr;
 }
 
-Struct* Program::getStruct(const std::string& name) const {
+StructType* Program::getStruct(const std::string& name) const {
 	for (const auto& structElem : structs) {
 		if (structElem->name.compare(name) == 0) {
 			return structElem.get();
@@ -69,7 +69,7 @@ void Program::createNewUnnamedStruct(const llvm::StructType *strct) {
 		return;
 	}
 
-	auto structExpr = std::make_unique<Struct>(getAnonStructName());
+	auto structExpr = std::make_unique<StructType>(getAnonStructName());
 
 	for (llvm::Type* type : strct->elements()) {
 		structExpr->addItem(getType(type), getStructVarName());
@@ -99,7 +99,7 @@ void Program::addFunction(const llvm::Function* llvmFunc, std::unique_ptr<Func> 
 	functions[llvmFunc] = std::move(func);
 }
 
-void Program::addStruct(std::unique_ptr<Struct> strct) {
+void Program::addStruct(std::unique_ptr<StructType> strct) {
 	structs.push_back(std::move(strct));
 }
 

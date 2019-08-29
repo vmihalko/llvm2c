@@ -2,36 +2,12 @@
 #include "UnaryExpr.h"
 
 #include "llvm/Support/raw_ostream.h"
-
-Struct::Struct(const std::string& name)
-    : Aggregate(name, EK_Struct) {
-    setType(std::make_unique<StructType>(this->name));
-}
-
-void Struct::accept(ExprVisitor& visitor) {
-    visitor.visit(*this);
-}
-
-bool Struct::classof(const Expr* expr) {
-    return expr->getKind() == EK_Struct;
-}
-
-Aggregate::Aggregate(const std::string& name, ExprKind kind): ExprBase(kind), name(name) { }
-
-void Aggregate::addItem(std::unique_ptr<Type> type, const std::string& name) {
-    items.push_back(std::make_pair(std::move(type), name));
-}
-
-bool Aggregate::classof(const Expr* expr) {
-    return expr->getKind() == EK_Struct || expr->getKind() == EK_Union;
-}
-
-AggregateElement::AggregateElement(Aggregate* strct, Expr* expr, unsigned element)
+AggregateElement::AggregateElement(Expr* expr, unsigned element)
     : ExprBase(EK_AggregateElement),
-      strct(strct),
       expr(expr),
       element(element) {
-    setType(strct->items[element].first->clone());
+          auto* ty = llvm::dyn_cast<AggregateType>(expr->getType());
+          setType(ty->items[element].first);
 }
 
 void AggregateElement::accept(ExprVisitor& visitor) {
@@ -47,14 +23,14 @@ ArrayElement::ArrayElement(Expr* expr, Expr* elem)
       expr(expr),
       element(elem) {
     ArrayType* AT = static_cast<ArrayType*>(expr->getType());
-    setType(AT->type->clone());
+    setType(AT->type);
 }
 
-ArrayElement::ArrayElement(Expr* expr, Expr* elem, std::unique_ptr<Type> type)
+ArrayElement::ArrayElement(Expr* expr, Expr* elem, Type* type)
     : ExprBase(EK_ArrayElement),
       expr(expr),
       element(elem) {
-    setType(std::move(type));
+    setType(type);
 }
 
 void ArrayElement::accept(ExprVisitor& visitor) {
@@ -69,7 +45,7 @@ ExtractValueExpr::ExtractValueExpr(std::vector<std::unique_ptr<Expr>>&& indices)
     : ExprBase(EK_ExtractValueExpr) {
 
     this->indices = std::move(indices);
-    setType(this->indices.back()->getType()->clone());
+    setType(this->indices.back()->getType());
 }
 
 void ExtractValueExpr::accept(ExprVisitor& visitor) {
@@ -80,15 +56,15 @@ bool ExtractValueExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_ExtractValueExpr;
 }
 
-Value::Value(const std::string& valueName, std::unique_ptr<Type> type)
+Value::Value(const std::string& valueName, Type* type)
     : ExprBase(EK_Value) {
-    setType(std::move(type));
+    setType(type);
     this->valueName = valueName;
 }
 
-Value::Value(const std::string& valueName, std::unique_ptr<Type> type, ExprKind kind)
+Value::Value(const std::string& valueName, Type* type, ExprKind kind)
     : ExprBase(kind) {
-    setType(std::move(type));
+    setType(type);
     this->valueName = valueName;
 }
 
@@ -108,8 +84,8 @@ bool Value::classof(const Expr* expr) {
     return expr->getKind() == EK_Value || expr->getKind() == EK_GlobalValue;
 }
 
-GlobalValue::GlobalValue(const std::string& varName, Expr* value, std::unique_ptr<Type> type)
-    : Value(varName, std::move(type), EK_GlobalValue),
+GlobalValue::GlobalValue(const std::string& varName, Expr* value, Type* type)
+    : Value(varName, type, EK_GlobalValue),
       value(value) { }
 
 void GlobalValue::accept(ExprVisitor& visitor) {
@@ -176,12 +152,12 @@ bool AsmExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_AsmExpr;
 }
 
-CallExpr::CallExpr(Expr* funcValue, const std::string &funcName, std::vector<Expr*> params, std::unique_ptr<Type> type)
+CallExpr::CallExpr(Expr* funcValue, const std::string &funcName, std::vector<Expr*> params, Type* type)
     : ExprBase(EK_CallExpr),
       funcName(funcName),
       params(params),
       funcValue(funcValue) {
-    setType(std::move(type));
+    setType(type);
 }
 
 void CallExpr::accept(ExprVisitor& visitor) {
@@ -196,13 +172,13 @@ bool CallExpr::isSimple() const {
     return true;
 }
 
-PointerShift::PointerShift(std::unique_ptr<Type> ptrType, Expr* pointer, Expr* move)
+PointerShift::PointerShift(Type* ptrType, Expr* pointer, Expr* move)
     : ExprBase(EK_PointerShift),
       ptrType(std::move(ptrType)),
       pointer(pointer),
       move(move) {
-    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->ptrType.get())) {
-        setType(PT->type->clone());
+    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->ptrType)) {
+        setType(PT->type);
     }
 }
 
@@ -217,7 +193,7 @@ bool PointerShift::classof(const Expr* expr) {
 GepExpr::GepExpr(std::vector<Expr*>&& indices)
     : ExprBase(EK_GepExpr), indices(std::move(indices)) {
 
-    setType(this->indices[this->indices.size() - 1]->getType()->clone());
+    setType(this->indices[this->indices.size() - 1]->getType());
 }
 
 void GepExpr::accept(ExprVisitor& visitor) {
@@ -233,7 +209,7 @@ SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
     left(l),
     right(r),
     comp(comp) {
-    setType(l->getType()->clone());
+    setType(l->getType());
 }
 
 void SelectExpr::accept(ExprVisitor& visitor) {
@@ -247,7 +223,7 @@ bool SelectExpr::classof(const Expr* expr) {
 StackAlloc::StackAlloc(Value* var):
     ExprBase(EK_StackAlloc),
     value(var) {
-    setType(var->getType()->clone());
+    setType(var->getType());
 }
 
 void StackAlloc::accept(ExprVisitor& visitor) {
@@ -268,8 +244,9 @@ void AggregateInitializer::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
 
-ArrowExpr::ArrowExpr(Aggregate* strct, Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), strct(strct), expr(expr), element(element) {
-    setType(strct->items[element].first->clone());
+ArrowExpr::ArrowExpr(Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), expr(expr), element(element) {
+    auto* ty = llvm::dyn_cast<AggregateType>(expr->getType());
+    setType(ty->items[element].first);
 }
 
 void ArrowExpr::accept(ExprVisitor& visitor) {
@@ -322,4 +299,14 @@ void ExprList::accept(ExprVisitor& visitor) {
 
 bool ExprList::classof(const Expr* expr) {
     return expr->getKind() == EK_ExprList;
+}
+
+DoWhile::DoWhile(Expr* body, Expr* cond): Expr(EK_DoWhile), body(body), cond(cond) { }
+
+void DoWhile::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool DoWhile::classof(const Expr* expr) {
+    return expr->getKind() == EK_DoWhile;
 }
