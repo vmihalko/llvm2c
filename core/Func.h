@@ -22,7 +22,7 @@ friend class Block;
 friend class Program;
 
 public:
-    std::unique_ptr<Type> returnType;
+    Type* returnType;
 
     const llvm::Function* function;
     Program* program;
@@ -111,7 +111,7 @@ public:
      * @param type llvm::Type for transformation
      * @return unique_ptr to corresponding Type object
      */
-    std::unique_ptr<Type> getType(const llvm::Type* type);
+    Type* getType(const llvm::Type* type);
 
     /**
      * @brief createBlockIfNotExist Creates a new block inside of this function that corresponds to @block

@@ -88,7 +88,7 @@ static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* f
         return;
     }
 
-    auto var = std::make_unique<Value>(func->getVarName(), expr->getType()->clone());
+    auto var = std::make_unique<Value>(func->getVarName(), expr->getType());
     auto assign = std::make_unique<AssignExpr>(var.get(), expr);
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
@@ -103,7 +103,7 @@ static void createFuncCallParam(const llvm::Use& param, Program& program) {
         if (llvm::isa<llvm::ConstantPointerNull>(param)) {
             program.exprMap[param] = createConstantValue(param, program);
         } else if (PT->getElementType()->isFunctionTy() && !param->getName().empty()) {
-            auto val = std::make_unique<Value>(param->getName().str(), std::make_unique<VoidType>());
+            auto val = std::make_unique<Value>(param->getName().str(), program.typeHandler.voidType.get());
             program.exprMap[param] = program.addOwnership(std::move(val));
         } else {
             program.exprMap[param] = createConstantValue(param, program);
@@ -117,7 +117,7 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
     const llvm::ExtractValueInst* EVI = llvm::cast<const llvm::ExtractValueInst>(&ins);
 
     std::vector<std::unique_ptr<Expr>> indices;
-    std::unique_ptr<Type> prevType = program.getType(ins.getOperand(0)->getType());
+    Type* prevType = program.getType(ins.getOperand(0)->getType());
     Expr* expr = program.getExpr(ins.getOperand(0));
 
     if (llvm::isa<AsmExpr>(expr)) {
@@ -127,17 +127,17 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
     for (unsigned idx : EVI->getIndices()) {
         std::unique_ptr<Expr> element = nullptr;
 
-        if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType.get())) {
+        if (StructType* ST = llvm::dyn_cast_or_null<StructType>(prevType)) {
             element = std::make_unique<AggregateElement>(expr, idx);
         }
 
-        if (llvm::dyn_cast_or_null<ArrayType>(prevType.get())) {
-            auto newVal = std::make_unique<Value>(std::to_string(idx), std::make_unique<IntType>(true));
+        if (llvm::dyn_cast_or_null<ArrayType>(prevType)) {
+            auto newVal = std::make_unique<Value>(std::to_string(idx), program.typeHandler.uint.get());
             element = std::make_unique<ArrayElement>(expr, newVal.get());
             program.addOwnership(std::move(newVal));
         }
 
-        prevType = element->getType()->clone();
+        prevType = element->getType();
         expr = element.get();
         indices.push_back(std::move(element));
     }
@@ -145,8 +145,8 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
     return program.makeExpr<ExtractValueExpr>(std::move(indices));
 }
 
-static std::unique_ptr<Expr> buildIsNan(Expr* val) {
-    return std::make_unique<CallExpr>(nullptr, "isnan", std::vector<Expr*>{val}, std::make_unique<IntegerType>("int", false));
+static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
+    return std::make_unique<CallExpr>(nullptr, "isnan", std::vector<Expr*>{val}, program.typeHandler.sint.get());
 }
 
 static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program) {
@@ -155,8 +155,8 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
     assert(val0 && val1);
 
     auto cmpInst = llvm::cast<const llvm::CmpInst>(&ins);
-    auto isNan0 = program.addOwnership(buildIsNan(val0));
-    auto isNan1 = program.addOwnership(buildIsNan(val1));
+    auto isNan0 = program.addOwnership(buildIsNan(program, val0));
+    auto isNan1 = program.addOwnership(buildIsNan(program, val1));
     auto isOrderedExpr0 = program.makeExpr<LogicalNot>(isNan0);
     auto isOrderedExpr1 = program.makeExpr<LogicalNot>(isNan1);
     Expr* isAllOrdered = program.makeExpr<LogicalAnd>(isOrderedExpr0, isOrderedExpr1);
@@ -167,9 +167,9 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
     assert(llvm::CmpInst::isFPPredicate(cmpInst->getPredicate()) && "expressions: parseFCmpInstruction received a CmpInst with non-FP predicate");
     switch(cmpInst->getPredicate()) {
     case llvm::CmpInst::FCMP_FALSE:
-        return program.makeExpr<Value>("0", std::make_unique<IntegerType>("int", false));
+        return program.makeExpr<Value>("0", program.typeHandler.sint.get());
     case llvm::CmpInst::FCMP_TRUE:
-        return program.makeExpr<Value>("1", std::make_unique<IntegerType>("int", false));
+        return program.makeExpr<Value>("1", program.typeHandler.sint.get());
 
     case llvm::CmpInst::FCMP_ORD:
         return isAllOrdered;
@@ -204,10 +204,10 @@ static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program
 
 static Expr* parseStoreInstruction(const llvm::Instruction& ins, Program& program) {
     auto type = program.getType(ins.getOperand(0)->getType());
-    if (llvm::dyn_cast_or_null<PointerType>(type.get())) {
+    if (llvm::dyn_cast_or_null<PointerType>(type)) {
         if (llvm::Function* function = llvm::dyn_cast_or_null<llvm::Function>(ins.getOperand(0))) {
             if (!program.getExpr(ins.getOperand(0))) {
-                auto val0 = std::make_unique<Value>("&" + function->getName().str(), std::make_unique<VoidType>());
+                auto val0 = std::make_unique<Value>("&" + function->getName().str(), program.typeHandler.voidType.get());
                 program.addExpr(ins.getOperand(0), val0.get());
                 program.addOwnership(std::move(val0));
             }
@@ -585,7 +585,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
     Expr* funcValue = nullptr;
     std::string funcName;
     std::vector<Expr*> params;
-    std::unique_ptr<Type> type = nullptr;
+    Type* type = nullptr;
 
     if (callInst->getCalledFunction()) {
         funcName = callInst->getCalledFunction()->getName().str();
@@ -645,11 +645,11 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
     }
 
     //call function if it returns void, otherwise store function return value to a new variable and use this variable instead of function call
-    if (llvm::dyn_cast_or_null<VoidType>(type.get())) {
-        func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type->clone()));
+    if (llvm::dyn_cast_or_null<VoidType>(type)) {
+        func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type));
         block->addExpr(func->getExpr(value));
     } else {
-        auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type->clone());
+        auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type);
 
         // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
         if (value->hasNUses(0)) {
@@ -737,7 +737,7 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
         //creates new variable for every alloca, getelementptr and cast instruction and global variable that inline asm takes as a parameter
         //as inline asm has problem with casts and expressions containing "&" symbol
         if (GI || CI || AI || GV) {
-            auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone());
+            auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType());
             auto stackAlloc = std::make_unique<StackAlloc>(newVar.get());
             auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
             args.push_back(newVar.get());
@@ -748,7 +748,7 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
             block->addOwnership(std::move(newVar));
         } else if (CE) {
             if (llvm::isa<llvm::GetElementPtrInst>(CE->getAsInstruction())) {
-                auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType()->clone());
+                auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType());
                 auto stackAlloc = std::make_unique<StackAlloc>(newVar.get());
                 auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
 
@@ -920,8 +920,8 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
         prevType = it.getIndexedType();
         prevExpr = indices[indices.size() - 1];
     }
-    auto newGep = std::make_unique<GepExpr>(std::move(indices));
-    return program.makeExpr<RefExpr>(program.addOwnership(std::move(newGep)));
+    auto newGep = program.makeExpr<GepExpr>(std::move(indices));
+    return program.makeExpr<RefExpr>(newGep, program.typeHandler.pointerTo(newGep->getType()));
 }
 
 Expr* parsePhiInstruction(const llvm::Instruction& ins, Func* func) {

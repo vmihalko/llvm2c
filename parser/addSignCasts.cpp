@@ -9,11 +9,13 @@
 
 class SignCastsVisitor : public ExprVisitor {
     Block* block;
+    Program& program;
 
     Expr* castIfNeeded(Expr* expr, bool isUnsigned);
+    IntegerType* toggleSignedness(IntegerType* ty);
 
 public:
-    SignCastsVisitor(Block* block) : block(block) {}
+    SignCastsVisitor(Program& program, Block* block) : block(block), program(program) {}
 
     void visit(AggregateElement& expr) override;
     void visit(ArrayElement& expr) override;
@@ -51,7 +53,7 @@ void addSignCasts(const llvm::Module* module, Program& program) {
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
             auto* myBlock = function->getBlock(&block);
-            SignCastsVisitor scv(myBlock);
+            SignCastsVisitor scv(program, myBlock);
 
             for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
                 auto expr = *it;
@@ -75,8 +77,8 @@ Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
     auto IT = llvm::dyn_cast_or_null<IntegerType>(expr->getType());
 
     if (IT && IT->unsignedType != isUnsigned) {
-        auto newType = IT->clone();
-        static_cast<IntegerType*>(newType.get())->unsignedType = isUnsigned;
+        auto newType = toggleSignedness(IT);
+
         auto cast = std::make_unique<CastExpr>(expr, std::move(newType));
         result = cast.get();
         block->addOwnership(std::move(cast));
@@ -239,4 +241,8 @@ void SignCastsVisitor::visit(ShlExpr& expr) {
 
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
+}
+
+IntegerType* SignCastsVisitor::toggleSignedness(IntegerType* ty) {
+    return program.typeHandler.toggleSignedness(ty);
 }

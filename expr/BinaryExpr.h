@@ -145,6 +145,8 @@ public:
     void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
+
+    static IntType type;
 };
 
 /**

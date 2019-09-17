@@ -4,6 +4,8 @@
 
 #include "../type/TypeHandler.h"
 
+IntType CmpExpr::type = IntType{true};
+
 /*
  * BinaryExpr classes
  */
@@ -118,7 +120,7 @@ CmpExpr::CmpExpr(Expr* l, Expr* r, const std::string& cmp, bool isUnsigned) :
     BinaryExpr(l,r, EK_CmpExpr) {
     comparsion = cmp;
     this->isUnsigned = isUnsigned;
-    setType(std::make_unique<IntType>(false));
+    setType(&CmpExpr::type);
 }
 
 void CmpExpr::accept(ExprVisitor& visitor) {

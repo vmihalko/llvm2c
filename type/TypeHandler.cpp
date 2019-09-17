@@ -10,7 +10,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
     if (typeDefs.find(type) != typeDefs.end()) {
         return typeDefs[type].get();
     }
-    
+
     auto it = typeCache.find(type);
     if (it != typeCache.end()) {
         return it->second.get();
@@ -18,50 +18,51 @@ Type* TypeHandler::getType(const llvm::Type* type) {
 
     if (type->isArrayTy()) {
         auto ty = std::make_unique<ArrayType>(getType(type->getArrayElementType()), type->getArrayNumElements());
+        auto result = ty.get();
         typeCache.insert(it, std::make_pair(type, std::move(ty)));
+        return result;
     }
 
     if (type->isVoidTy()) {
-        auto ty = std::make_unique<VoidType>();
-        typeCache.insert(it, std::make_pair(type, std::move(ty)));
+        return voidType.get();
     }
 
     if (type->isIntegerTy()) {
         std::unique_ptr<Type> ty;
         const auto intType = static_cast<const llvm::IntegerType*>(type);
         if (intType->getBitWidth() == 1) {
-            return std::make_unique<IntType>(true);
+            return uint.get();
         }
 
         if (intType->getBitWidth() <= 8) {
-            return std::make_unique<CharType>(true);
+            return uchar.get();
         }
 
         if (intType->getBitWidth() <= 16) {
-            return std::make_unique<ShortType>(true);
+            return ushort.get();
         }
 
         if (intType->getBitWidth() <= 32) {
-            return std::make_unique<IntType>(true);
+            return uint.get();
         }
 
         if (intType->getBitWidth() <= 64) {
-            return std::make_unique<LongType>(true);
+            return ulong.get();
         }
 
-        return std::make_unique<Int128>();
+        return int128.get();
     }
 
     if (type->isFloatTy()) {
-        return std::make_unique<FloatType>();
+        return floatType.get();
     }
 
     if (type->isDoubleTy()) {
-        return std::make_unique<DoubleType>();
+        return doubleType.get();
     }
 
     if (type->isX86_FP80Ty()) {
-        return std::make_unique<LongDoubleType>();
+        return longDoubleType.get();
     }
 
     if (type->isPointerTy()) {
@@ -117,7 +118,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
             return typeDefs[type].get();
         }
 
-        return std::make_unique<PointerType>(getType(PT->getPointerElementType()));
+        return makeCachedType<PointerType>(PT, getType(PT->getPointerElementType()));
     }
 
     if (type->isStructTy()) {
@@ -125,21 +126,21 @@ Type* TypeHandler::getType(const llvm::Type* type) {
 
         if (!structType->hasName()) {
             program->createNewUnnamedStruct(structType);
-            return std::make_unique<StructType>(program->getStruct(structType)->name);
+            return makeCachedType<StructType>(structType, program->getStruct(structType)->name);
         }
 
         if (structType->getName().str().compare("struct.__va_list_tag") == 0) {
-            return std::make_unique<StructType>("__va_list_tag");
+            return makeCachedType<StructType>(structType, "__va_list_tag");
         }
 
-        return std::make_unique<StructType>(getStructName(structType->getName().str()));
+        return makeCachedType<StructType>(structType, getStructName(structType->getName().str()));
     }
 
     return nullptr;
 }
 
 Type* TypeHandler::getBinaryType(Type* left, Type* right) {
-    if (left != nullptr) 
+    if (left != nullptr)
         return left;
 
     return right;
@@ -164,3 +165,26 @@ std::string TypeHandler::getStructName(const std::string& structName) {
 
     return name;
 }
+
+Type* TypeHandler::pointerTo(Type* type) {
+    // TODO
+    return nullptr;
+}
+
+IntegerType* TypeHandler::toggleSignedness(IntegerType* ty) {
+
+#define TYPES(signedType,unsignedType) \
+    do {\
+        if (ty == signedType.get()) return unsignedType.get();\
+        if (ty == unsignedType.get()) return signedType.get();\
+    } while(0);
+
+    TYPES(uint, sint);
+    TYPES(uchar, schar);
+    TYPES(ushort, sshort);
+    TYPES(ulong, slong);
+
+#undef TYPES
+    return ty;
+}
+

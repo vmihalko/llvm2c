@@ -51,7 +51,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
 
 
     if (llvm::isa<llvm::Function>(val)) {
-        auto ref = std::make_unique<Value>(val->getName().str(), std::make_unique<PointerType>(std::make_unique<CharType>(false)));
+        auto ref = std::make_unique<Value>(val->getName().str(), program.typeHandler.pointerTo(program.typeHandler.schar.get()));
         return program.addOwnership(std::move(ref));
     }
 
@@ -80,15 +80,15 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 return program.addOwnership(std::move(call));
             }
         } else if (CFP->isNaN()){
-            auto param = std::make_unique<Value>("\"\"", std::make_unique<PointerType>(std::make_unique<CharType>(true)));
-            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
+            auto param = std::make_unique<Value>("\"\"", program.typeHandler.pointerTo(program.typeHandler.uchar.get()));
+            auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, program.typeHandler.floatType.get());
             program.addOwnership(std::move(param));
             return program.addOwnership(std::move(call));
         } else {
             std::string CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
             if (CFPvalue.compare("-nan") == 0) {
-                auto param = std::make_unique<Value>("\"\"", std::make_unique<PointerType>(std::make_unique<CharType>(true)));
-                auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, std::make_unique<FloatType>());
+                auto param = std::make_unique<Value>("\"\"", program.typeHandler.pointerTo(program.typeHandler.uchar.get()));
+                auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, program.typeHandler.floatType.get());
                 auto* callPtr = program.addOwnership(std::move(call));
                 program.addOwnership(std::move(param));
                 return program.makeExpr<MinusExpr>(callPtr);

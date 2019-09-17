@@ -5,11 +5,13 @@
 #include <llvm/IR/Instruction.h>
 #include <iostream>
 
-static void convertToSignedIntPtr(PointerType* pt) {
-    if (auto inner = llvm::dyn_cast_or_null<PointerType>(pt->type.get())) {
-        convertToSignedIntPtr(inner);
-    } else if (auto IT = llvm::dyn_cast_or_null<IntegerType>(pt->type.get())) {
-        IT->unsignedType = false;
+static void convertToSignedIntPtr(Program& program, PointerType* pt) {
+    if (auto inner = llvm::dyn_cast_or_null<PointerType>(pt->type)) {
+        convertToSignedIntPtr(program, inner);
+    } else if (auto IT = llvm::dyn_cast_or_null<IntType>(pt->type)) {
+        pt->type = program.typeHandler.sint.get();
+    } else if (auto CT = llvm::dyn_cast_or_null<CharType>(pt->type)) {
+        pt->type = program.typeHandler.schar.get();
     }
 }
 
@@ -23,16 +25,14 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
             continue;
         }
 
-        myFunc->returnType = std::make_unique<IntType>(false);
+        myFunc->returnType = program.typeHandler.sint.get();
 
         for (auto& param : myFunc->parameters) {
             auto type = param->getType();
-            if (auto IT = llvm::dyn_cast_or_null<IntegerType>(type)) {
-                IT->unsignedType = false;
-            }
+            param->setType(program.typeHandler.sint.get());
 
             if (auto PT = llvm::dyn_cast_or_null<PointerType>(type)) {
-                convertToSignedIntPtr(PT);
+                convertToSignedIntPtr(program, PT);
             }
         }
     }

@@ -249,7 +249,7 @@ void ExprWriter::visit(PointerShift& expr) {
 
     ss << "*(((" << expr.ptrType->toString();
 
-    auto PT = static_cast<PointerType*>(expr.ptrType.get());
+    const auto PT = static_cast<PointerType*>(expr.ptrType);
 
     if (PT->isArrayPointer) {
         ss << "(";

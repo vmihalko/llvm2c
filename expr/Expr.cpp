@@ -1,5 +1,6 @@
 #include "Expr.h"
 #include "UnaryExpr.h"
+#include "../type/TypeHandler.h"
 
 #include "llvm/Support/raw_ostream.h"
 AggregateElement::AggregateElement(Expr* expr, unsigned element)
@@ -258,7 +259,7 @@ bool ArrowExpr::classof(const Expr* expr) {
 }
 
 LogicalAnd::LogicalAnd(Expr* lhs, Expr* rhs): ExprBase(EK_LogicalAnd), lhs(lhs), rhs(rhs) {
-    setType(std::make_unique<IntegerType>("int", false));
+    setType(TypeHandler::getBinaryType(lhs->getType(), rhs->getType()));
 }
 
 void LogicalAnd::accept(ExprVisitor& visitor) {
@@ -270,7 +271,7 @@ bool LogicalAnd::classof(const Expr* expr) {
 }
 
 LogicalOr::LogicalOr(Expr* lhs, Expr* rhs): ExprBase(EK_LogicalOr), lhs(lhs), rhs(rhs) {
-    setType(std::make_unique<IntegerType>("int", false));
+    setType(TypeHandler::getBinaryType(lhs->getType(), rhs->getType()));
 }
 
 void LogicalOr::accept(ExprVisitor& visitor) {

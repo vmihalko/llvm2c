@@ -71,7 +71,7 @@ void Func::createNewUnnamedStruct(const llvm::StructType* strct) {
 	program->createNewUnnamedStruct(strct);
 }
 
-std::unique_ptr<Type> Func::getType(const llvm::Type* type) {
+Type* Func::getType(const llvm::Type* type) {
 	return program->getType(type);
 }
 

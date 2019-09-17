@@ -37,7 +37,7 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
     auto var = std::make_unique<GlobalValue>(gvarName, nullptr, program.getType(PT->getElementType()));
     var->getType()->isStatic = gvar.hasInternalLinkage();
 
-    program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get());
+    program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get(), program.typeHandler.pointerTo(var->getType()));
 
     program.addExpr(&gvar, program.globalRefs[&gvar].get());
     program.globalVars.push_back(std::move(var));

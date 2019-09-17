@@ -19,7 +19,7 @@ public:
  */
 class RefExpr : public UnaryExpr {
 public:
-    RefExpr(Expr*);
+    RefExpr(Expr*, Type*);
 
     void accept(ExprVisitor& visitor) override;
 

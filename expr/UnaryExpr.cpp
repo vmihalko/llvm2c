@@ -1,6 +1,7 @@
 #include "UnaryExpr.h"
 
 #include "llvm/Support/raw_ostream.h"
+#include "../type/TypeHandler.h"
 
 /*
  * UnaryExpr classes
@@ -13,9 +14,9 @@ UnaryExpr::UnaryExpr(Expr *expr, ExprKind kind): ExprBase(kind) {
     }
 }
 
-RefExpr::RefExpr(Expr* expr) :
+RefExpr::RefExpr(Expr* expr, Type* type) :
     UnaryExpr(expr, EK_RefExpr) {
-    setType(std::make_unique<PointerType>(expr->getType()));
+    setType(type);
 }
 
 void RefExpr::accept(ExprVisitor& visitor) {

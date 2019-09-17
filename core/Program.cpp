@@ -78,7 +78,7 @@ void Program::createNewUnnamedStruct(const llvm::StructType *strct) {
 	unnamedStructs[strct] = std::move(structExpr);
 }
 
-std::unique_ptr<Type> Program::getType(const llvm::Type* type) {
+Type* Program::getType(const llvm::Type* type) {
 	return typeHandler.getType(type);
 }
 

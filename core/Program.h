@@ -137,7 +137,7 @@ public:
      * @param type llvm::Type for transformation
      * @return unique_ptr to corresponding Type object
      */
-    std::unique_ptr<Type> getType(const llvm::Type* type);
+    Type* getType(const llvm::Type* type);
 
     RefExpr* getGlobalRef(const llvm::GlobalVariable* gv);
 

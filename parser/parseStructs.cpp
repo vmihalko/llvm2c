@@ -5,23 +5,25 @@
 
 #include <llvm/IR/Instruction.h>
 
-static std::unique_ptr<StructType> createVarargStruct(std::string structName) {
-    auto structExpr = std::make_unique<StructType>(structName);
-    structExpr->addItem(std::make_unique<IntType>(true), "gp_offset");
-    structExpr->addItem(std::make_unique<IntType>(true), "fp_offset");
-    structExpr->addItem(std::make_unique<PointerType>(std::make_unique<VoidType>()), "overflow_arg_area");
-    structExpr->addItem(std::make_unique<PointerType>(std::make_unique<VoidType>()), "reg_save_area");
-    return structExpr;
+
+static void initVarargStruct(StructType& varargStruct, Program& program) {
+    varargStruct.addItem(program.typeHandler.uint.get(), "gp_offset");
+    varargStruct.addItem(program.typeHandler.uint.get(), "fp_offset");
+    varargStruct.addItem(program.typeHandler.pointerTo(program.typeHandler.voidType.get()), "overflow_arg_area");
+    varargStruct.addItem(program.typeHandler.pointerTo(program.typeHandler.voidType.get()), "reg_save_area");
 }
 
 void parseStructs(const llvm::Module* module, Program& program) {
+
     for (llvm::StructType* structType : module->getIdentifiedStructTypes()) {
         std::string structName = TypeHandler::getStructName(structType->getName().str());
 
-        if (structName.compare("__va_list_tag") == 0) {
+        if (!program.hasVarArg && structName.compare("__va_list_tag") == 0) {
+            std::unique_ptr<StructType> varargStruct;
+            initVarargStruct(*varargStruct.get(), program);
+            program.addStruct(std::move(varargStruct));
+
             program.hasVarArg = true;
-            auto structExpr = createVarargStruct(structName);
-            program.addStruct(std::move(structExpr));
             continue;
         }
 

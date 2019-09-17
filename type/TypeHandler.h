@@ -15,6 +15,9 @@ class Program;
 
 class TypeHandler {
 private:
+    template<typename T>
+    using uptr = std::unique_ptr<T>;
+
     Program* program;
     llvm::DenseMap<const llvm::Type*, std::unique_ptr<Type>> typeDefs; //map containing typedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
@@ -42,8 +45,28 @@ private:
 public:
     std::vector<const FunctionPointerType*> sortedTypeDefs; //vector of sorted typedefs, used in output
 
+    // basic C types
+    uptr<IntType> uint = std::make_unique<IntType>(true);
+    uptr<CharType> uchar = std::make_unique<CharType>(true);
+    uptr<ShortType> ushort = std::make_unique<ShortType>(true);
+    uptr<LongType> ulong = std::make_unique<LongType>(true);
+
+    uptr<IntType> sint = std::make_unique<IntType>(false);
+    uptr<CharType> schar = std::make_unique<CharType>(false);
+    uptr<ShortType> sshort = std::make_unique<ShortType>(false);
+    uptr<LongType> slong = std::make_unique<LongType>(false);
+
+    uptr<Int128> int128 = std::make_unique<Int128>();
+    uptr<VoidType> voidType = std::make_unique<VoidType>();
+
+    uptr<FloatType> floatType = std::make_unique<FloatType>();
+    uptr<DoubleType> doubleType = std::make_unique<DoubleType>();
+    uptr<LongDoubleType> longDoubleType = std::make_unique<LongDoubleType>();
+
+
     TypeHandler(Program* program)
-        : program(program) { }
+        : program(program) { 
+    }
 
     /**
      * @brief getType Transforms llvm::Type into corresponding Type object
@@ -75,4 +98,8 @@ public:
     bool hasTypeDefs() const {
         return !typeDefs.empty();
     }
+
+    IntegerType* toggleSignedness(IntegerType* ty);
+
+    static Type* pointerTo(Type* type);
 };
