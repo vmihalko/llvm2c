@@ -26,7 +26,8 @@ Program ProgramParser::parse(const std::string& file) {
 
     std::cerr << "Parser start" << std::endl;
     RUN_PASS(determineIncludes);
-    RUN_PASS(parseStructs);
+    RUN_PASS(parseStructDeclarations);
+    RUN_PASS(parseStructItems);
     RUN_PASS(findDeclaredFunctions);
     RUN_PASS(computeGlobalVarsOrder);
     RUN_PASS(createFunctions);

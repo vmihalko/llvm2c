@@ -13,7 +13,7 @@ static void initVarargStruct(StructType& varargStruct, Program& program) {
     varargStruct.addItem(program.typeHandler.pointerTo(program.typeHandler.voidType.get()), "reg_save_area");
 }
 
-void parseStructs(const llvm::Module* module, Program& program) {
+void parseStructDeclarations(const llvm::Module* module, Program& program) {
 
     for (llvm::StructType* structType : module->getIdentifiedStructTypes()) {
         std::string structName = TypeHandler::getStructName(structType->getName().str());
@@ -28,13 +28,8 @@ void parseStructs(const llvm::Module* module, Program& program) {
         }
 
         auto structExpr = std::make_unique<StructType>(structName);
-
-        for (llvm::Type* type : structType->elements()) {
-            structExpr->addItem(program.getType(type), program.getStructVarName());
-        }
-
         program.addStruct(std::move(structExpr));
     }
 
-    program.addPass(PassType::ParseStructs);
+    program.addPass(PassType::ParseStructDeclarations);
 }

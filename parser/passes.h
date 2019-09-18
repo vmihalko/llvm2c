@@ -4,7 +4,8 @@
 #include "../core/Program.h"
 
 void initializeGlobalVars(const llvm::Module* module, Program& program);
-void parseStructs(const llvm::Module* module, Program& program);
+void parseStructDeclarations(const llvm::Module* module, Program& program);
+void parseStructItems(const llvm::Module* module, Program& program);
 void parseFunctions(const llvm::Module* module, Program& program);
 void determineIncludes(const llvm::Module* module, Program& program);
 void findMetadataFunctionNames(const llvm::Module* module, Program& program);

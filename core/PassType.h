@@ -1,7 +1,8 @@
 
 enum class PassType {
     InitializeGlobalVars,
-    ParseStructs,
+    ParseStructDeclarations,
+    ParseStructItems,
     ParseFunctions,
     DetermineIncludes,
     FindMetadataFunctionNames,
