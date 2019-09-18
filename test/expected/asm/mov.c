@@ -8,11 +8,11 @@
 // struct definitions
 
 // function declarations
-int main();
+int main(void);
 
 // global variable definitions
 
-int main(){
+int main(void){
     unsigned int var0;
     unsigned long var1;
     block0: ;

@@ -8,13 +8,13 @@
 // struct definitions
 
 // function declarations
-int main();
+int main(void);
 unsigned int printf(unsigned char* var0, ...);
 
 // global variable definitions
 unsigned char _str[7] = {37,46,49,108,102,10,0,};
 
-int main(){
+int main(void){
     unsigned int var0;
     float var1;
     block0: ;

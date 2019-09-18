@@ -14,13 +14,13 @@ struct s_mystruct {
 };
 
 // function declarations
-struct s_mystruct* get_mystruct();
+struct s_mystruct* get_mystruct(void);
 int main(int var0, char** var1);
 
 // global variable definitions
 struct s_mystruct i = {0,0,0,};
 
-struct s_mystruct* get_mystruct(){
+struct s_mystruct* get_mystruct(void){
     block0: ;
     return &i;
 }

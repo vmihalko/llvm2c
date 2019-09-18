@@ -8,13 +8,13 @@
 // struct definitions
 
 // function declarations
-unsigned char (*get_me())[5];
+unsigned char (*get_me(void))[5];
 int main(int var0, char** var1);
 unsigned char* malloc(unsigned long var0);
 
 // global variable definitions
 
-unsigned char (*get_me())[5]{
+unsigned char (*get_me(void))[5]{
     unsigned char* var0;
     block0: ;
     var0 = malloc(5);

@@ -13,14 +13,14 @@ struct s_mystruct {
 };
 
 // function declarations
-unsigned long get_struct();
+unsigned long get_struct(void);
 int main(int var0, char** var1);
 
 // global variable definitions
 struct s_mystruct __const_get_struct_result = {0,97,};
 static unsigned int counter = 0;
 
-unsigned long get_struct(){
+unsigned long get_struct(void){
     struct s_mystruct var0;
     block0: ;
     var0 = __const_get_struct_result;
