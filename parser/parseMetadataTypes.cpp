@@ -4,7 +4,7 @@
 
 #include <llvm/IR/Instruction.h>
 
-static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
+static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
     Expr* referred = block->func->getExpr(referredVal);
@@ -20,7 +20,7 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
 
         if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
             if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(variable->getType())) {
-                IT->unsignedType = true;
+                variable->setType(program.typeHandler.toggleSignedness(IT));
             }
         }
     }
@@ -39,7 +39,7 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                     const llvm::CallInst* CI = llvm::cast<llvm::CallInst>(&ins);
                     if (CI->getCalledFunction()) {
                         if (CI->getCalledFunction()->getName().str().compare("llvm.dbg.declare") == 0) {
-                            setMetadataInfo(CI, myBlock);
+                            setMetadataInfo(program, CI, myBlock);
                         }
                     }
                 }

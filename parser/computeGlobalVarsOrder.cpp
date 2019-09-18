@@ -34,7 +34,14 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
 
     llvm::PointerType* PT = llvm::cast<llvm::PointerType>(gvar.getType());
 
-    auto var = std::make_unique<GlobalValue>(gvarName, nullptr, program.getType(PT->getElementType()));
+    auto type = program.getType(PT->getElementType());
+    if (!type) {
+        if (auto ST = llvm::dyn_cast_or_null<llvm::StructType>(PT->getElementType())) {
+        }
+        assert(false && "Unable to determine global variable type");
+    }
+
+    auto var = std::make_unique<GlobalValue>(gvarName, nullptr, type);
     var->getType()->isStatic = gvar.hasInternalLinkage();
 
     program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get(), program.typeHandler.pointerTo(var->getType()));
@@ -48,7 +55,7 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
     std::unordered_set<const llvm::GlobalVariable*> visited;
     std::vector<const llvm::GlobalVariable*> order;
 
-    assert(program.isPassCompleted(PassType::ParseStructs));
+    assert(program.isPassCompleted(PassType::ParseStructItems));
 
     for (const llvm::GlobalVariable& gvar : module->globals()) {
         if (llvm::isa<llvm::Function>(&gvar)) {

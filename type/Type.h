@@ -110,8 +110,6 @@ public:
  */
 class StructType : public AggregateType {
 public:
-    std::string name;
-
     StructType(const std::string&);
     StructType(const StructType&);
 

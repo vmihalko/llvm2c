@@ -79,7 +79,9 @@ void Program::createNewUnnamedStruct(const llvm::StructType *strct) {
 }
 
 Type* Program::getType(const llvm::Type* type) {
-	return typeHandler.getType(type);
+	auto result = typeHandler.getType(type);
+    assert(result);
+    return result;
 }
 
 Func* Program::getFunction(const llvm::Function* f) {

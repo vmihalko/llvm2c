@@ -19,7 +19,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     auto theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
                     auto alloc = std::make_unique<StackAlloc>(theVariable.get());
 
-                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get()));
+                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get(), program.typeHandler.pointerTo(theVariable.get()->getType())));
 
                     myBlock->addOwnership(std::move(theVariable));
                     myBlock->addExprAndOwnership(std::move(alloc));

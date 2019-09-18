@@ -175,12 +175,11 @@ bool CallExpr::isSimple() const {
 
 PointerShift::PointerShift(Type* ptrType, Expr* pointer, Expr* move)
     : ExprBase(EK_PointerShift),
-      ptrType(std::move(ptrType)),
+      ptrType(ptrType),
       pointer(pointer),
       move(move) {
-    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->ptrType)) {
-        setType(PT->type);
-    }
+    auto PT = llvm::dyn_cast<PointerType>(this->ptrType);
+    setType(PT->type);
 }
 
 void PointerShift::accept(ExprVisitor& visitor) {
@@ -247,6 +246,7 @@ void AggregateInitializer::accept(ExprVisitor& visitor) {
 
 ArrowExpr::ArrowExpr(Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), expr(expr), element(element) {
     auto* ty = llvm::dyn_cast<AggregateType>(expr->getType());
+    assert(ty);
     setType(ty->items[element].first);
 }
 

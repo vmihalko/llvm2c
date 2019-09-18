@@ -591,7 +591,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         funcName = callInst->getCalledFunction()->getName().str();
         type = func->getType(callInst->getCalledFunction()->getReturnType());
 
-        if (funcName.compare("llvm.dbg.declare") == 0) {
+        if (funcName == "llvm.dbg.declare" || funcName == "llvm.dbg.value") {
             return;
         }
 
@@ -843,20 +843,21 @@ static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block
 
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
 
+    auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
-        static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
+        castExpr->setType(program.typeHandler.toggleSignedness(IT));
     }
 
     if (ins.getOpcode() == llvm::Instruction::FPToSI) {
-        static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
+        castExpr->setType(program.typeHandler.setSigned(IT));
     }
 
     if (llvm::isa<llvm::ZExtInst>(CI)) {
-        static_cast<IntegerType*>(castExpr->getType())->unsignedType = true;
+        castExpr->setType(program.typeHandler.setUnsigned(IT));
     }
 
     if (llvm::isa<llvm::SExtInst>(CI)) {
-        static_cast<IntegerType*>(castExpr->getType())->unsignedType = false;
+        castExpr->setType(program.typeHandler.setSigned(IT));
     }
 
     program.addExpr(&ins, castExpr);
@@ -914,6 +915,9 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
             }
 
+            if (!prevExpr->getType()) {
+                assert(false);
+            }
             indices.push_back(program.makeExpr<AggregateElement>(prevExpr, CI->getSExtValue()));
         }
 
@@ -928,6 +932,11 @@ Expr* parsePhiInstruction(const llvm::Instruction& ins, Func* func) {
     auto* expr = func->createPhiVariable(&ins);
     func->program->addExpr(&ins, expr);
     return expr;
+}
+
+Expr* parseConstantBitcast(const llvm::Instruction& ins, Program& program) {
+    // TODO handle situation when c cast is lossy
+    return createConstantValue(ins.getOperand(0), program);
 }
 
 Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
@@ -964,13 +973,13 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         return parseGepInstruction(ins, program);
     case llvm::Instruction::ExtractValue:
         return parseExtractValueInstruction(ins, program);
+    case llvm::Instruction::BitCast:
+        return parseConstantBitcast(ins, program);
     default:
-        llvm::outs() << "File contains unsupported instruction!\n";
         llvm::outs() << ins << "\n";
-        throw std::invalid_argument("");
+        assert(false && "File contains unsupported instruction!");
     }
 }
-
 
 void createExpressions(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateConstants));

@@ -22,6 +22,9 @@ private:
     llvm::DenseMap<const llvm::Type*, std::unique_ptr<Type>> typeDefs; //map containing typedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
 
+    // key = T, value = Type representing pointer to T
+    std::unordered_map<Type*, uptr<Type>> pointerTypes;
+
     unsigned typeDefCount = 0; //variable used for creating new name for typedef
 
     /**
@@ -101,5 +104,8 @@ public:
 
     IntegerType* toggleSignedness(IntegerType* ty);
 
-    static Type* pointerTo(Type* type);
+    Type* pointerTo(Type* type);
+
+    IntegerType* setSigned(IntegerType* ty);
+    IntegerType* setUnsigned(IntegerType* ty);
 };

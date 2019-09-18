@@ -124,17 +124,10 @@ Type* TypeHandler::getType(const llvm::Type* type) {
     if (type->isStructTy()) {
         const llvm::StructType* structType = llvm::cast<const llvm::StructType>(type);
 
-        if (!structType->hasName()) {
-            program->createNewUnnamedStruct(structType);
-            return makeCachedType<StructType>(structType, program->getStruct(structType)->name);
-        }
-
-        if (structType->getName().str().compare("struct.__va_list_tag") == 0) {
-            return makeCachedType<StructType>(structType, "__va_list_tag");
-        }
-
-        return makeCachedType<StructType>(structType, getStructName(structType->getName().str()));
+        return program->getStruct(structType);
     }
+
+    assert(false);
 
     return nullptr;
 }
@@ -163,17 +156,25 @@ std::string TypeHandler::getStructName(const std::string& structName) {
         name = "__va_list_tag";
     }
 
+
     return name;
 }
 
 Type* TypeHandler::pointerTo(Type* type) {
-    // TODO
-    return nullptr;
+    auto it = pointerTypes.find(type);
+    if (it != pointerTypes.end()) {
+        return it->second.get();
+    }
+
+    auto up = std::make_unique<PointerType>(type);
+    Type* result = up.get();
+    pointerTypes.insert(it, std::make_pair(type, std::move(up)));
+    return result;
 }
 
 IntegerType* TypeHandler::toggleSignedness(IntegerType* ty) {
 
-#define TYPES(signedType,unsignedType) \
+#define TYPES(unsignedType,signedType) \
     do {\
         if (ty == signedType.get()) return unsignedType.get();\
         if (ty == unsignedType.get()) return signedType.get();\
@@ -188,3 +189,32 @@ IntegerType* TypeHandler::toggleSignedness(IntegerType* ty) {
     return ty;
 }
 
+IntegerType* TypeHandler::setSigned(IntegerType* ty) {
+#define TYPES(unsignedType,signedType) \
+    do {\
+        if (ty == unsignedType.get()) return signedType.get();\
+    } while(0);
+
+    TYPES(uint, sint);
+    TYPES(uchar, schar);
+    TYPES(ushort, sshort);
+    TYPES(ulong, slong);
+
+#undef TYPES
+    return ty;
+}
+
+IntegerType* TypeHandler::setUnsigned(IntegerType* ty) {
+#define TYPES(unsignedType,signedType) \
+    do {\
+        if (ty == signedType.get()) return unsignedType.get();\
+    } while(0);
+
+    TYPES(uint, sint);
+    TYPES(uchar, schar);
+    TYPES(ushort, sshort);
+    TYPES(ulong, slong);
+
+#undef TYPES
+    return ty;
+}

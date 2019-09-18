@@ -156,10 +156,13 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         }
     }
 
-    //if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
-    val->print(llvm::errs(), true);
-    assert(false && "constval: unknown type of initial value of a global variable");
-    //}
+    if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
+        val->getType()->print(llvm::errs(), true);
+
+        val->print(llvm::errs(), true);
+
+        assert(false && "constval: unknown type of constant value");
+    }
 
     auto ai = std::make_unique<AggregateInitializer>(std::vector<Expr*>{});
     return program.addOwnership(std::move(ai));
