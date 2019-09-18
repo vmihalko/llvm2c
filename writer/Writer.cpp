@@ -181,6 +181,8 @@ void Writer::functionHead(const Func* func) {
             wr.nextFunctionParam();
         }
         wr.functionVarArgs();
+    } else if (func->parameters.empty()) {
+        wr.functionNoArgs();
     }
     wr.endFunctionParams();
 

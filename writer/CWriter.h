@@ -40,4 +40,6 @@ public:
     void endFunctionBody();
     void declareVar(StrRef ty, StrRef name);
     void startBlock(StrRef label);
+
+    void functionNoArgs();
 };

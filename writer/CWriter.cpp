@@ -95,3 +95,7 @@ void CWriter::declareVar(StrRef ty, StrRef name) {
 void CWriter::startBlock(StrRef label) {
     out << label << ": ;" << std::endl;
 }
+
+void CWriter::functionNoArgs() {
+    out << "void";
+}
