@@ -85,6 +85,9 @@ void SimplifyingExprVisitor::visit(PointerShift& expr) {
 void SimplifyingExprVisitor::visit(GepExpr& expr) {
     for (auto it = expr.indices.begin(); it != expr.indices.end(); ++it) {
         (*it)->accept(*this);
+    }
+
+    for (auto it = expr.indices.begin(); it != expr.indices.end(); ++it) {
         *it = simplify(*it);
     }
 }
