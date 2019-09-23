@@ -40,9 +40,10 @@ public:
     //set containing names of global variables that are in "var[0-9]+" format, used in creating variable names in functions
     std::set<std::string> globalVarNames;
 
-    // expressions that are owned by program (used in initializers of global variables)
+    // all expressions in the program (just for memory management purposes)
     std::vector<std::unique_ptr<Expr>> ownership;
 
+    // set of passes applied to the program
     std::unordered_set<PassType> passes;
 
     //variables used for creating names for structs and anonymous structs
