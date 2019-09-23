@@ -19,8 +19,7 @@ int main(int var0, char** var1){
     unsigned char** var4;
     unsigned char* var5;
     unsigned long var6;
-    int var7;
-    unsigned long var8;
+    unsigned int var7;
     block0: ;
     var2 = 0;
     var3 = var0;
@@ -30,12 +29,11 @@ int main(int var0, char** var1){
         return var2;
     } else {
         var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((unsigned int)(*var5)) != 0) {
+        if (((int)(*var5)) != 0) {
             var2 = -1;
             return var2;
         } else {
             var7 = (((long)var6) > ((long)0));
-            var8 = ((unsigned long)var7);
             var2 = (var7 ? 1 : -1);
             return var2;
         }

@@ -30,12 +30,12 @@ int main(int var0, char** var1){
         return var2;
     } else {
         var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((unsigned int)(*var5)) != 0) {
+        if (((int)(*var5)) != 0) {
             var2 = -1;
             return var2;
         } else {
             var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            if (((unsigned int)(*var5)) != 0) {
+            if (((int)(*var5)) != 0) {
                 var2 = -1;
                 return var2;
             } else {
