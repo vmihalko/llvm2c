@@ -245,9 +245,14 @@ void AggregateInitializer::accept(ExprVisitor& visitor) {
 }
 
 ArrowExpr::ArrowExpr(Expr* expr, unsigned element) : ExprBase(EK_ArrowExpr), expr(expr), element(element) {
-    auto* ty = llvm::dyn_cast<AggregateType>(expr->getType());
+
+    auto* ty = llvm::dyn_cast<PointerType>(expr->getType());
     assert(ty);
-    setType(ty->items[element].first);
+    auto* ag = llvm::dyn_cast<StructType>(ty->type);
+    assert(ag);
+
+    setType(ag->items[element].first);
+    assert(getType());
 }
 
 void ArrowExpr::accept(ExprVisitor& visitor) {

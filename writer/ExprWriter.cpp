@@ -407,7 +407,8 @@ void ExprWriter::visit(StackAlloc& expr) {
 void ExprWriter::visit(ArrowExpr& expr) {
     parensIfNotSimple(expr.expr);
     ss << "->";
-    auto ty = llvm::dyn_cast<AggregateType>(expr.expr->getType());
+    auto pty = llvm::dyn_cast<PointerType>(expr.expr->getType());
+    auto ty = llvm::dyn_cast<AggregateType>(pty->type);
     ss << ty->items[expr.element].second;
 }
 
