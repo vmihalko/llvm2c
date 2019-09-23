@@ -7,16 +7,18 @@
 #include "SimplifyingExprVisitor.h"
 
 class ArrowifyVisitor : public SimplifyingExprVisitor {
-public:
-    std::vector<std::unique_ptr<Expr>> ownership;
+private:
+    Program& program;
 protected:
     Expr* simplify(Expr* expr) override;
+public:
+    ArrowifyVisitor(Program& program): program(program) {}
 };
 
 void arrowify(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateExpressions));
 
-    ArrowifyVisitor visitor;
+    ArrowifyVisitor visitor{program};
     for (const llvm::Function& func : module->functions()) {
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
@@ -28,9 +30,6 @@ void arrowify(const llvm::Module* module, Program& program) {
 
             }
 
-            for (auto&& expr : visitor.ownership) {
-                myBlock->addOwnership(std::move(expr));
-            }
         }
     }
 
@@ -41,10 +40,7 @@ Expr* ArrowifyVisitor::simplify(Expr* expr) {
 
     if (auto* SE = llvm::dyn_cast_or_null<AggregateElement>(expr)) {
         if (auto* DE = llvm::dyn_cast_or_null<DerefExpr>(SE->expr)) {
-            auto arrow = std::make_unique<ArrowExpr>(DE->expr, SE->element);
-            auto* result = arrow.get();
-            ownership.push_back(std::move(arrow));
-            return result;
+            return program.makeExpr<ArrowExpr>(DE->expr, SE->element);
         }
     }
 
