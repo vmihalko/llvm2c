@@ -12,7 +12,6 @@
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include <unordered_set>
 
-using CaseHandle = const llvm::SwitchInst::CaseHandleImpl<const llvm::SwitchInst, const llvm::ConstantInt, const llvm::BasicBlock>*;
 
 static std::unordered_set<int> read_only = {
     llvm::Instruction::Add,
@@ -398,12 +397,11 @@ static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExp
     assert(cmp);
 
     Block* def = func->createBlockIfNotExist(llvm::cast<llvm::BasicBlock>(ins.getOperand(1)));
-    const llvm::SwitchInst* switchIns = llvm::cast<const llvm::SwitchInst>(&ins);
+    const llvm::SwitchInst* switchIns = llvm::cast<llvm::SwitchInst>(&ins);
 
-    for (const auto& switchCase : switchIns->cases()) {
-        CaseHandle caseHandle = static_cast<CaseHandle>(&switchCase);
-        Block *target = func->createBlockIfNotExist(caseHandle->getCaseSuccessor());
-        cases[caseHandle->getCaseValue()->getSExtValue()] = createListOfOneGoto(block, target);
+    for (auto& switchCase : switchIns->cases()) {
+        Block *target = func->createBlockIfNotExist(switchCase.getCaseSuccessor());
+        cases[switchCase.getCaseValue()->getSExtValue()] = createListOfOneGoto(block, target);
     }
 
     if (!isConstExpr) {
