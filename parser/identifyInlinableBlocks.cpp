@@ -6,7 +6,7 @@
 #include <iostream>
 
 static bool isSafeToInline(const llvm::BasicBlock* llvmBlock, const Block* block) {
-    if (llvmBlock->hasNPredecessors(1)) {
+    if (llvmBlock->getSinglePredecessor()) {
         return true;
     }
 
