@@ -189,6 +189,7 @@ public:
 class GlobalValue : public Value {
 public:
     Expr* value;
+    bool isStatic = false;
 
     GlobalValue(const std::string&, Expr*, Type*);
 

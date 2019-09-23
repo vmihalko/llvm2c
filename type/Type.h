@@ -37,16 +37,12 @@ public:
     virtual std::string toString() const = 0;
 
     bool isConst = false;
-    bool isStatic = false;
 
     std::string getConstStaticString() const {
         std::string ret;
 
         if (isConst) {
             ret += "const ";
-        }
-        if (isStatic) {
-            ret += "static ";
         }
 
         return ret;

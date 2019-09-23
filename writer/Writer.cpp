@@ -144,13 +144,19 @@ void Writer::globalVarDefinitions(const Program& program) {
             continue;
         }
 
+        if (gvar->isStatic) {
+            wr.raw("static ");
+        }
+
         wr.raw(gvar->getType()->toString());
         wr.raw(" ");
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
+
         if (gvar->value) {
             wr.raw(" = ");
             gvar->value->accept(ew);
         }
+
         wr.line(";");
     }
 }
