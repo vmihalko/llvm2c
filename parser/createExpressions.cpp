@@ -189,6 +189,7 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
 
     cmpInst->print(llvm::errs(), true);
     assert(false && "parseFCmpInstruction: unknown compare predicate");
+    abort(); // for release builds
 }
 
 static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
@@ -978,6 +979,7 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     default:
         llvm::outs() << ins << "\n";
         assert(false && "File contains unsupported instruction!");
+        abort();
     }
 }
 
