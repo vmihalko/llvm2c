@@ -7,6 +7,7 @@
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include <unordered_set>
@@ -55,16 +56,28 @@ static std::unordered_set<int> read_only = {
 Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
+const llvm::Instruction *getNextNonDebugInstruction(const llvm::Instruction *ins) {
+#if LLVM_VERSION_MAJOR > 6
+    return ins->getNextNonDebugInstruction();
+#else
+    // copied from LLVM sources, adapted
+    for (auto I = ins->getNextNode(); I; I = I->getNextNode())
+        if (!llvm::isa<llvm::DbgInfoIntrinsic>(I))
+          return I;
+    return nullptr;
+#endif // LLVM_VERSION_MAJOR > 6
+}
+
 static bool canInline(const llvm::Value* value) {
     if (llvm::isa<llvm::Constant>(value)) {
         return true;
     }
 
-    if (auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
+    if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
         if (ins->hasNUses(1)) {
-            auto* user = *ins->user_begin();
+            const auto user = *ins->user_begin();
 
-            auto* cur = ins->getNextNonDebugInstruction();
+            auto cur = getNextNonDebugInstruction(ins);
             while (cur) {
                 if (cur == user) {
                     return true;
@@ -74,7 +87,7 @@ static bool canInline(const llvm::Value* value) {
                     return false;
                 }
 
-                cur = cur->getNextNonDebugInstruction();
+                cur = getNextNonDebugInstruction(cur);
             }
         }
     }
