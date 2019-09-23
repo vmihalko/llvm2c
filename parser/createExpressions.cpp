@@ -187,6 +187,9 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return isAllOrdered;
     case llvm::CmpInst::FCMP_UNO:
         return program.makeExpr<LogicalNot>(isAllOrdered);
+    default:
+        assert(false && "Unhandled switch predicate");
+        abort();
     }
     std::string pred = getComparePredicate(cmpInst);
 
