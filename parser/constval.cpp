@@ -14,7 +14,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
 
     std::vector<Expr*> values;
 
-    if (auto* ST = llvm::dyn_cast_or_null<llvm::SequentialType>(ty)) {
+    if (auto* ST = llvm::dyn_cast_or_null<llvm::ArrayType>(ty)) {
         for (auto i = 0; i < ST->getNumElements(); ++i) {
             values.push_back(createUndefValue(ST->getElementType(), program));
         }

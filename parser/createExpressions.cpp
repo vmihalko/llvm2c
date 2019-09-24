@@ -7,11 +7,11 @@
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include <unordered_set>
 
-using CaseHandle = const llvm::SwitchInst::CaseHandleImpl<const llvm::SwitchInst, const llvm::ConstantInt, const llvm::BasicBlock>*;
 
 static std::unordered_set<int> read_only = {
     llvm::Instruction::Add,
@@ -55,16 +55,28 @@ static std::unordered_set<int> read_only = {
 Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
+const llvm::Instruction *getNextNonDebugInstruction(const llvm::Instruction *ins) {
+#if LLVM_VERSION_MAJOR > 6
+    return ins->getNextNonDebugInstruction();
+#else
+    // copied from LLVM sources, adapted
+    for (auto I = ins->getNextNode(); I; I = I->getNextNode())
+        if (!llvm::isa<llvm::DbgInfoIntrinsic>(I))
+          return I;
+    return nullptr;
+#endif // LLVM_VERSION_MAJOR > 6
+}
+
 static bool canInline(const llvm::Value* value) {
     if (llvm::isa<llvm::Constant>(value)) {
         return true;
     }
 
-    if (auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
+    if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(value)) {
         if (ins->hasNUses(1)) {
-            auto* user = *ins->user_begin();
+            const auto user = *ins->user_begin();
 
-            auto* cur = ins->getNextNonDebugInstruction();
+            auto cur = getNextNonDebugInstruction(ins);
             while (cur) {
                 if (cur == user) {
                     return true;
@@ -74,7 +86,7 @@ static bool canInline(const llvm::Value* value) {
                     return false;
                 }
 
-                cur = cur->getNextNonDebugInstruction();
+                cur = getNextNonDebugInstruction(cur);
             }
         }
     }
@@ -175,6 +187,9 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return isAllOrdered;
     case llvm::CmpInst::FCMP_UNO:
         return program.makeExpr<LogicalNot>(isAllOrdered);
+    default:
+        assert(false && "Unhandled switch predicate");
+        abort();
     }
     std::string pred = getComparePredicate(cmpInst);
 
@@ -189,6 +204,7 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
 
     cmpInst->print(llvm::errs(), true);
     assert(false && "parseFCmpInstruction: unknown compare predicate");
+    abort(); // for release builds
 }
 
 static Expr* parseICmpInstruction(const llvm::Instruction& ins, Program& program) {
@@ -384,12 +400,11 @@ static void parseSwitchInstruction(const llvm::Instruction& ins, bool isConstExp
     assert(cmp);
 
     Block* def = func->createBlockIfNotExist(llvm::cast<llvm::BasicBlock>(ins.getOperand(1)));
-    const llvm::SwitchInst* switchIns = llvm::cast<const llvm::SwitchInst>(&ins);
+    const llvm::SwitchInst* switchIns = llvm::cast<llvm::SwitchInst>(&ins);
 
-    for (const auto& switchCase : switchIns->cases()) {
-        CaseHandle caseHandle = static_cast<CaseHandle>(&switchCase);
-        Block *target = func->createBlockIfNotExist(caseHandle->getCaseSuccessor());
-        cases[caseHandle->getCaseValue()->getSExtValue()] = createListOfOneGoto(block, target);
+    for (auto& switchCase : switchIns->cases()) {
+        Block *target = func->createBlockIfNotExist(switchCase.getCaseSuccessor());
+        cases[switchCase.getCaseValue()->getSExtValue()] = createListOfOneGoto(block, target);
     }
 
     if (!isConstExpr) {
@@ -978,6 +993,7 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     default:
         llvm::outs() << ins << "\n";
         assert(false && "File contains unsupported instruction!");
+        abort();
     }
 }
 

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
 set(FILES core/Func.h core/Func.cpp core/Block.h core/Block.cpp core/Program.h core/Program.cpp type/Type.h type/Type.cpp type/TypeHandler.h type/TypeHandler.cpp expr/Expr.h expr/Expr.cpp expr/BinaryExpr.h expr/BinaryExpr.cpp expr/UnaryExpr.h expr/UnaryExpr.cpp parser/ProgramParser.h parser/cfunc.h parser/passes.h parser/createAllocas.cpp parser/arrowify.cpp parser/createBlocks.cpp parser/findDeclaredFunctions.cpp parser/createExpressions.cpp parser/createFunctionParameters.cpp parser/createFunctions.cpp parser/initializeGlobalVars.cpp parser/determineIncludes.cpp parser/findMetadataFunctionNames.cpp parser/findMetadataVariableNames.cpp parser/parseMetadataTypes.cpp parser/memcpyToAssign.cpp parser/parseStructDeclarations.cpp parser/parseStructItems.cpp parser/nameFunctions.cpp parser/parseBreaks.cpp parser/addPhis.cpp parser/constval.cpp parser/identifyInlinableBlocks.cpp parser/refDeref.cpp parser/fixMainParameters.cpp parser/addSignCasts.cpp parser/computeGlobalVarsOrder.cpp parser/createConstants.cpp parser/deleteRedundantCasts.cpp parser/SimplifyingExprVisitor.cpp parser/deleteUnusedVariables.cpp parser/inlineBlocks.cpp parser/extractVars.cpp parser/ProgramParser.cpp writer/CWriter.cpp writer/Writer.cpp writer/ExprWriter.cpp)
 add_executable(llvm2c ${SRC_LIST} ${FILES})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -fpermissive")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -fno-rtti")
 
 find_package(LLVM REQUIRED CONFIG)
 if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
