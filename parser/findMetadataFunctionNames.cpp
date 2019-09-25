@@ -10,7 +10,11 @@ void findMetadataFunctionNames(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateFunctions));
 
     for (const llvm::Function& func : module->functions()) {
+        if (func.isDeclaration())
+            continue;
+
         auto function = program.getFunction(&func);
+        assert(function && "Do not have function");
 
         function->fillMetadataVarNames(program.getGlobalVarNames());
 
