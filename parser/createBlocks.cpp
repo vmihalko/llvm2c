@@ -7,6 +7,9 @@ void createBlocks(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateFunctions));
 
     for (const llvm::Function& func : module->functions()) {
+        if (func.size() == 0)
+            continue;
+
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
             function->createBlockIfNotExist(&block);
