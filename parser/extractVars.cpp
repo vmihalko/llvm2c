@@ -36,7 +36,7 @@ void extractVars(const llvm::Module* module, Program& program) {
                 deleteExprFromBlock(myBlock, alloc);
 
                 // 3. add them at the beginning of function
-                function->phiVariables.push_back(alloc->value);
+                function->variables.push_back(alloc->value);
             }
 
         }

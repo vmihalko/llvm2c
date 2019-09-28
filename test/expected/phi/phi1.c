@@ -14,8 +14,8 @@ unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var
 // global variable definitions
 
 int main(int var0, char** var1){
-    unsigned int var3_phi;
     unsigned char* var2;
+    unsigned int var3_phi;
     block0: ;
     switch ((unsigned int)strtol(*(((unsigned char**)(var1)) + 1), &var2, 10)) {
         case 1:
@@ -51,7 +51,6 @@ int main(int var0, char** var1){
         default:
             return var3_phi;
 }
-    var3_phi = 0;
 }
 
 

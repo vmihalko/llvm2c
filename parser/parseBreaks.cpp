@@ -6,9 +6,34 @@
 
 #include <llvm/IR/Instruction.h>
 
+/**
+ * return phi assignments as ExprList
+ */
+static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* nextBlock) {
+    std::vector<Expr*> exprs;
+
+    Program& program = *blockEnding->func->program;
+
+    for (const auto& phi : nextBlock->block->phis()) {
+        Expr* phiVar = program.getExpr(&phi);
+
+        // see if nextBlock declares any incoming value from blockEnding
+        for (auto i = 0; i < phi.getNumIncomingValues(); ++i) {
+            if (phi.getIncomingBlock(i) == blockEnding->block) {
+                Expr* incoming = program.getExpr(phi.getIncomingValue(i));
+                exprs.push_back(program.makeExpr<AssignExpr>(phiVar, incoming));
+            }
+        }
+    }
+
+    return exprs;
+}
+
 static Expr* createListOfOneGoto(Block* container, Block* gotoTarget) {
     auto gotoExpr = std::make_unique<GotoExpr>(gotoTarget);
-    std::vector<Expr*> exprs { gotoExpr.get() };
+
+    std::vector<Expr*> exprs = generatePhiAssignments(container, gotoTarget);
+    exprs.push_back(gotoExpr.get());
     auto list = std::make_unique<ExprList>(std::move(exprs));
 
     container->addOwnership(std::move(gotoExpr));
@@ -21,6 +46,12 @@ static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* 
     //no condition
     if (ins.getNumOperands() == 1) {
         Block* target = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
+
+        auto assignments = generatePhiAssignments(block, target);
+        for (auto& assignment : assignments) {
+            block->addExpr(assignment);
+        }
+
         auto gotoExpr = std::make_unique<GotoExpr>(target);
         func->program->exprMap[&ins] = gotoExpr.get();
         block->addExprAndOwnership(std::move(gotoExpr));

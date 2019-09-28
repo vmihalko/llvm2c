@@ -76,8 +76,9 @@ Type* Func::getType(const llvm::Type* type) {
 }
 
 Expr* Func::createPhiVariable(const llvm::Value* phi) {
-	auto var = std::make_unique<Value>(getVarName() + "_phi", getType(phi->getType()));
-	phiVariables.push_back(var.get());
+    auto var = std::make_unique<Value>(getVarName() + "_phi", getType(phi->getType()));
+    auto* stackAlloc = program->makeExpr<StackAlloc>(var.get());
+    entry->addExpr(stackAlloc);
 
     return program->addOwnership(std::move(var));
 }

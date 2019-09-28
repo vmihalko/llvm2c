@@ -38,8 +38,8 @@ public:
     //set containing metadata names of variables (and names of global variables) that are in "var[0-9]+" format, used in creating variable names
     std::set<std::string> metadataVarNames;
 
-    // variables that correspond to phi nodes and will be declared at the beginning of the function
-    std::vector<Value*> phiVariables;
+    // variables that should be declared at the beginning of the function
+    std::vector<Value*> variables;
 
     //variables used for creating names for variables and blocks
     unsigned varCount = 0;

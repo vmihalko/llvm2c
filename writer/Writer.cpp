@@ -273,9 +273,8 @@ void Writer::functionDefinitions(const Program& program) {
         functionHead(func);
         wr.startFunctionBody();
 
-        // start with phi variables
-        // TODO: prepend phi variables of function to the first block instead of this hack
-        for (const auto& var : func->phiVariables) {
+        // start with variables
+        for (const auto& var : func->variables) {
             wr.indent(1);
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }
