@@ -13,7 +13,8 @@ static void createConstantsForOperands(const llvm::User* ins, Program& program) 
         }
 
         if (auto *user = llvm::dyn_cast_or_null<llvm::User>(op.get())) {
-            createConstantsForOperands(user, program);
+            if (!llvm::isa<llvm::Instruction>(user))
+                createConstantsForOperands(user, program);
         }
 
         if (auto C = llvm::dyn_cast_or_null<llvm::Constant>(op.get())) {
