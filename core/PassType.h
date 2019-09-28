@@ -16,7 +16,6 @@ enum class PassType {
     FindDeclaredFunctions,
     NameFunctions,
     ParseBreaks,
-    AddPhis,
     IdentifyInlinableBlocks,
     InlineBlocks,
     RefDeref,

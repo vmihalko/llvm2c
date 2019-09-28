@@ -55,7 +55,7 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
 
 
 void parseBreaks(const llvm::Module* module, Program& program) {
-    assert(program.isPassCompleted(PassType::AddPhis));
+    assert(program.isPassCompleted(PassType::CreateExpressions));
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);

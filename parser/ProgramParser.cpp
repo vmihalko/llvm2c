@@ -43,7 +43,7 @@ Program ProgramParser::parse(const std::string& file) {
 
     RUN_PASS(parseMetadataTypes);
     RUN_PASS(createExpressions);
-    RUN_PASS(addPhis);
+
     RUN_PASS(parseBreaks);
 
     RUN_PASS(refDeref);
