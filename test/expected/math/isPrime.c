@@ -7,6 +7,8 @@
 
 // struct definitions
 
+// union definitions
+
 // function declarations
 unsigned int isPrime(unsigned long var0);
 int main(int var0, char** var1);

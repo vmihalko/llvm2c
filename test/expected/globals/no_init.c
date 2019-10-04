@@ -18,6 +18,8 @@ struct s_parent {
     unsigned long structVar2;
 };
 
+// union definitions
+
 // function declarations
 int main(int var0, char** var1);
 

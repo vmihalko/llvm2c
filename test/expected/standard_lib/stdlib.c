@@ -7,6 +7,8 @@
 
 // struct definitions
 
+// union definitions
+
 // function declarations
 void free(unsigned char* var0);
 int main(void);

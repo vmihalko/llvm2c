@@ -7,6 +7,8 @@
 
 // struct definitions
 
+// union definitions
+
 // function declarations
 unsigned char (*get_me(void))[5];
 int main(int var0, char** var1);

@@ -12,6 +12,8 @@ struct s_list {
     struct s_list* structVar1;
 };
 
+// union definitions
+
 // function declarations
 int main(int var0, char** var1);
 

@@ -13,6 +13,8 @@ struct s_mystruct {
     unsigned int structVar2;
 };
 
+// union definitions
+
 // function declarations
 struct s_mystruct* get_mystruct(void);
 int main(int var0, char** var1);

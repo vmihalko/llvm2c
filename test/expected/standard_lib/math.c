@@ -7,6 +7,8 @@
 
 // struct definitions
 
+// union definitions
+
 // function declarations
 int main(void);
 unsigned int printf(unsigned char* var0, ...);

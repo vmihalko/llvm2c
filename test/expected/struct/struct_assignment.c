@@ -12,6 +12,8 @@ struct s_mystruct {
     unsigned char structVar1;
 };
 
+// union definitions
+
 // function declarations
 unsigned long get_struct(void);
 int main(int var0, char** var1);
