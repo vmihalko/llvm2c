@@ -13,6 +13,7 @@ public:
     enum TypeKind {
         TK_FunctionPointerType,
         TK_StructType,
+        TK_UnionType,
         TK_PointerType,
         TK_ArrayType,
         TK_VoidType,
@@ -114,6 +115,20 @@ public:
 
     static bool classof(const Type* type);
 };
+
+/**
+ * @brief The UnionType class represents union as a type.
+ */
+class UnionType : public AggregateType {
+public:
+    UnionType(const std::string&);
+
+    void print() const override;
+    std::string toString() const override;
+
+    static bool classof(const Type* type);
+};
+
 
 /**
  * @brief The PointerType class represents pointer.

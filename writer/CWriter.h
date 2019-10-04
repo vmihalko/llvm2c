@@ -16,7 +16,9 @@ public:
     void include(StrRef header);
     void comment(StrRef comment);
     void declareStruct(StrRef name);
+    void declareUnion(StrRef name);
     void startStruct(StrRef name);
+    void startUnion(StrRef name);
     void endStruct();
     void indent(size_t tabs);
     void structItem(StrRef ty, StrRef name);

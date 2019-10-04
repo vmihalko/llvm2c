@@ -14,6 +14,8 @@ void Writer::writeProgram(const Program& program) {
     wr.line("");
     structDefinitions(program);
     wr.line("");
+    unionDefinitions(program);
+    wr.line("");
     functionDeclarations(program);
     wr.line("");
     globalVarDefinitions(program);
@@ -52,6 +54,10 @@ void Writer::structDeclarations(const Program& program) {
 
     for (const auto& strct : structs) {
         wr.declareStruct(strct->name);
+    }
+
+    for (const auto& unn : program.unions) {
+        wr.declareUnion(unn->name);
     }
 }
 
@@ -107,6 +113,29 @@ void Writer::structDefinitions(const Program& program) {
         structDefinition(program, strct.get(), printed);
     }
 }
+
+void Writer::unionDefinition(const Program& program, const UnionType* strct) {
+    wr.startUnion(strct->name);
+
+    for (const auto& pair : strct->items) {
+        const auto& ty = pair.first;
+        const auto& name = pair.second;
+        wr.indent(1);
+        wr.structItem(ty->toString(), ty->surroundName(name));
+    }
+
+    wr.endStruct();
+}
+
+
+void Writer::unionDefinitions(const Program& program) {
+    wr.comment("union definitions");
+
+    for (const auto& unn : program.unions) {
+        unionDefinition(program, unn.get());
+    }
+}
+
 
 void Writer::typedefs(const Program& program) {
     wr.comment("type definitions");

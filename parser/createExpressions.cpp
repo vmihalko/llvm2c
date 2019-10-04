@@ -827,12 +827,6 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
     func->createExpr(&ins, std::move(asmExpr));
 }
 
-static bool isCCastLossy(const llvm::Type* from, const llvm::Type* to) {
-    // conversions between floating points and integers are lossy
-    return (from->isFloatingPointTy() && to->isIntegerTy())
-        || (from->isIntegerTy() && to->isFloatingPointTy());
-}
-
 static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
     Expr* expr = program.getExpr(ins.getOperand(0));
     assert(expr);
@@ -843,18 +837,6 @@ static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block
     }
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
-
-
-    if (ins.getOpcode() == llvm::Instruction::BitCast) {
-        if (isCCastLossy(ins.getOperand(0)->getType(), CI->getDestTy())) {
-            // TODO: union magic
-            /* auto var = program.makeExpr<Value>(func->getVarName(), ...); */
-            /* std::vector<Expr*> inside { */
-            /*     program.makeExpr<StackAlloc>(var), */
-            /* }; */
-            return;
-        } // else continue
-    }
 
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
 

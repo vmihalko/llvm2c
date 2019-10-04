@@ -31,6 +31,7 @@ public:
     llvm::DenseMap<const llvm::Function*, std::unique_ptr<Func>> functions; //map containing function definitions
 
     std::vector<std::unique_ptr<StructType>> structs; // vector of parsed structs
+    std::vector<std::unique_ptr<UnionType>> unions;
     std::vector<std::unique_ptr<GlobalValue>> globalVars; // vector of parsed global variables
     llvm::DenseMap<const llvm::GlobalVariable*, std::unique_ptr<RefExpr>> globalRefs; //map containing references to global variables
     llvm::DenseMap<const llvm::StructType*, std::unique_ptr<StructType>> unnamedStructs; // map containing unnamed structs
@@ -49,6 +50,7 @@ public:
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
     unsigned anonStructCount = 0;
+    unsigned unionCounter = 0;
 
     /**
      * @brief getAnonStructName Creates new name for anonymous struct.
@@ -172,4 +174,8 @@ public:
     bool isPassCompleted(PassType pass) const;
 
     void addPass(PassType pass);
+
+    std::string getUnionName();
+
+    UnionType* addUnion(const std::vector<Type*>& subtypes);
 };

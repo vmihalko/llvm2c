@@ -147,3 +147,22 @@ bool Program::isPassCompleted(PassType pass) const {
 void Program::addPass(PassType pass) {
     passes.insert(pass);
 }
+
+std::string Program::getUnionName() {
+    ++unionCounter;
+    return "u" + std::to_string(unionCounter);
+}
+
+UnionType* Program::addUnion(const std::vector<Type*>& subtypes) {
+    auto ut = std::make_unique<UnionType>(getUnionName());
+
+    size_t index = 0;
+    for (auto* type : subtypes) {
+        ut->addItem(type, "ty" + std::to_string(index));
+        ++index;
+    }
+
+    auto* result = ut.get();
+    unions.push_back(std::move(ut));
+    return result;
+}

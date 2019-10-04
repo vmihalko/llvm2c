@@ -21,6 +21,7 @@ private:
     bool forceBlockLabels;
 
     void includes(const Program& program);
+    void unionDeclarations(const Program& program);
     void structDeclarations(const Program& program);
     void structDefinitions(const Program& program);
     void globalVars(const Program& program);
@@ -34,6 +35,8 @@ private:
     bool isFunctionPrinted(const Func* func) const;
     void functionHead(const Func* func);
     void writeBlock(const Block* block);
+    void unionDefinition(const Program& program, const UnionType* unn);
+    void unionDefinitions(const Program& program);
 
 
 public:

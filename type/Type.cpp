@@ -39,7 +39,7 @@ std::string FunctionPointerType::defToString() const {
 AggregateType::AggregateType(TypeKind kind, const std::string& name): Type(kind), name(name) { }
 
 bool AggregateType::classof(const Type* ty) {
-    return ty->getKind() == TK_StructType;
+    return ty->getKind() == TK_StructType || ty->getKind() == TK_UnionType;
 }
 
 void AggregateType::addItem(Type* type, const std::string& name) {
@@ -48,8 +48,6 @@ void AggregateType::addItem(Type* type, const std::string& name) {
 
 StructType::StructType(const std::string& name)
     : AggregateType(TK_StructType, name) { }
-
-StructType::StructType(const StructType& other) : AggregateType(TK_StructType, name) { }
 
 void StructType::print() const {
     llvm::outs() << toString();
@@ -63,6 +61,21 @@ std::string StructType::toString() const {
     std::string ret = getConstStaticString();
 
     return ret + "struct " + name;
+}
+
+UnionType::UnionType(const std::string& name) : AggregateType(TK_UnionType, name) {}
+
+void UnionType::print() const {
+    llvm::outs() << toString();
+}
+
+std::string UnionType::toString() const {
+    std::string ret = getConstStaticString();
+    return ret + "union " + name;
+}
+
+bool UnionType::classof(const Type* type) {
+    return type->getKind() == TK_UnionType;
 }
 
 ArrayType::ArrayType(Type* type, unsigned int size)

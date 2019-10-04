@@ -9,6 +9,10 @@ void CWriter::declareStruct(StrRef name) {
     out << "struct " << name << ";" << std::endl;
 }
 
+void CWriter::declareUnion(StrRef name) {
+    out << "union " << name << ";" << std::endl;
+}
+
 void CWriter::comment(StrRef comment) {
     out << "// " << comment << std::endl;
 }
@@ -98,4 +102,8 @@ void CWriter::startBlock(StrRef label) {
 
 void CWriter::functionNoArgs() {
     out << "void";
+}
+
+void CWriter::startUnion(StrRef name) {
+    out << "union " << name << " {" << std::endl;
 }
