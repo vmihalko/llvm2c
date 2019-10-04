@@ -840,6 +840,24 @@ static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block
 
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
 
+    if (ins.getOpcode() == llvm::Instruction::BitCast) {
+        std::vector<Type*> types { program.getType(CI->getSrcTy()), program.getType(CI->getDestTy()) };
+
+        auto* newUnion = program.addUnion(types);
+        auto* unionVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), newUnion));
+        auto* stackAlloc = program.makeExpr<StackAlloc>(unionVar);
+
+        auto* assignInitial = program.makeExpr<AssignExpr>(program.makeExpr<AggregateElement>(unionVar, 0), expr);
+        auto* resultingValue = program.makeExpr<AggregateElement>(unionVar, 1);
+
+        block->addExpr(stackAlloc);
+        block->addExpr(assignInitial);
+
+        program.addExpr(&ins, resultingValue);
+
+        return;
+    }
+
     auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
         castExpr->setType(program.typeHandler.toggleSignedness(IT));
