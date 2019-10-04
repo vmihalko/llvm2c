@@ -19,7 +19,7 @@ struct s_two {
 
 // function declarations
 int main(int var0, char** var1);
-unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
+extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
 
 // global variable definitions
 

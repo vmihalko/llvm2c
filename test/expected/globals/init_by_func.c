@@ -17,7 +17,7 @@ struct s_mystruct {
 // function declarations
 int main(int var0, char** var1);
 unsigned int square(unsigned int var0);
-unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
+extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
 
 // global variable definitions
 struct s_mystruct test = {square,};

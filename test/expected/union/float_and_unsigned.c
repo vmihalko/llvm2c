@@ -30,7 +30,7 @@ union u3 {
 
 // function declarations
 int main(int var0, char** var1);
-unsigned int printf(unsigned char* var0, ...);
+extern unsigned int printf(unsigned char* var0, ...);
 
 // global variable definitions
 unsigned char _str[4] = {37,117,10,0,};

@@ -10,13 +10,13 @@
 // union definitions
 
 // function declarations
-void free(unsigned char* var0);
+extern void free(unsigned char* var0);
 int main(void);
-unsigned char* malloc(unsigned long var0);
-unsigned int printf(unsigned char* var0, ...);
-unsigned char* realloc(unsigned char* var0, unsigned long var1);
-unsigned char* strcat(unsigned char* var0, unsigned char* var1);
-unsigned char* strcpy(unsigned char* var0, unsigned char* var1);
+extern unsigned char* malloc(unsigned long var0);
+extern unsigned int printf(unsigned char* var0, ...);
+extern unsigned char* realloc(unsigned char* var0, unsigned long var1);
+extern unsigned char* strcat(unsigned char* var0, unsigned char* var1);
+extern unsigned char* strcpy(unsigned char* var0, unsigned char* var1);
 
 // global variable definitions
 unsigned char _str[11] = {109,97,108,108,111,99,116,101,115,116,0,};
