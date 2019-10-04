@@ -1,12 +1,5 @@
-
 // struct declarations
 union u1;
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
 
 // union definitions
 union u1 {
@@ -18,8 +11,6 @@ union u1 {
 unsigned char (*get_me(void))[5];
 int main(int var0, char** var1);
 extern unsigned char* malloc(unsigned long var0);
-
-// global variable definitions
 
 unsigned char (*get_me(void))[5]{
     unsigned char* me;
@@ -44,5 +35,4 @@ int main(int var0, char** var1){
     s = (var6.ty0);
     return (unsigned int)s;
 }
-
 

@@ -1,11 +1,6 @@
-
 // struct declarations
 struct s_parent;
 struct s_some_struct;
-
-// anonymous struct declarations
-
-// type definitions
 
 // struct definitions
 struct s_some_struct {
@@ -17,8 +12,6 @@ struct s_parent {
     unsigned long structVar1;
     unsigned long structVar2;
 };
-
-// union definitions
 
 // function declarations
 int main(int var0, char** var1);
@@ -36,5 +29,4 @@ int main(int var0, char** var1){
     argv = var1;
     return (unsigned int)((p.structVar0).structVar4);
 }
-
 

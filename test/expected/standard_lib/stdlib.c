@@ -1,14 +1,3 @@
-
-// struct declarations
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
-
-// union definitions
-
 // function declarations
 extern void free(unsigned char* var0);
 int main(void);
@@ -38,5 +27,4 @@ int main(void){
     free(str);
     return 0;
 }
-
 

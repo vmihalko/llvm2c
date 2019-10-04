@@ -1,18 +1,5 @@
-
-// struct declarations
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
-
-// union definitions
-
 // function declarations
 int main(int var0, char** var1);
-
-// global variable definitions
 
 int main(int var0, char** var1){
     unsigned int var2;
@@ -35,5 +22,4 @@ int main(int var0, char** var1){
         return i;
     }
 }
-
 

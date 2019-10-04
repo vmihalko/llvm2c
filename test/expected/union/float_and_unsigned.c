@@ -1,11 +1,6 @@
-
 // struct declarations
 struct u_float_shape;
 union u1;
-
-// anonymous struct declarations
-
-// type definitions
 
 // struct definitions
 struct u_float_shape {
@@ -47,5 +42,4 @@ int main(int var0, char** var1){
     (var9.ty1) = (&fs);
     return *(var9.ty2);
 }
-
 

@@ -1,20 +1,7 @@
-
-// struct declarations
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
-
-// union definitions
-
 // function declarations
 unsigned long fact(unsigned long var0);
 int main(int var0, char** var1);
 extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
-
-// global variable definitions
 
 unsigned long fact(unsigned long var0){
     unsigned long num;
@@ -59,5 +46,4 @@ int main(int var0, char** var1){
         }
     }
 }
-
 

@@ -1,11 +1,6 @@
-
 // struct declarations
 struct s_mystruct;
 union u1;
-
-// anonymous struct declarations
-
-// type definitions
 
 // struct definitions
 struct s_mystruct {
@@ -54,5 +49,4 @@ int main(int var0, char** var1){
     (*(var6.ty2)) = get_struct();
     return ((int)counter) + ((int)(a.structVar1));
 }
-
 

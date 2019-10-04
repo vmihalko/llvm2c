@@ -1,8 +1,5 @@
-
 // struct declarations
 struct s_mystruct;
-
-// anonymous struct declarations
 
 // type definitions
 typedef unsigned int(* typeDef_0)(unsigned int);
@@ -11,8 +8,6 @@ typedef unsigned int(* typeDef_0)(unsigned int);
 struct s_mystruct {
     typeDef_0 structVar0;
 };
-
-// union definitions
 
 // function declarations
 int main(int var0, char** var1);
@@ -53,5 +48,4 @@ unsigned int square(unsigned int var0){
     x = var0;
     return ((int)x) * ((int)x);
 }
-
 

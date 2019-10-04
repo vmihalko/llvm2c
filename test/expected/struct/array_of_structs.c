@@ -1,23 +1,14 @@
-
 // struct declarations
 struct s_test;
-
-// anonymous struct declarations
-
-// type definitions
 
 // struct definitions
 struct s_test {
     unsigned int structVar0;
 };
 
-// union definitions
-
 // function declarations
 int main(int var0, char** var1);
 extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
-
-// global variable definitions
 
 int main(int var0, char** var1){
     unsigned int var2;
@@ -66,5 +57,4 @@ int main(int var0, char** var1){
         return var2;
     }
 }
-
 

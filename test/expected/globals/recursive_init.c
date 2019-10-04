@@ -1,18 +1,11 @@
-
 // struct declarations
 struct s_list;
-
-// anonymous struct declarations
-
-// type definitions
 
 // struct definitions
 struct s_list {
     unsigned long structVar0;
     struct s_list* structVar1;
 };
-
-// union definitions
 
 // function declarations
 int main(int var0, char** var1);
@@ -30,5 +23,4 @@ int main(int var0, char** var1){
     argv = var1;
     return (unsigned int)(mylist.structVar0);
 }
-
 

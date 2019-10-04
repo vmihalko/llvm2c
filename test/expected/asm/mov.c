@@ -1,18 +1,5 @@
-
-// struct declarations
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
-
-// union definitions
-
 // function declarations
 int main(void);
-
-// global variable definitions
 
 int main(void){
     unsigned int var0;
@@ -26,5 +13,4 @@ int main(void){
     );
     return (unsigned int)result;
 }
-
 

@@ -1,14 +1,3 @@
-
-// struct declarations
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
-
-// union definitions
-
 // function declarations
 int main(void);
 extern unsigned int printf(unsigned char* var0, ...);
@@ -27,5 +16,4 @@ int main(void){
     printf(&(_str[0]), floor((double)f));
     return 0;
 }
-
 

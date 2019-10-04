@@ -1,12 +1,5 @@
-
 // struct declarations
 union u1;
-
-// anonymous struct declarations
-
-// type definitions
-
-// struct definitions
 
 // union definitions
 union u1 {
@@ -35,5 +28,4 @@ int main(void){
     printf(&(_str[0]), &(test2[0]));
     return 0;
 }
-
 
