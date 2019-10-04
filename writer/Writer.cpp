@@ -3,32 +3,35 @@
 
 #include <unordered_set>
 
+#define SECTION_START(name, cond)\
+    bool __sectionEnabled = ((cond));\
+    if (__sectionEnabled) {\
+        wr.comment(name);\
+    }
+
+#define SECTION_END\
+    if (__sectionEnabled) {\
+        wr.line("");\
+    }
+
 void Writer::writeProgram(const Program& program) {
     includes(program);
-    wr.line("");
     structDeclarations(program);
-    wr.line("");
     anonymousStructDeclarations(program);
-    wr.line("");
     typedefs(program);
-    wr.line("");
     structDefinitions(program);
-    wr.line("");
     unionDefinitions(program);
-    wr.line("");
     functionDeclarations(program);
-    wr.line("");
     globalVarDefinitions(program);
-    wr.line("");
     functionDefinitions(program);
-    wr.line("");
 }
 
 void Writer::includes(const Program& program) {
     if (!useIncludes)
         return;
 
-    wr.comment("includes");
+    SECTION_START("includes", (program.hasVarArg || program.hasStdLib || program.hasString || program.hasStdio || program.hasPthread || program.hasCMath));
+
     if (program.hasVarArg)
         wr.include("stdarg.h");
 
@@ -46,11 +49,13 @@ void Writer::includes(const Program& program) {
 
     if (program.hasCMath)
         wr.include("math.h");
+
+    SECTION_END;
 }
 
 void Writer::structDeclarations(const Program& program) {
-    wr.comment("struct declarations");
     const auto& structs = program.structs;
+    SECTION_START("struct declarations", structs.size() + program.unions.size() > 0);
 
     for (const auto& strct : structs) {
         wr.declareStruct(strct->name);
@@ -59,6 +64,8 @@ void Writer::structDeclarations(const Program& program) {
     for (const auto& unn : program.unions) {
         wr.declareUnion(unn->name);
     }
+
+    SECTION_END;
 }
 
 void Writer::structDefinition(const Program& program, const StructType* strct, std::unordered_set<const StructType*>& printed) {
@@ -101,7 +108,7 @@ void Writer::structDefinition(const Program& program, const StructType* strct, s
 }
 
 void Writer::structDefinitions(const Program& program) {
-    wr.comment("struct definitions");
+    SECTION_START("struct definitions", program.structs.size() + program.unnamedStructs.size() > 0);
     std::unordered_set<const StructType*> printed;
 
     for (const auto& strct : program.structs) {
@@ -112,6 +119,8 @@ void Writer::structDefinitions(const Program& program) {
         const auto& strct = pair.second;
         structDefinition(program, strct.get(), printed);
     }
+
+    SECTION_END;
 }
 
 void Writer::unionDefinition(const Program& program, const UnionType* strct) {
@@ -129,34 +138,40 @@ void Writer::unionDefinition(const Program& program, const UnionType* strct) {
 
 
 void Writer::unionDefinitions(const Program& program) {
-    wr.comment("union definitions");
+    SECTION_START("union definitions", !program.unions.empty());
 
     for (const auto& unn : program.unions) {
         unionDefinition(program, unn.get());
     }
+
+    SECTION_END;
 }
 
 
 void Writer::typedefs(const Program& program) {
-    wr.comment("type definitions");
+    SECTION_START("type definitions", !program.typeHandler.sortedTypeDefs.empty());
     const auto& defs = program.typeHandler.sortedTypeDefs;
 
     for (const auto& def : defs) {
         wr.defineType(def->type, def->name, def->typeEnd);
     }
+
+    SECTION_END;
 }
 
 void Writer::anonymousStructDeclarations(const Program& program) {
-    wr.comment("anonymous struct declarations");
+    SECTION_START("anonymous struct declarations", !program.unnamedStructs.empty());
     const auto& structs = program.unnamedStructs;
 
     for (const auto& elem : structs) {
         wr.declareStruct(elem.second->name);
     }
+
+    SECTION_END;
 }
 
 void Writer::globalVars(const Program& program) {
-    wr.comment("global variable declarations");
+    SECTION_START("global variable declarations", !program.globalVars.empty());
     for (const auto& gvar : program.globalVars) {
         if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
             continue;
@@ -164,10 +179,12 @@ void Writer::globalVars(const Program& program) {
 
         wr.declareVar(gvar->getType()->toString(), gvar->getType()->surroundName(gvar->valueName));
     }
+
+    SECTION_END;
 }
 
 void Writer::globalVarDefinitions(const Program& program) {
-    wr.comment("global variable definitions");
+    SECTION_START("global variable definitions", !program.globalVars.empty());
     for (const auto& gvar : program.globalVars) {
         if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
             continue;
@@ -188,6 +205,8 @@ void Writer::globalVarDefinitions(const Program& program) {
 
         wr.line(";");
     }
+
+    SECTION_END;
 }
 
 void Writer::functionHead(const Func* func) {
@@ -231,7 +250,6 @@ void Writer::functionHead(const Func* func) {
 }
 
 void Writer::functionDeclarations(const Program& program) {
-    wr.comment("function declarations");
     std::vector<Func*> declarations;
 
     for (const auto& decl : program.functions) {
@@ -245,10 +263,13 @@ void Writer::functionDeclarations(const Program& program) {
 
     std::sort(declarations.begin(), declarations.end(), [](const Func* a, const Func* b){ return a->name <= b->name;});
 
+    SECTION_START("function declarations", !declarations.empty());
     for (const auto* func : declarations) {
         functionHead(func);
         wr.endFunctionDecl();
     }
+
+    SECTION_END;
 }
 
 bool Writer::isFunctionPrinted(const Func* func) const {
