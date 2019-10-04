@@ -2,6 +2,9 @@
 // struct declarations
 struct s_test;
 struct s_arrptr;
+union u1;
+union u2;
+union u3;
 
 // anonymous struct declarations
 
@@ -16,6 +19,18 @@ struct s_arrptr {
 };
 
 // union definitions
+union u1 {
+    struct s_test* ty0;
+    unsigned char* ty1;
+};
+union u2 {
+    struct s_test* ty0;
+    unsigned char* ty1;
+};
+union u3 {
+    struct s_test* ty0;
+    struct s_test (*ty1)[1];
+};
 
 // function declarations
 int main(int var0, char** var1);
@@ -32,6 +47,9 @@ int main(int var0, char** var1){
     struct s_test var7;
     struct s_test var8[1];
     struct s_arrptr var9;
+    union u1 var10;
+    union u2 var11;
+    union u3 var12;
     block0: ;
     var2 = 0;
     var3 = var0;
@@ -46,8 +64,11 @@ int main(int var0, char** var1){
             return var2;
         } else {
             (var7.structVar0) = ((unsigned int)var6);
-            memcpy((unsigned char*)(&(var8[0])), (unsigned char*)(&var7), 4);
-            (var9.structVar1) = ((struct s_test (*)[1])(&(var8[0])));
+            (var10.ty0) = (&(var8[0]));
+            (var11.ty0) = (&var7);
+            memcpy(var10.ty1, var11.ty1, 4);
+            (var12.ty0) = (&(var8[0]));
+            (var9.structVar1) = (var12.ty1);
             var2 = (((*(var9.structVar1))[0]).structVar0);
             return var2;
         }
