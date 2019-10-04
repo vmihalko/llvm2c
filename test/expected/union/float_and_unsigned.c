@@ -14,9 +14,9 @@ struct u_float_shape {
 
 // union definitions
 union u1 {
-    unsigned int* ty0;
+    float* ty0;
     struct u_float_shape* ty1;
-    float* ty2;
+    unsigned int* ty2;
 };
 
 // function declarations
@@ -28,24 +28,24 @@ unsigned char _str[4] = {37,117,10,0,};
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    float var5;
-    struct u_float_shape var6;
+    unsigned int argc;
+    unsigned char** argv;
+    float a;
+    struct u_float_shape fs;
     union u1 var7;
     union u1 var8;
     union u1 var9;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    var5 = ((float)var3);
-    (var7.ty1) = (&var6);
-    (*(var7.ty2)) = var5;
-    (var8.ty1) = (&var6);
-    printf(&(_str[0]), *(var8.ty0));
-    (var9.ty1) = (&var6);
-    return *(var9.ty0);
+    argc = var0;
+    argv = var1;
+    a = ((float)argc);
+    (var7.ty1) = (&fs);
+    (*(var7.ty0)) = a;
+    (var8.ty1) = (&fs);
+    printf(&(_str[0]), *(var8.ty2));
+    (var9.ty1) = (&fs);
+    return *(var9.ty2);
 }
 
 

@@ -26,16 +26,16 @@ unsigned char _str_3[3] = {37,115,0,};
 
 int main(void){
     unsigned int var0;
-    unsigned char* var1;
+    unsigned char* str;
     block0: ;
     var0 = 0;
-    var1 = malloc(20);
-    strcpy(var1, &(_str[0]));
-    printf(&(_str_1[0]), var1);
-    var1 = realloc(var1, 40);
-    strcat(var1, &(_str_2[0]));
-    printf(&(_str_3[0]), var1);
-    free(var1);
+    str = malloc(20);
+    strcpy(str, &(_str[0]));
+    printf(&(_str_1[0]), str);
+    str = realloc(str, 40);
+    strcat(str, &(_str_2[0]));
+    printf(&(_str_3[0]), str);
+    free(str);
     return 0;
 }
 

@@ -18,13 +18,13 @@ extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned 
 
 unsigned long fact(unsigned long var0){
     unsigned long var1;
-    unsigned long var2;
+    unsigned long num;
     unsigned long var3;
     block0: ;
-    var2 = var0;
-    if (((long)var2) > ((long)0)) {
-        var3 = var2;
-        var1 = (var3 * fact(((long)var2) - ((long)1)));
+    num = var0;
+    if (((long)num) > ((long)0)) {
+        var3 = num;
+        var1 = (var3 * fact(((long)num) - ((long)1)));
         return var1;
     } else {
         var1 = 1;
@@ -34,24 +34,24 @@ unsigned long fact(unsigned long var0){
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    unsigned char* var5;
-    unsigned long var6;
+    unsigned int argc;
+    unsigned char** argv;
+    unsigned char* p;
+    unsigned long num;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    if (var3 != 2) {
+    argc = var0;
+    argv = var1;
+    if (argc != 2) {
         var2 = -1;
         return var2;
     } else {
-        var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((int)(*var5)) != 0) {
+        num = strtol(*(((unsigned char**)(argv)) + 1), &p, 10);
+        if (((int)(*p)) != 0) {
             var2 = -1;
             return var2;
         } else {
-            var2 = ((unsigned int)fact(var6));
+            var2 = ((unsigned int)fact(num));
             return var2;
         }
     }

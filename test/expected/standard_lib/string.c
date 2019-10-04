@@ -10,8 +10,8 @@ union u1;
 
 // union definitions
 union u1 {
-    unsigned char* ty0;
-    unsigned char (*ty1)[20];
+    unsigned char (*ty0)[20];
+    unsigned char* ty1;
 };
 
 // function declarations
@@ -24,15 +24,15 @@ unsigned char _str[4] = {37,115,10,0,};
 
 int main(void){
     unsigned int var0;
-    unsigned char var1[20];
-    unsigned char var2[20];
+    unsigned char test1[20];
+    unsigned char test2[20];
     union u1 var3;
     block0: ;
     var0 = 0;
-    (var3.ty1) = (&var1);
-    memcpy(var3.ty0, &(__const_main_test1[0]), 20);
-    memcpy(&(var2[0]), &(var1[0]), 11);
-    printf(&(_str[0]), &(var2[0]));
+    (var3.ty0) = (&test1);
+    memcpy(var3.ty1, &(__const_main_test1[0]), 20);
+    memcpy(&(test2[0]), &(test1[0]), 11);
+    printf(&(_str[0]), &(test2[0]));
     return 0;
 }
 

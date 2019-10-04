@@ -18,24 +18,24 @@ extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned 
 
 unsigned int isPrime(unsigned long var0){
     unsigned int var1;
-    unsigned long var2;
-    unsigned int var3;
+    unsigned long num;
+    unsigned int i;
     block0: ;
-    var2 = var0;
-    if (((long)var2) < ((long)2)) {
+    num = var0;
+    if (((long)num) < ((long)2)) {
         var1 = 0;
         return var1;
     } else {
-        var3 = 2;
+        i = 2;
         goto block3;
     }
     block3: ;
-    if (((long)var3) < ((long)(var2 / 2))) {
-        if ((var2 % ((long)var3)) == 0) {
+    if (((long)i) < ((long)(num / 2))) {
+        if ((num % ((long)i)) == 0) {
             var1 = 0;
             return var1;
         } else {
-            var3 = (((int)var3) + ((int)1));
+            i = (((int)i) + ((int)1));
             goto block3;
         }
     } else {
@@ -46,24 +46,24 @@ unsigned int isPrime(unsigned long var0){
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    unsigned char* var5;
-    unsigned long var6;
+    unsigned int argc;
+    unsigned char** argv;
+    unsigned char* p;
+    unsigned long num;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    if (var3 != 2) {
+    argc = var0;
+    argv = var1;
+    if (argc != 2) {
         var2 = -1;
         return var2;
     } else {
-        var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((int)(*var5)) != 0) {
+        num = strtol(*(((unsigned char**)(argv)) + 1), &p, 10);
+        if (((int)(*p)) != 0) {
             var2 = -1;
             return var2;
         } else {
-            var2 = isPrime(var6);
+            var2 = isPrime(num);
             return var2;
         }
     }

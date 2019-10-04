@@ -29,14 +29,14 @@ struct s_mystruct* get_mystruct(void){
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    struct s_mystruct* var5;
+    unsigned int argc;
+    unsigned char** argv;
+    struct s_mystruct* a;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    var5 = get_mystruct();
+    argc = var0;
+    argv = var1;
+    a = get_mystruct();
     return 0;
 }
 

@@ -18,9 +18,9 @@ struct s_arrptr {
 
 // union definitions
 union u1 {
-    struct s_test (*ty0)[1];
+    unsigned char* ty0;
     struct s_test* ty1;
-    unsigned char* ty2;
+    struct s_test (*ty2)[1];
 };
 
 // function declarations
@@ -31,36 +31,36 @@ extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned 
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    unsigned char* var5;
-    unsigned long var6;
-    struct s_test var7;
-    struct s_test var8[1];
-    struct s_arrptr var9;
+    unsigned int argc;
+    unsigned char** argv;
+    unsigned char* p;
+    unsigned long num;
+    struct s_test t;
+    struct s_test arr[1];
+    struct s_arrptr aptr;
     union u1 var10;
     union u1 var11;
     union u1 var12;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    if (var3 != 2) {
+    argc = var0;
+    argv = var1;
+    if (argc != 2) {
         var2 = -1;
         return var2;
     } else {
-        var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((int)(*var5)) != 0) {
+        num = strtol(*(((unsigned char**)(argv)) + 1), &p, 10);
+        if (((int)(*p)) != 0) {
             var2 = -1;
             return var2;
         } else {
-            (var7.structVar0) = ((unsigned int)var6);
-            (var10.ty1) = (&(var8[0]));
-            (var11.ty1) = (&var7);
-            memcpy(var10.ty2, var11.ty2, 4);
-            (var12.ty1) = (&(var8[0]));
-            (var9.structVar1) = (var12.ty0);
-            var2 = (((*(var9.structVar1))[0]).structVar0);
+            (t.structVar0) = ((unsigned int)num);
+            (var10.ty1) = (&(arr[0]));
+            (var11.ty1) = (&t);
+            memcpy(var10.ty0, var11.ty0, 4);
+            (var12.ty1) = (&(arr[0]));
+            (aptr.structVar1) = (var12.ty2);
+            var2 = (((*(aptr.structVar1))[0]).structVar0);
             return var2;
         }
     }

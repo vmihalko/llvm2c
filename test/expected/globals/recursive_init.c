@@ -22,12 +22,12 @@ struct s_list mylist = {0,&mylist,};
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
+    unsigned int argc;
+    unsigned char** argv;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
+    argc = var0;
+    argv = var1;
     return (unsigned int)(mylist.structVar0);
 }
 

@@ -16,23 +16,23 @@ int main(int var0, char** var1);
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    unsigned int var5;
+    unsigned int argc;
+    unsigned char** argv;
+    unsigned int i;
     unsigned int var6;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    var5 = 0;
+    argc = var0;
+    argv = var1;
+    i = 0;
     goto block1;
     block1: ;
-    var6 = (((int)var5) + ((int)1));
-    var5 = var6;
+    var6 = (((int)i) + ((int)1));
+    i = var6;
     if (((int)var6) < ((int)10)) {
         goto block1;
     } else {
-        return var5;
+        return i;
     }
 }
 

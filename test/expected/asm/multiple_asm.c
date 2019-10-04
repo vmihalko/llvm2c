@@ -17,46 +17,46 @@ extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned 
 
 int main(int var0, char** var1){
     unsigned int var2;
-    unsigned int var3;
-    unsigned char** var4;
-    unsigned char* var5;
-    unsigned long var6;
-    unsigned long var7;
-    unsigned int var8;
+    unsigned int argc;
+    unsigned char** argv;
+    unsigned char* p;
+    unsigned long l;
+    unsigned long r;
+    unsigned int result;
     block0: ;
     var2 = 0;
-    var3 = var0;
-    var4 = var1;
-    if (var3 != 3) {
+    argc = var0;
+    argv = var1;
+    if (argc != 3) {
         var2 = -1;
         return var2;
     } else {
-        var6 = strtol(*(((unsigned char**)(var4)) + 1), &var5, 10);
-        if (((int)(*var5)) != 0) {
+        l = strtol(*(((unsigned char**)(argv)) + 1), &p, 10);
+        if (((int)(*p)) != 0) {
             var2 = -1;
             return var2;
         } else {
-            var7 = strtol(*(((unsigned char**)(var4)) + 2), &var5, 10);
-            if (((int)(*var5)) != 0) {
+            r = strtol(*(((unsigned char**)(argv)) + 2), &p, 10);
+            if (((int)(*p)) != 0) {
                 var2 = -1;
                 return var2;
             } else {
                 __asm__("addl %%ebx, %%eax;"
-                    : "=a" (var8)
-                    : "b" (var7), "a" (var6)
+                    : "=a" (result)
+                    : "b" (r), "a" (l)
                     : 
                 );
                 __asm__("subl %%ebx, %%eax;"
-                    : "=a" (var8)
-                    : "b" (10), "a" (var8)
+                    : "=a" (result)
+                    : "b" (10), "a" (result)
                     : 
                 );
                 __asm__("imull %%ebx, %%eax;"
-                    : "=a" (var8)
-                    : "b" (var7), "a" (var8)
+                    : "=a" (result)
+                    : "b" (r), "a" (result)
                     : 
                 );
-                var2 = var8;
+                var2 = result;
                 return var2;
             }
         }
