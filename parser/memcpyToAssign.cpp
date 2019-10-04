@@ -40,11 +40,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                     if (funcName.substr(0,4) == "llvm") {
                         funcName = trimPrefix(funcName);
                         if (funcName == "memcpy") {
-                            /**
-                             * TODO:
-                             * 5. if all of the above holds, replace memcpy by assignment
-                             * maybe do something with the extra variables?
-                             */
                             auto* dstVal = callInst->getArgOperand(0);
                             auto* srcVal = callInst->getArgOperand(1);
                             auto* size = callInst->getArgOperand(2);
@@ -68,15 +63,12 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                     }
 
                                     auto *PT = dstTy->getPointerElementType();
-                                    if (!PT->isStructTy()) {
-                                        continue;
-                                    }
 
                                     // 3. check if the memcpy size is a constant
                                     if (auto* constSize = llvm::dyn_cast_or_null<llvm::ConstantInt>(size)) {
-                                        size_t expectedSize = module->getDataLayout().getTypeAllocSize(dstTy);
+                                        size_t expectedSize = module->getDataLayout().getTypeAllocSize(PT);
 
-                                        // 4. check if the memcpy size is size of the whole struct
+                                        // 4. check if the memcpy size is size of the whole type
                                         if (expectedSize == constSize->getValue().getLimitedValue()) {
                                             auto* exprToReplace = func->getExpr(callInst);
                                             auto* srcExpr = func->getExpr(src);
