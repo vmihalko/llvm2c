@@ -5,7 +5,7 @@ extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned 
 int main(int var0, char** var1){
     unsigned char* p;
     unsigned int var3_phi;
-    block0: ;
+    block0:
     switch ((unsigned int)strtol(*(((unsigned char**)(var1)) + 1), &p, 10)) {
         case 1:
             var3_phi = 43;

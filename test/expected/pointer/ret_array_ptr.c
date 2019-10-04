@@ -15,7 +15,7 @@ extern unsigned char* malloc(unsigned long var0);
 unsigned char (*get_me(void))[5]{
     unsigned char* me;
     union u1 var1;
-    block0: ;
+    block0:
     me = malloc(5);
     (var1.ty0) = me;
     return var1.ty1;
@@ -27,7 +27,7 @@ int main(int var0, char** var1){
     unsigned char** argv;
     unsigned char* s;
     union u1 var6;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

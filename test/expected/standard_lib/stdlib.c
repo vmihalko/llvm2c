@@ -16,7 +16,7 @@ unsigned char _str_3[3] = {37,115,0,};
 int main(void){
     unsigned int var0;
     unsigned char* str;
-    block0: ;
+    block0:
     var0 = 0;
     str = malloc(20);
     strcpy(str, &(_str[0]));

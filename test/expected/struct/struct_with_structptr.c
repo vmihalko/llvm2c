@@ -22,7 +22,7 @@ int main(int var0, char** var1){
     unsigned long num;
     struct s_test t;
     struct s_sptr s;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

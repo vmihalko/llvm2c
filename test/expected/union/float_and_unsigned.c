@@ -30,7 +30,7 @@ int main(int var0, char** var1){
     union u1 var7;
     union u1 var8;
     union u1 var9;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

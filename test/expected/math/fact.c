@@ -7,12 +7,12 @@ unsigned long fact(unsigned long var0){
     unsigned long num;
     unsigned long result;
     unsigned long l;
-    block0: ;
+    block0:
     num = var0;
     result = 1;
     l = 1;
     goto block1;
-    block1: ;
+    block1:
     if (((long)l) <= ((long)num)) {
         result = (result * l);
         l = (((long)l) + ((long)1));
@@ -28,7 +28,7 @@ int main(int var0, char** var1){
     unsigned char** argv;
     unsigned char* p;
     unsigned long num;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

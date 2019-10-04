@@ -8,7 +8,7 @@ unsigned char _str[7] = {37,46,49,108,102,10,0,};
 int main(void){
     unsigned int var0;
     float f;
-    block0: ;
+    block0:
     var0 = 0;
     f = 1.23E+2;
     f = ((float)log10((double)f));

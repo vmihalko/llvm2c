@@ -27,7 +27,7 @@ unsigned long get_struct(void){
     struct s_mystruct result;
     union u1 var1;
     union u1 var2;
-    block0: ;
+    block0:
     (var1.ty1) = (&result);
     result = __const_get_struct_result;
     counter = (((int)counter) + ((int)1));
@@ -41,7 +41,7 @@ int main(int var0, char** var1){
     unsigned char** argv;
     struct s_mystruct a;
     union u1 var6;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

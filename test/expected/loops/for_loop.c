@@ -10,7 +10,7 @@ int main(int var0, char** var1){
     unsigned long num;
     unsigned int test;
     unsigned int i;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;
@@ -28,7 +28,7 @@ int main(int var0, char** var1){
             goto block5;
         }
     }
-    block5: ;
+    block5:
     if (((long)i) < ((long)num)) {
         test = (((int)test) + ((int)i));
         i = (((int)i) + ((int)1));

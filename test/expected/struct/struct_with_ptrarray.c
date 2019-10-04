@@ -34,7 +34,7 @@ int main(int var0, char** var1){
     union u1 var10;
     union u1 var11;
     union u1 var12;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

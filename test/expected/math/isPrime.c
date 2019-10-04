@@ -7,7 +7,7 @@ unsigned int isPrime(unsigned long var0){
     unsigned int var1;
     unsigned long num;
     unsigned int i;
-    block0: ;
+    block0:
     num = var0;
     if (((long)num) < ((long)2)) {
         var1 = 0;
@@ -16,7 +16,7 @@ unsigned int isPrime(unsigned long var0){
         i = 2;
         goto block3;
     }
-    block3: ;
+    block3:
     if (((long)i) < ((long)(num / 2))) {
         if ((num % ((long)i)) == 0) {
             var1 = 0;
@@ -37,7 +37,7 @@ int main(int var0, char** var1){
     unsigned char** argv;
     unsigned char* p;
     unsigned long num;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

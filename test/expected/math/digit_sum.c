@@ -8,13 +8,13 @@ unsigned int digitSum(unsigned long var0){
     unsigned long l;
     unsigned int rem;
     unsigned int sum;
-    block0: ;
+    block0:
     num = var0;
     l = num;
     rem = 0;
     sum = 0;
     goto block1;
-    block1: ;
+    block1:
     if (l != 0) {
         rem = ((unsigned int)(((long)l) % ((long)10)));
         sum = (((int)sum) + ((int)rem));
@@ -31,7 +31,7 @@ int main(int var0, char** var1){
     unsigned char** argv;
     unsigned char* p;
     unsigned long num;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;

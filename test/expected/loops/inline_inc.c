@@ -7,13 +7,13 @@ int main(int var0, char** var1){
     unsigned char** argv;
     unsigned int i;
     unsigned int var6;
-    block0: ;
+    block0:
     var2 = 0;
     argc = var0;
     argv = var1;
     i = 0;
     goto block1;
-    block1: ;
+    block1:
     var6 = (((int)i) + ((int)1));
     i = var6;
     if (((int)var6) < ((int)10)) {

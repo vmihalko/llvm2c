@@ -20,7 +20,7 @@ int main(void){
     unsigned char test1[20];
     unsigned char test2[20];
     union u1 var3;
-    block0: ;
+    block0:
     var0 = 0;
     (var3.ty0) = (&test1);
     memcpy(var3.ty1, &(__const_main_test1[0]), 20);
