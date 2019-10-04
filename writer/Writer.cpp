@@ -191,6 +191,9 @@ void Writer::globalVarDefinitions(const Program& program) {
 }
 
 void Writer::functionHead(const Func* func) {
+    if (func->isDeclaration)
+        wr.raw("extern ");
+
     const auto PT = llvm::dyn_cast_or_null<PointerType>(func->returnType);
     bool arrayPtr = (PT && PT->isArrayPointer);
     if (arrayPtr) {

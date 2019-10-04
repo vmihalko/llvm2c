@@ -7,7 +7,7 @@
 #include <iostream>
 
 static void declareFunc(const llvm::Function* func, Program& program) {
-    auto decl = std::make_unique<Func>(func, &program, true);
+    auto decl = std::make_unique<Func>(func, &program, func->isDeclaration());
     const llvm::Value* lastValue = nullptr;
     for (const llvm::Value& arg : func->args()) {
         lastValue = &arg;
