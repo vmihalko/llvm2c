@@ -607,6 +607,11 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+        // skip lifetime markers
+        if (funcName.find("llvm.lifetime.") == 0) {
+            return;
+        }
+
         if (funcName.compare("llvm.trap") == 0 || funcName.compare("llvm.debugtrap") == 0) {
             func->createExpr(&ins, std::make_unique<AsmExpr>("int3", std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
             block->addExpr(func->getExpr(&ins));
