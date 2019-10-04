@@ -40,6 +40,7 @@ Program ProgramParser::parse(const std::string& file) {
     RUN_PASS(createFunctionParameters);
     RUN_PASS(createBlocks);
     RUN_PASS(createAllocas);
+    RUN_PASS(findMetadataVariableNames);
 
     RUN_PASS(parseMetadataTypes);
     RUN_PASS(prepareBitcastUnion);

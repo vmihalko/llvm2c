@@ -19,7 +19,18 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
         llvm::DIBasicType* type = llvm::dyn_cast_or_null<llvm::DIBasicType>(localVar->getType());
 
         if (!localVar->getName().empty()) {
-            variable->valueName = localVar->getName();
+            auto& counters = block->func->variableCounters;
+            auto it = counters.find(localVar->getName());
+            std::string name = localVar->getName();
+
+            if (it != counters.end()) {
+                it->second++;
+                name += std::to_string(it->second);
+            } else {
+                counters[localVar->getName()] = 1;
+            }
+
+            variable->valueName = name;
         }
     }
 }

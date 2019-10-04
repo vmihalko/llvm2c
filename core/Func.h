@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <unordered_map>
 
 #include "llvm/ADT/DenseMap.h"
 
@@ -40,6 +41,9 @@ public:
 
     // variables that should be declared at the beginning of the function
     std::vector<Value*> variables;
+
+    // if there are more variables named the same way in this function, we maintain a counter
+    std::unordered_map<std::string, size_t> variableCounters;
 
     //variables used for creating names for variables and blocks
     unsigned varCount = 0;
