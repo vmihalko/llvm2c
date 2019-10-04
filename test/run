@@ -31,7 +31,7 @@ fi
 for f in inputs/$FOLDER/*.c; do
     echo "Testing $f"
     clang $LDFLAGS "$f" -o $TEMPDIR/orig
-    clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
+    clang "$f" -g -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
 
     if [[ $LABEL = "phi" ]]; then
         opt -mem2reg $TEMPDIR/temp.ll -o $TEMPDIR/temp.ll

@@ -13,7 +13,7 @@ for FOLDER in `ls inputs`; do
     for f in inputs/$FOLDER/*.c; do
 
         clang "$f" -o $TEMPDIR/orig 2>/dev/null
-        clang "$f" -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
+        clang "$f" -g -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
         if [[ $FOLDER = "phi" ]]; then
             opt -mem2reg $TEMPDIR/temp.ll -o $TEMPDIR/temp.ll
         fi
