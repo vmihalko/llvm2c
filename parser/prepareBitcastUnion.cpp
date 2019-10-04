@@ -24,6 +24,11 @@ void prepareBitcastUnion(const llvm::Module* mod, Program& program) {
 
     if (!types.empty()) {
         std::vector<Type*> typeVector(types.begin(), types.end());
+
+        std::sort(typeVector.begin(), typeVector.end(), [](const Type* a, const Type* b) {
+                  return a->toString().compare(b->toString());
+          });
+
         program.bitcastUnion = program.addUnion(typeVector);
     }
 
