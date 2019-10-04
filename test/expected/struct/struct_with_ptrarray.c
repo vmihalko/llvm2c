@@ -50,7 +50,7 @@ int main(int var0, char** var1){
             (t.structVar0) = ((unsigned int)num);
             (var10.ty1) = (&(arr[0]));
             (var11.ty1) = (&t);
-            memcpy(var10.ty0, var11.ty0, 4);
+            (arr[0]) = t;
             (var12.ty1) = (&(arr[0]));
             (aptr.structVar1) = (var12.ty2);
             var2 = (((*(aptr.structVar1))[0]).structVar0);
