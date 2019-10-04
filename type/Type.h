@@ -126,6 +126,8 @@ public:
     void print() const override;
     std::string toString() const override;
 
+    unsigned indexOfType(Type* type) const;
+
     static bool classof(const Type* type);
 };
 

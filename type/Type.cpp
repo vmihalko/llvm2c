@@ -69,6 +69,18 @@ void UnionType::print() const {
     llvm::outs() << toString();
 }
 
+unsigned UnionType::indexOfType(Type* type) const {
+    for (unsigned i = 0; i < items.size(); ++i) {
+        if (items[i].first == type) {
+            return i;
+        }
+    }
+
+    llvm::errs() << type->toString() << "\n";
+    assert(false && "UnionType::indexOfType: type not found in the union");
+    abort();
+}
+
 std::string UnionType::toString() const {
     std::string ret = getConstStaticString();
     return ret + "union " + name;

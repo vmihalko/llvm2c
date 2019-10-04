@@ -44,6 +44,9 @@ public:
     // all expressions in the program (just for memory management purposes)
     std::vector<std::unique_ptr<Expr>> ownership;
 
+    // union used for bitcasts from LLVM
+    UnionType* bitcastUnion = nullptr;
+
     // set of passes applied to the program
     std::unordered_set<PassType> passes;
 

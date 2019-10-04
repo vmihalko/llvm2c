@@ -28,4 +28,5 @@ enum class PassType {
     MemcpyToAssignment,
     ComputeGlobalVarsOrder,
     CreateConstants,
+    PrepareBitcastUnion,
 };

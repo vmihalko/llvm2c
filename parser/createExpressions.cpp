@@ -838,14 +838,11 @@ static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
 
     if (ins.getOpcode() == llvm::Instruction::BitCast) {
-        std::vector<Type*> types { program.getType(CI->getSrcTy()), program.getType(CI->getDestTy()) };
-
-        auto* newUnion = program.addUnion(types);
-        auto* unionVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), newUnion));
+        auto* unionVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), program.bitcastUnion));
         auto* stackAlloc = program.makeExpr<StackAlloc>(unionVar);
 
-        auto* assignInitial = program.makeExpr<AssignExpr>(program.makeExpr<AggregateElement>(unionVar, 0), expr);
-        auto* resultingValue = program.makeExpr<AggregateElement>(unionVar, 1);
+        auto* assignInitial = program.makeExpr<AssignExpr>(program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getSrcTy()))), expr);
+        auto* resultingValue = program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getDestTy())));
 
         block->addExpr(stackAlloc);
         block->addExpr(assignInitial);
@@ -998,6 +995,7 @@ void createExpressions(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateConstants));
     assert(program.isPassCompleted(PassType::CreateAllocas));
     assert(program.isPassCompleted(PassType::CreateFunctionParameters));
+    assert(program.isPassCompleted(PassType::PrepareBitcastUnion));
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
