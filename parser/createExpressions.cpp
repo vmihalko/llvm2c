@@ -832,33 +832,38 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
     func->createExpr(&ins, std::move(asmExpr));
 }
 
-static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+static void parseBitcastInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    Expr* expr = program.getExpr(ins.getOperand(0));
+    assert(expr);
+
+    const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
+
+    auto* unionVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), program.bitcastUnion));
+    auto* stackAlloc = program.makeExpr<StackAlloc>(unionVar);
+
+    auto* assignInitial = program.makeExpr<AssignExpr>(program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getSrcTy()))), expr);
+    auto* resultingValue = program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getDestTy())));
+
+    block->addExpr(stackAlloc);
+    block->addExpr(assignInitial);
+
+    program.addExpr(&ins, resultingValue);
+
+
+}
+
+static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
     Expr* expr = program.getExpr(ins.getOperand(0));
     assert(expr);
 
     //operand is used for initializing output in inline asm
     if (!expr || llvm::isa<AsmExpr>(expr)) {
-        return;
+        return nullptr;
     }
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
-
-    if (ins.getOpcode() == llvm::Instruction::BitCast) {
-        auto* unionVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), program.bitcastUnion));
-        auto* stackAlloc = program.makeExpr<StackAlloc>(unionVar);
-
-        auto* assignInitial = program.makeExpr<AssignExpr>(program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getSrcTy()))), expr);
-        auto* resultingValue = program.makeExpr<AggregateElement>(unionVar, program.bitcastUnion->indexOfType(program.getType(CI->getDestTy())));
-
-        block->addExpr(stackAlloc);
-        block->addExpr(assignInitial);
-
-        program.addExpr(&ins, resultingValue);
-
-        return;
-    }
 
     auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
@@ -877,9 +882,7 @@ static void parseCastInstruction(const llvm::Instruction& ins, Func* func, Block
         castExpr->setType(program.typeHandler.setSigned(IT));
     }
 
-    program.addExpr(&ins, castExpr);
-
-    return;
+    return castExpr;
 }
 
 static Expr* parseSelectInstruction(const llvm::Instruction& ins, Program& program) {
@@ -992,6 +995,18 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         return parseExtractValueInstruction(ins, program);
     case llvm::Instruction::BitCast:
         return parseConstantBitcast(ins, program);
+    case llvm::Instruction::SExt:
+    case llvm::Instruction::ZExt:
+    case llvm::Instruction::FPToSI:
+    case llvm::Instruction::SIToFP:
+    case llvm::Instruction::FPTrunc:
+    case llvm::Instruction::FPExt:
+    case llvm::Instruction::FPToUI:
+    case llvm::Instruction::UIToFP:
+    case llvm::Instruction::PtrToInt:
+    case llvm::Instruction::IntToPtr:
+    case llvm::Instruction::Trunc:
+        return parseCastInstruction(ins, program);
     default:
         llvm::outs() << ins << "\n";
         assert(false && "File contains unsupported instruction!");
@@ -1037,24 +1052,15 @@ void createExpressions(const llvm::Module* module, Program& program) {
                 case llvm::Instruction::Fence:
                     parseAsmInst(ins, func, myBlock);
                     break;
-                case llvm::Instruction::SExt:
-                case llvm::Instruction::ZExt:
-                case llvm::Instruction::FPToSI:
-                case llvm::Instruction::SIToFP:
-                case llvm::Instruction::FPTrunc:
-                case llvm::Instruction::FPExt:
-                case llvm::Instruction::FPToUI:
-                case llvm::Instruction::UIToFP:
-                case llvm::Instruction::PtrToInt:
-                case llvm::Instruction::IntToPtr:
-                case llvm::Instruction::Trunc:
                 case llvm::Instruction::BitCast:
-                    parseCastInstruction(ins, func, myBlock, program);
+                    parseBitcastInstruction(ins, func, myBlock, program);
                     break;
                 default:
                     expr = parseLLVMInstruction(ins, program);
-                    program.addExpr(&ins, expr);
-                    inlineOrCreateVariable(&ins, expr, func, myBlock);
+                    if (expr) {
+                        program.addExpr(&ins, expr);
+                        inlineOrCreateVariable(&ins, expr, func, myBlock);
+                    }
                 }
             }
 
