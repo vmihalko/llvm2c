@@ -118,16 +118,25 @@ Type* TypeHandler::getType(const llvm::Type* type) {
             return typeDefs[type].get();
         }
 
-        return makeCachedType<PointerType>(PT, getType(PT->getPointerElementType()));
+        auto* inner = getType(PT->getPointerElementType());
+        return makeCachedType<PointerType>(PT, inner);
     }
 
     if (type->isStructTy()) {
         const llvm::StructType* structType = llvm::cast<const llvm::StructType>(type);
 
-        return program->getStruct(structType);
-    }
+        auto* strct = program->getStruct(structType);
 
-    assert(false);
+        if (!strct) {
+            if (structType->getStructName() == "") {
+                program->createNewUnnamedStruct(structType);
+                strct = program->getStruct(structType);
+            }
+        }
+
+        return strct;
+
+    }
 
     return nullptr;
 }
