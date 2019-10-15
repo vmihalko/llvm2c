@@ -158,7 +158,10 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
 }
 
 static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
-    return std::make_unique<CallExpr>(nullptr, "isnan", std::vector<Expr*>{val}, program.typeHandler.sint.get());
+    if (val->getType() == program.typeHandler.floatType.get())
+        return std::make_unique<CallExpr>(nullptr, "__isnanf", std::vector<Expr*>{val}, program.typeHandler.sint.get());
+    return std::make_unique<CallExpr>(nullptr, "__isnan", std::vector<Expr*>{val}, program.typeHandler.sint.get());
+
 }
 
 static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program) {
