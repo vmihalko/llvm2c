@@ -45,7 +45,7 @@ public:
      * @param type Metadata information about type
      * @return True if type is void, false otherwise.
      */
-    bool isVoidType(llvm::DITypeRef type);
+    bool isVoidType(llvm::DIType* type);
 
     /**
      * @brief createFuncCallParam Creates new Expr for parameter of function call.
