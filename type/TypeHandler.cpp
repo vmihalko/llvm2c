@@ -4,8 +4,6 @@
 
 #include "../core/Program.h"
 
-#include <boost/lambda/lambda.hpp>
-
 Type* TypeHandler::getType(const llvm::Type* type) {
     if (typeDefs.find(type) != typeDefs.end()) {
         return typeDefs[type].get();
