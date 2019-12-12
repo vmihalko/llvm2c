@@ -606,7 +606,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         funcName = callInst->getCalledFunction()->getName().str();
         type = func->getType(callInst->getCalledFunction()->getReturnType());
 
-        if (funcName == "llvm.dbg.declare" || funcName == "llvm.dbg.value") {
+        if (funcName == "llvm.dbg.declare" || funcName == "llvm.dbg.value" || funcName == "llvm.dbg.label") {
             return;
         }
 
