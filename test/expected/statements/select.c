@@ -9,6 +9,7 @@ int main(int var0, char** var1){
     unsigned char* p;
     unsigned long num;
     unsigned int var7;
+    unsigned long var8;
     block0:
     var2 = 0;
     argc = var0;
@@ -23,6 +24,7 @@ int main(int var0, char** var1){
             return var2;
         } else {
             var7 = (((long)num) > ((long)0));
+            var8 = ((unsigned long)var7);
             var2 = (var7 ? 1 : -1);
             return var2;
         }
