@@ -41,13 +41,6 @@ public:
     void createConstantValue(const llvm::Value* val);
 
     /**
-     * @brief isVoidType Parses metadata about variable type. Returns wether the type is void or not.
-     * @param type Metadata information about type
-     * @return True if type is void, false otherwise.
-     */
-    bool isVoidType(llvm::DIType* type);
-
-    /**
      * @brief createFuncCallParam Creates new Expr for parameter of function call.
      * @param param Parameter of function call
      */

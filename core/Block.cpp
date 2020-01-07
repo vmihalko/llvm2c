@@ -28,26 +28,6 @@ Block::Block(const std::string &blockName, const llvm::BasicBlock* block, Func* 
 	func(func),
 	blockName(blockName), doInline(false) { }
 
-bool Block::isVoidType(llvm::DIType* type) {
-	if (llvm::DIDerivedType* dtype = llvm::dyn_cast_or_null<llvm::DIDerivedType>(type)) {
-		if (!dtype->getBaseType()) {
-			return true;
-		}
-
-		return isVoidType(dtype->getBaseType());
-	}
-
-	if (llvm::DICompositeType* ctype = llvm::dyn_cast_or_null<llvm::DICompositeType>(type)) {
-		if (!ctype->getBaseType()) {
-			return true;
-		}
-
-		return isVoidType(ctype->getBaseType());
-	}
-
-	return false;
-}
-
 void Block::addOwnership(std::unique_ptr<Expr> expr) {
     func->program->ownership.push_back(std::move(expr));
 }
