@@ -18,7 +18,7 @@ static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* next
         Expr* phiVar = program.getExpr(&phi);
 
         // see if nextBlock declares any incoming value from blockEnding
-        for (auto i = 0; i < phi.getNumIncomingValues(); ++i) {
+        for (unsigned i = 0; i < phi.getNumIncomingValues(); ++i) {
             if (phi.getIncomingBlock(i) == blockEnding->block) {
                 Expr* incoming = program.getExpr(phi.getIncomingValue(i));
                 exprs.push_back(program.makeExpr<AssignExpr>(phiVar, incoming));

@@ -165,6 +165,31 @@ static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
 }
 
 static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program) {
+    static std::unordered_set<llvm::CmpInst::Predicate> validPredicates = {
+        llvm::CmpInst::ICMP_EQ,
+        llvm::CmpInst::FCMP_OEQ,
+        llvm::CmpInst::FCMP_UEQ,
+        llvm::CmpInst::ICMP_NE,
+        llvm::CmpInst::FCMP_ONE,
+        llvm::CmpInst::FCMP_UNE,
+        llvm::CmpInst::ICMP_UGT,
+        llvm::CmpInst::ICMP_SGT,
+        llvm::CmpInst::FCMP_UGT,
+        llvm::CmpInst::FCMP_OGT,
+        llvm::CmpInst::ICMP_UGE,
+        llvm::CmpInst::ICMP_SGE,
+        llvm::CmpInst::FCMP_OGE,
+        llvm::CmpInst::FCMP_UGE,
+        llvm::CmpInst::ICMP_ULT,
+        llvm::CmpInst::ICMP_SLT,
+        llvm::CmpInst::FCMP_OLT,
+        llvm::CmpInst::FCMP_ULT,
+        llvm::CmpInst::ICMP_ULE,
+        llvm::CmpInst::ICMP_SLE,
+        llvm::CmpInst::FCMP_OLE,
+        llvm::CmpInst::FCMP_ULE,
+    };
+
     Expr* val0 = program.getExpr(ins.getOperand(0));
     Expr* val1 = program.getExpr(ins.getOperand(1));
     assert(val0 && val1);
@@ -190,6 +215,10 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return isAllOrdered;
     case llvm::CmpInst::FCMP_UNO:
         return program.makeExpr<LogicalNot>(isAllOrdered);
+    default:
+        // just make sure it is one of comparison operators. otherwise, it is unhandled by llvm2c
+        assert(validPredicates.find(cmpInst->getPredicate()) != validPredicates.end());
+        break;
     }
     std::string pred = getComparePredicate(cmpInst);
 

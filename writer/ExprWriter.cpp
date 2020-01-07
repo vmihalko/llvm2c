@@ -3,7 +3,7 @@
 #include "../core/Block.h"
 
 void ExprWriter::indent() {
-    for (auto i = 0; i < indentCount; ++i) {
+    for (size_t i = 0; i < indentCount; ++i) {
         ss << "    ";
     }
 }
