@@ -11,8 +11,8 @@ struct s_mystruct {
 // union definitions
 union u1 {
     unsigned char* ty0;
-    struct s_mystruct* ty1;
-    unsigned long* ty2;
+    unsigned long* ty1;
+    struct s_mystruct* ty2;
 };
 
 // function declarations
@@ -28,11 +28,11 @@ unsigned long get_struct(void){
     union u1 var1;
     union u1 var2;
     block0:
-    (var1.ty1) = (&result);
+    (var1.ty2) = (&result);
     result = __const_get_struct_result;
     counter = (((int)counter) + ((int)1));
-    (var2.ty1) = (&result);
-    return *(var2.ty2);
+    (var2.ty2) = (&result);
+    return *(var2.ty1);
 }
 
 int main(int var0, char** var1){
@@ -45,8 +45,8 @@ int main(int var0, char** var1){
     var2 = 0;
     argc = var0;
     argv = var1;
-    (var6.ty1) = (&a);
-    (*(var6.ty2)) = get_struct();
+    (var6.ty2) = (&a);
+    (*(var6.ty1)) = get_struct();
     return ((int)counter) + ((int)(a.structVar1));
 }
 
