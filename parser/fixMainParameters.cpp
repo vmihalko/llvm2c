@@ -17,7 +17,9 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
 
         auto* myFunc = program.getFunction(&func);
 
-        myFunc->returnType = program.typeHandler.sint.get();
+        if (func.getReturnType()->isIntegerTy())
+            myFunc->returnType = program.typeHandler.sint.get();
+
         if (myFunc->parameters.size() >= 1) {
             myFunc->parameters[0]->setType(program.typeHandler.sint.get());
         }
