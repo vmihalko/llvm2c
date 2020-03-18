@@ -11,6 +11,7 @@ TEMPDIR=`mktemp -d`
 
 for FOLDER in `ls inputs`; do
     for f in inputs/$FOLDER/*.c; do
+        [ -d expected/$FOLDER/ ] || mkdir expected/$FOLDER/
 
         clang "$f" -o $TEMPDIR/orig 2>/dev/null
         clang "$f" -g -emit-llvm -S -Xclang -disable-O0-optnone -o $TEMPDIR/temp.ll #2>/dev/null
