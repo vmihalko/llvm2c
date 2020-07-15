@@ -663,16 +663,16 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             }
         }
     } else {
-        llvm::PointerType* PT = llvm::cast<llvm::PointerType>(callInst->getCalledValue()->getType());
+        llvm::PointerType* PT = llvm::cast<llvm::PointerType>(callInst->getCalledOperand()->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
         type = func->getType(FT->getReturnType());
 
-        if (llvm::isa<llvm::InlineAsm>(callInst->getCalledValue())) {
+        if (llvm::isa<llvm::InlineAsm>(callInst->getCalledOperand())) {
             parseInlineASM(ins, func, block);
             return;
         }
 
-        funcValue = func->getExpr(callInst->getCalledValue());
+        funcValue = func->getExpr(callInst->getCalledOperand());
     }
 
     int i = 0;
@@ -758,7 +758,7 @@ static std::string toRawString(const std::string& str) {
 
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block) {
     const auto callInst = llvm::cast<llvm::CallInst>(&ins);
-    const auto IA = llvm::cast<llvm::InlineAsm>(callInst->getCalledValue());
+    const auto IA = llvm::cast<llvm::InlineAsm>(callInst->getCalledOperand());
 
     std::string asmString = toRawString(IA->getAsmString());
     std::vector<std::string> inputStrings;
