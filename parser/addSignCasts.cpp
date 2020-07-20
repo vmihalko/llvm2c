@@ -41,8 +41,6 @@ public:
     void visit(OrExpr& expr) override;
     void visit(XorExpr& expr) override;
     void visit(CmpExpr& expr) override;
-    void visit(AshrExpr& expr) override;
-    void visit(LshrExpr& expr) override;
     void visit(ShlExpr& expr) override;
 };
 
@@ -221,22 +219,6 @@ void SignCastsVisitor::visit(OrExpr& expr) {
 void SignCastsVisitor::visit(XorExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
-}
-
-void SignCastsVisitor::visit(AshrExpr& expr) {
-    expr.left->accept(*this);
-    expr.right->accept(*this);
-
-    expr.left = castIfNeeded(expr.left, expr.isUnsigned);
-    expr.right = castIfNeeded(expr.right, expr.isUnsigned);
-}
-
-void SignCastsVisitor::visit(LshrExpr& expr) {
-    expr.left->accept(*this);
-    expr.right->accept(*this);
-
-    expr.left = castIfNeeded(expr.left, expr.isUnsigned);
-    expr.right = castIfNeeded(expr.right, expr.isUnsigned);
 }
 
 void SignCastsVisitor::visit(ShlExpr& expr) {

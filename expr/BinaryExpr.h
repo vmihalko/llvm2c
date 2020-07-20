@@ -154,9 +154,7 @@ public:
  */
 class AshrExpr : public BinaryExpr {
 public:
-    bool isUnsigned;
-
-    AshrExpr(Expr*, Expr*, bool isUnsigned);
+    AshrExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -168,9 +166,7 @@ public:
  */
 class LshrExpr : public BinaryExpr {
 public:
-    bool isUnsigned;
-
-    LshrExpr(Expr*, Expr*, bool isUnsigned);
+    LshrExpr(Expr*, Expr*);
 
     void accept(ExprVisitor& visitor) override;
 

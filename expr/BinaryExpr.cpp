@@ -131,8 +131,8 @@ bool CmpExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_CmpExpr;
 }
 
-AshrExpr::AshrExpr(Expr* l, Expr* r, bool isUnsigned) :
-    BinaryExpr(l, r, EK_AshrExpr), isUnsigned(isUnsigned) { }
+AshrExpr::AshrExpr(Expr* l, Expr* r) :
+    BinaryExpr(l, r, EK_AshrExpr) { }
 
 void AshrExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -142,8 +142,8 @@ bool AshrExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_AshrExpr;
 }
 
-LshrExpr::LshrExpr(Expr* l, Expr* r, bool isUnsigned) :
-    BinaryExpr(l, r, EK_LshrExpr), isUnsigned(isUnsigned) { }
+LshrExpr::LshrExpr(Expr* l, Expr* r) :
+    BinaryExpr(l, r, EK_LshrExpr) { }
 
 void LshrExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
