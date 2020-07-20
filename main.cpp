@@ -16,7 +16,6 @@ int main(int argc, char** argv) {
     cl::opt<std::string> Output("o", cl::desc("Output filename"), cl::value_desc("filename"), cl::cat(options));
     cl::opt<std::string> Input(cl::Positional, cl::Required, cl::desc("<input>"), cl::cat(options));
     cl::opt<bool> Print("p", cl::desc("Print translated program"), cl::cat(options));
-    cl::opt<bool> Debug("debug", cl::desc("Print only information about translation"), cl::cat(options));
     cl::opt<bool> Includes("add-includes", cl::desc("Uses includes instead of declarations. For experimental purposes."), cl::cat(options));
     cl::opt<bool> Casts("no-function-call-casts", cl::desc("Removes casts around function calls. For experimental purposes."), cl::cat(options));
     cl::opt<bool> BlockLabels("force-block-labels", cl::desc("Forces printing of block labels of inlined blocks"), cl::cat(options));
@@ -24,7 +23,7 @@ int main(int argc, char** argv) {
     cl::HideUnrelatedOptions(options);
     cl::ParseCommandLineOptions(argc, argv);
 
-    if (Output.empty() && !Print && !Debug) {
+    if (Output.empty() && !Print) {
         std::cout << "Output method not specified!\n";
         return 1;
     }
