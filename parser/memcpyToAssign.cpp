@@ -1,4 +1,5 @@
 #include "cfunc.h"
+#include "toinst.h"
 
 #include "../core/Program.h"
 #include "../core/Func.h"
@@ -15,7 +16,8 @@ const llvm::Value* stripCast(const llvm::Value* val) {
     }
 
     if (auto* CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast_or_null<llvm::ConstantExpr>(val))) {
-        return stripCast(CE->getAsInstruction());
+        auto inst = toInst(CE);
+        return stripCast(inst.get());
     }
 
     return nullptr;

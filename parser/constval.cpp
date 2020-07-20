@@ -1,4 +1,5 @@
 #include "constval.h"
+#include "toinst.h"
 
 Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 
@@ -149,11 +150,9 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         return program.addOwnership(std::move(ai));
     }
 
-    if (auto CE = llvm::dyn_cast_or_null<llvm::ConstantExpr>(val)) {
-        auto constExpr = const_cast<llvm::ConstantExpr*>(CE);
-        if (auto* inst = constExpr->getAsInstruction()) {
-            return parseLLVMInstruction(*inst, program);
-        }
+    if (auto *CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast_or_null<llvm::ConstantExpr>(val))) {
+        auto inst = toInst(CE);
+        return parseLLVMInstruction(*inst.get(), program);
     }
 
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {

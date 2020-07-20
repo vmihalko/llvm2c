@@ -796,7 +796,7 @@ static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* bloc
 
             block->addOwnership(std::move(newVar));
         } else if (CE) {
-            if (llvm::isa<llvm::GetElementPtrInst>(CE->getAsInstruction())) {
+            if (CE->getOpcode() == llvm::Instruction::GetElementPtr) {
                 auto newVar = std::make_unique<Value>(func->getVarName(), func->getExpr(arg.get())->getType());
                 auto stackAlloc = std::make_unique<StackAlloc>(newVar.get());
                 auto newAssign = std::make_unique<AssignExpr>(newVar.get(), func->getExpr(arg.get()));
