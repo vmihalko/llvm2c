@@ -86,7 +86,16 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             program.addOwnership(std::move(param));
             return program.addOwnership(std::move(call));
         } else {
-            std::string CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
+            const auto& fval = CFP->getValueAPF();
+            std::string CFPvalue;
+            if (CFP->getType()->isFloatTy()) {
+                CFPvalue = std::to_string(CFP->getValueAPF().convertToFloat());
+            } else if (CFP->getType()->isDoubleTy()) {
+                CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
+            } else {
+                assert(false && "constval: unknown constant floating point type");
+            }
+
             if (CFPvalue.compare("-nan") == 0) {
                 auto param = std::make_unique<Value>("\"\"", program.typeHandler.pointerTo(program.typeHandler.uchar.get()));
                 auto call = std::make_unique<CallExpr>(nullptr, "__builtin_nanf", std::vector<Expr*>{param.get()}, program.typeHandler.floatType.get());
