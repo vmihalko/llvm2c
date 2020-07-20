@@ -20,14 +20,14 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
 
         if (!localVar->getName().empty()) {
             auto& counters = block->func->variableCounters;
-            auto it = counters.find(localVar->getName());
-            std::string name = localVar->getName();
+            auto it = counters.find(localVar->getName().str());
+            std::string name = localVar->getName().str();
 
             if (it != counters.end()) {
                 it->second++;
                 name += std::to_string(it->second);
             } else {
-                counters[localVar->getName()] = 1;
+                counters[localVar->getName().str()] = 1;
             }
 
             variable->valueName = name;
