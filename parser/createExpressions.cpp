@@ -660,16 +660,21 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             }
         }
     } else {
-        llvm::PointerType* PT = llvm::cast<llvm::PointerType>(callInst->getCalledOperand()->getType());
+#if LLVM_VERSION_MAJOR >= 8
+        llvm::Value* operand = callInst->getCalledOperand();
+#else
+        llvm::Value* operand = callInst->getCalledValue();
+#endif
+        llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
         type = func->getType(FT->getReturnType());
 
-        if (llvm::isa<llvm::InlineAsm>(callInst->getCalledOperand())) {
+        if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
             return;
         }
 
-        funcValue = func->getExpr(callInst->getCalledOperand());
+        funcValue = func->getExpr(operand);
     }
 
     int i = 0;
