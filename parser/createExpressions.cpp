@@ -661,9 +661,9 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         }
     } else {
 #if LLVM_VERSION_MAJOR >= 8
-        llvm::Value* operand = callInst->getCalledOperand();
+        const llvm::Value* operand = callInst->getCalledOperand();
 #else
-        llvm::Value* operand = callInst->getCalledValue();
+        const llvm::Value* operand = callInst->getCalledValue();
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
@@ -760,7 +760,11 @@ static std::string toRawString(const std::string& str) {
 
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block) {
     const auto callInst = llvm::cast<llvm::CallInst>(&ins);
+#if LLVM_VERSION_MAJOR >= 8
     const auto IA = llvm::cast<llvm::InlineAsm>(callInst->getCalledOperand());
+#else
+    const auto IA = llvm::cast<llvm::InlineAsm>(callInst->getCalledValue());
+#endif
 
     std::string asmString = toRawString(IA->getAsmString());
     std::vector<std::string> inputStrings;
