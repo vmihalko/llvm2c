@@ -39,9 +39,8 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         return createUndefValue(val->getType(), program);
     }
 
-    if (auto CPN = llvm::dyn_cast_or_null<llvm::ConstantPointerNull>(val)) {
+    if (llvm::isa<llvm::ConstantPointerNull>(val))
         return program.makeExpr<Value>("0", program.getType(val->getType()));
-    }
 
     if (const llvm::GlobalVariable* GV = llvm::dyn_cast_or_null<llvm::GlobalVariable>(val)) {
         auto RE = program.getGlobalRef(GV);
@@ -86,7 +85,6 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             program.addOwnership(std::move(param));
             return program.addOwnership(std::move(call));
         } else {
-            const auto& fval = CFP->getValueAPF();
             std::string CFPvalue;
             if (CFP->getType()->isFloatTy()) {
                 CFPvalue = std::to_string(CFP->getValueAPF().convertToFloat());
