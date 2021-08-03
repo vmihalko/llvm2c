@@ -4,9 +4,9 @@ Translation of LLVM bitcode to C
 
 ## Dependencies
 
-The only requirements are CMake in version at least 3.1 and LLVM 6 or 7.
-The project should be compilable also on older LLVM's, but it is not tested
-on these versions (patches are welcome :smile:)
+The only requirements are CMake in version at least 3.1 and LLVM 5 or newer.
+The project is not compilable on older LLVM's at the moment. (Patches are
+welcome :smile:)
 
 ## Building
 

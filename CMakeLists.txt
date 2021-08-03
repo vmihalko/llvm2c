@@ -27,8 +27,8 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-if(${LLVM_PACKAGE_VERSION} VERSION_LESS "6.0")
-  message(FATAL_ERROR "LLVM 6.0 or newer is required!")
+if(${LLVM_PACKAGE_VERSION} VERSION_LESS "5.0")
+  message(FATAL_ERROR "LLVM 5.0 or newer is required!")
 endif()
 
 message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
