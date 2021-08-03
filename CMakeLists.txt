@@ -125,7 +125,7 @@ target_link_libraries(llvm2c ${llvm_libs})
 
 include(GNUInstallDirs)
 install(TARGETS llvm2c
-        RUNTIME DESTINATION ${CMAKE_BINARY_DIR})
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # --------------------------------------------------
 # Subdirectories
