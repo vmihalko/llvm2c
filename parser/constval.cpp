@@ -115,8 +115,13 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
 
     if (const auto* CAZ = llvm::dyn_cast_or_null<llvm::ConstantAggregateZero>(val)) {
         std::vector<Expr*> values;
+#if LLVM_VERSION_MAJOR >= 13
+        unsigned count = CAZ->getElementCount().getFixedValue();
+#else
+        unsigned count = CAZ->getNumElements();
+#endif
 
-        for (unsigned i = 0; i < CAZ->getNumElements(); ++i) {
+        for (unsigned i = 0; i < count; ++i) {
             auto* elem = CAZ->getElementValue(i);
             values.push_back(createConstantValue(elem, program));
         }
