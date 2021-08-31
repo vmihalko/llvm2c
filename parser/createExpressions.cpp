@@ -897,8 +897,29 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
-    auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
+    if (llvm::isa<llvm::SExtInst>(CI)) {
+        // for SExt, we do double cast -- first cast to the original
+        // type that is made signed and then to the new type.
+        // We must do that because we store all values as unsigned...
+        auto *recastOrigExpr
+            = program.makeExpr<CastExpr>(
+                expr,
+                program.getType(ins.getOperand(0)->getType())
+        );
+        auto *IT = static_cast<IntegerType*>(recastOrigExpr->getType());
+        recastOrigExpr->setType(program.typeHandler.setSigned(IT));
 
+        auto *castExpr = program.makeExpr<CastExpr>(
+                recastOrigExpr,
+                program.getType(CI->getDestTy())
+        );
+        IT = static_cast<IntegerType*>(castExpr->getType());
+        castExpr->setType(program.typeHandler.setSigned(IT));
+
+        return castExpr;
+    }
+
+    auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
     auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
         castExpr->setType(program.typeHandler.toggleSignedness(IT));
@@ -910,10 +931,6 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     if (llvm::isa<llvm::ZExtInst>(CI)) {
         castExpr->setType(program.typeHandler.setUnsigned(IT));
-    }
-
-    if (llvm::isa<llvm::SExtInst>(CI)) {
-        castExpr->setType(program.typeHandler.setSigned(IT));
     }
 
     return castExpr;
