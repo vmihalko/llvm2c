@@ -296,9 +296,9 @@ void ExprWriter::visit(RetExpr& ret) {
     }
 }
 
-void ExprWriter::visit(CastExpr& cast) {
-    ss << "(" << cast.getType()->toString();
-    if (auto PT = llvm::dyn_cast_or_null<const PointerType>(cast.getType())) {
+void ExprWriter::writeCastType(Type *Ty) {
+    ss << "(" << Ty->toString();
+    if (auto PT = llvm::dyn_cast_or_null<const PointerType>(Ty)) {
         if (PT->isArrayPointer) {
             ss << " (";
             for (unsigned i = 0; i < PT->levels; i++) {
@@ -308,6 +308,10 @@ void ExprWriter::visit(CastExpr& cast) {
         }
     }
     ss << ")";
+}
+
+void ExprWriter::visit(CastExpr& cast) {
+    writeCastType(cast.getType());
     parensIfNotSimple(cast.expr);
 }
 

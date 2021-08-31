@@ -17,6 +17,7 @@ private:
     size_t indentCount = 1;
 
     void parensIfNotSimple(Expr* expr);
+    void writeCastType(Type* ty);
     void indent();
 
 public:
