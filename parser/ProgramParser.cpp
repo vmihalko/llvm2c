@@ -7,7 +7,6 @@
 
 #define RUN_PASS(pass) \
     do {\
-        puts("    Starting pass: " #pass );\
         pass(mod, result); \
     } while (0);
 
@@ -24,7 +23,6 @@ Program ProgramParser::parse(const std::string& file) {
 
     const auto* mod = module.get();
 
-    std::cerr << "Parser start" << std::endl;
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
     RUN_PASS(parseStructItems);
@@ -58,7 +56,6 @@ Program ProgramParser::parse(const std::string& file) {
     RUN_PASS(extractVars);
     RUN_PASS(identifyInlinableBlocks);
     RUN_PASS(inlineBlocks);
-    std::cerr << "Parser end" << std::endl;
 
     return result;
 }
