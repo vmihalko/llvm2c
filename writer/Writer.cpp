@@ -209,7 +209,7 @@ void Writer::globalVarDefinitions(const Program& program) {
     SECTION_END;
 }
 
-void Writer::functionHead(const Func* func) {
+void Writer::functionHead(const Func* func, bool isdecl) {
     if (func->isDeclaration)
         wr.raw("extern ");
 
@@ -234,10 +234,16 @@ void Writer::functionHead(const Func* func) {
     }
 
     if (func->isVarArg) {
-        if (!func->parameters.empty()) {
+        if (func->parameters.empty()) {
+            // if we are printing only the declaration of a vararg function,
+            // do not print '...'. This is the default in C.
+            if (!isdecl) {
+                wr.functionVarArgs();
+            }
+        } else {
             wr.nextFunctionParam();
+            wr.functionVarArgs();
         }
-        wr.functionVarArgs();
     } else if (func->parameters.empty()) {
         wr.functionNoArgs();
     }
@@ -265,7 +271,7 @@ void Writer::functionDeclarations(const Program& program) {
 
     SECTION_START("function declarations", !declarations.empty());
     for (const auto* func : declarations) {
-        functionHead(func);
+        functionHead(func, /* isdecl = */ true);
         wr.endFunctionDecl();
     }
 

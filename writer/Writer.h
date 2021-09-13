@@ -33,7 +33,7 @@ private:
     void typedefs(const Program& program);
     void structDefinition(const Program& program, const StructType* strct, std::unordered_set<const StructType*>& printed);
     bool isFunctionPrinted(const Func* func) const;
-    void functionHead(const Func* func);
+    void functionHead(const Func* func, bool isdecl=false);
     void writeBlock(const Block* block);
     void unionDefinition(const Program& program, const UnionType* unn);
     void unionDefinitions(const Program& program);
