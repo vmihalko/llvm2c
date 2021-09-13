@@ -356,12 +356,33 @@ static Expr* parseLoadInstruction(const llvm::Instruction& ins, Program& program
     return program.addOwnership(std::move(deref));
 }
 
+static Expr *toSigned(Expr *expr, Program& program) {
+    auto IT = static_cast<IntegerType*>(expr->getType());
+    auto *cast
+        = program.makeExpr<CastExpr>(
+            expr,
+            program.typeHandler.setSigned(IT)
+    );
+    return cast;
+}
+
 static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& program) {
+    using namespace llvm;
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
 
     Expr* val0 = program.getExpr(ins.getOperand(0));
     Expr* val1 = program.getExpr(ins.getOperand(1));
     assert(val0 && val1);
+
+    if (binOp->hasNoSignedWrap() ||
+        ins.getOpcode() == Instruction::SDiv ||
+        ins.getOpcode() == Instruction::FDiv ||
+        ins.getOpcode() == Instruction::SRem ||
+        ins.getOpcode() == Instruction::FRem) {
+        // signed operation
+        val0 = toSigned(val0, program);
+        val1 = toSigned(val1, program);
+    }
 
     std::unique_ptr<Expr> expr;
     switch (ins.getOpcode()) {
