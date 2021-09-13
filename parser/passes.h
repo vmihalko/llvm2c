@@ -3,6 +3,7 @@
 #include <llvm/IR/Instruction.h>
 #include "../core/Program.h"
 
+// FIXME: create a class that represents options and pass it to every module
 void initializeGlobalVars(const llvm::Module* module, Program& program);
 void parseStructDeclarations(const llvm::Module* module, Program& program);
 void parseStructItems(const llvm::Module* module, Program& program);
@@ -15,7 +16,7 @@ void createFunctionParameters(const llvm::Module* module, Program& program);
 void createBlocks(const llvm::Module* module, Program& program);
 void createAllocas(const llvm::Module* module, Program& program);
 void parseMetadataTypes(const llvm::Module* module, Program& program);
-void createExpressions(const llvm::Module* module, Program& program);
+void createExpressions(const llvm::Module* module, Program& program, bool bitcastUnions);
 void findDeclaredFunctions(const llvm::Module* module, Program& program);
 void nameFunctions(const llvm::Module* module, Program& program);
 void parseBreaks(const llvm::Module* module, Program& program);

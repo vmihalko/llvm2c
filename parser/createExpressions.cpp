@@ -882,8 +882,6 @@ static void parseBitcastInstruction(const llvm::Instruction& ins, Func* func, Bl
     block->addExpr(assignInitial);
 
     program.addExpr(&ins, resultingValue);
-
-
 }
 
 static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
@@ -1045,7 +1043,6 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::ExtractValue:
         return parseExtractValueInstruction(ins, program);
     case llvm::Instruction::BitCast:
-        return parseConstantBitcast(ins, program);
     case llvm::Instruction::SExt:
     case llvm::Instruction::ZExt:
     case llvm::Instruction::FPToSI:
@@ -1065,11 +1062,11 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     }
 }
 
-void createExpressions(const llvm::Module* module, Program& program) {
+void createExpressions(const llvm::Module* module, Program& program, bool bitcastUnions) {
     assert(program.isPassCompleted(PassType::CreateConstants));
     assert(program.isPassCompleted(PassType::CreateAllocas));
     assert(program.isPassCompleted(PassType::CreateFunctionParameters));
-    assert(program.isPassCompleted(PassType::PrepareBitcastUnion));
+    assert(!bitcastUnions || program.isPassCompleted(PassType::PrepareBitcastUnion));
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
@@ -1104,8 +1101,10 @@ void createExpressions(const llvm::Module* module, Program& program) {
                     parseAsmInst(ins, func, myBlock);
                     break;
                 case llvm::Instruction::BitCast:
-                    parseBitcastInstruction(ins, func, myBlock, program);
-                    break;
+                    if (bitcastUnions) {
+                        parseBitcastInstruction(ins, func, myBlock, program);
+                        break;
+                    } // else fall-through
                 default:
                     expr = parseLLVMInstruction(ins, program);
                     if (expr) {

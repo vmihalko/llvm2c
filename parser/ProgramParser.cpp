@@ -11,7 +11,7 @@
     } while (0);
 
 
-Program ProgramParser::parse(const std::string& file) {
+Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     Program result;
     llvm::LLVMContext context;
 
@@ -44,8 +44,12 @@ Program ProgramParser::parse(const std::string& file) {
     // unsigned type when the original type is unsigned...
     // Do not use it until we fix that.
     //RUN_PASS(parseMetadataTypes);
-    RUN_PASS(prepareBitcastUnion);
-    RUN_PASS(createExpressions);
+
+    if (bitcastUnions) {
+        RUN_PASS(prepareBitcastUnion);
+    }
+    //RUN_PASS(createExpressions);
+    createExpressions(mod, result, bitcastUnions);
 
     RUN_PASS(parseBreaks);
 

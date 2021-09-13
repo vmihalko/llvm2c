@@ -9,6 +9,6 @@ private:
 
 public:
     ProgramParser() = default;
-    Program parse(const std::string& from);
+    Program parse(const std::string& from, bool bitcastUnions);
     virtual ~ProgramParser() = default;
 };

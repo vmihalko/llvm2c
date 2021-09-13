@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     cl::opt<bool> Print("p", cl::desc("Print translated program"), cl::cat(options));
     cl::opt<bool> Includes("add-includes", cl::desc("Uses includes instead of declarations. For experimental purposes."), cl::cat(options));
     cl::opt<bool> Casts("no-function-call-casts", cl::desc("Removes casts around function calls. For experimental purposes."), cl::cat(options));
+    cl::opt<bool> BitcastUnions("bitcasts-with-unions", cl::desc("Use unions to translate bitcasts"), cl::cat(options), cl::init(false));
     cl::opt<bool> BlockLabels("force-block-labels", cl::desc("Forces printing of block labels of inlined blocks"), cl::cat(options));
 
     cl::HideUnrelatedOptions(options);
@@ -30,7 +31,7 @@ int main(int argc, char** argv) {
 
     try {
         ProgramParser parser;
-        auto program = parser.parse(Input);
+        auto program = parser.parse(Input, BitcastUnions);
 
         if (Print) {
             Writer wr{ std::cout, Includes, Casts, BlockLabels };
