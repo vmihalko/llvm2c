@@ -4,7 +4,7 @@
 
 #include "../type/TypeHandler.h"
 
-IntType CmpExpr::type = IntType{true};
+BoolType CmpExpr::type = BoolType{};
 
 /*
  * BinaryExpr classes

@@ -146,7 +146,7 @@ public:
 
     static bool classof(const Expr* expr);
 
-    static IntType type;
+    static BoolType type;
 };
 
 /**

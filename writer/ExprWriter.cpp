@@ -353,7 +353,14 @@ void ExprWriter::visit(RemExpr& expr) {
 
 void ExprWriter::visit(AndExpr& expr) {
     parensIfNotSimple(expr.left);
-    ss << " & ";
+
+    if (llvm::isa<BoolType>(expr.left->getType()) &&
+        llvm::isa<BoolType>(expr.right->getType())) {
+        ss << " && ";
+    } else {
+        ss << " & ";
+    }
+
     parensIfNotSimple(expr.right);
 }
 
