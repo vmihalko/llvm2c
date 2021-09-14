@@ -366,6 +366,16 @@ static Expr *toSigned(Expr *expr, Program& program) {
     return cast;
 }
 
+static Expr *toUnsigned(Expr *expr, Program& program) {
+    auto IT = static_cast<IntegerType*>(expr->getType());
+    auto *cast
+        = program.makeExpr<CastExpr>(
+            expr,
+            program.typeHandler.setUnsigned(IT)
+    );
+    return cast;
+}
+
 static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& program) {
     using namespace llvm;
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
@@ -490,13 +500,18 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
     std::unique_ptr<Expr> expr;
     switch (ins.getOpcode()) {
     case llvm::Instruction::Shl:
-        expr = std::make_unique<ShlExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        if (binOp->hasNoSignedWrap()) {
+            val0 = toSigned(val0, program);
+            val1 = toSigned(val1, program);
+        }
+        expr = std::make_unique<ShlExpr>(val0, toUnsigned(val1, program),
+                                         !binOp->hasNoSignedWrap());
         break;
     case llvm::Instruction::LShr:
         expr = std::make_unique<LshrExpr>(val0, val1);
         break;
     case llvm::Instruction::AShr:
-        expr = std::make_unique<AshrExpr>(val0, val1);
+        expr = std::make_unique<AshrExpr>(val0, toUnsigned(val1, program));
         break;
     }
 
