@@ -282,6 +282,7 @@ bool IntegerType::classof(const Type* type) {
     return type->getKind() == TK_IntegerType
         || type->getKind() == TK_ShortType
         || type->getKind() == TK_IntType
+        || type->getKind() == TK_BoolType
         || type->getKind() == TK_CharType
         || type->getKind() == TK_LongType
         || type->getKind() == TK_Int128;
@@ -308,8 +309,21 @@ bool CharType::classof(const Type* type) {
 IntType::IntType(bool unsignedType)
     : IntegerType("int", unsignedType, TK_IntType) { }
 
+IntType::IntType(TypeKind kind)
+    : IntegerType("int", true, kind) {
+        assert(kind == TK_BoolType);
+}
+
 bool IntType::classof(const Type* type) {
-    return type->getKind() == TK_IntType;
+    return type->getKind() == TK_IntType ||
+           type->getKind() == TK_BoolType;
+}
+
+BoolType::BoolType()
+    : IntType(TK_BoolType) {}
+
+bool BoolType::classof(const Type* type) {
+    return type->getKind() == TK_BoolType;
 }
 
 ShortType::ShortType(bool unsignedType)

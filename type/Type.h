@@ -20,6 +20,7 @@ public:
         TK_IntegerType,
         TK_CharType,
         TK_IntType,
+        TK_BoolType, // alias for IntType that we use in logical exprs
         TK_ShortType,
         TK_LongType,
         TK_Int128,
@@ -234,7 +235,8 @@ public:
 class IntType : public IntegerType {
 public:
     IntType(bool);
-
+protected:
+    IntType(TypeKind); // ctor for BoolType
 
     static bool classof(const Type* type);
 };
@@ -271,6 +273,17 @@ public:
 
     static bool classof(const Type* type);
 };
+
+/**
+ * @brief The IntType class represents int.
+ */
+class BoolType : public IntType {
+public:
+    BoolType();
+
+    static bool classof(const Type* type);
+};
+
 
 /**
  * @brief The FloatingPointType class is a base class for all floating point types.

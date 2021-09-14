@@ -371,9 +371,7 @@ void ExprWriter::visit(XorExpr& expr) {
 
 void ExprWriter::visit(CmpExpr& expr) {
     parensIfNotSimple(expr.left);
-
     ss << " " << expr.comparsion << " ";
-
     parensIfNotSimple(expr.right);
 }
 
