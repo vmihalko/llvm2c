@@ -180,6 +180,8 @@ public:
 
     bool isSimple() const override;
 
+    void setName(const std::string& name) { valueName = name; }
+
     static bool classof(const Expr* expr);
 };
 

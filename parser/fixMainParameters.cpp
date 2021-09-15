@@ -22,10 +22,12 @@ void fixMainParameters(const llvm::Module* module, Program& program) {
 
         if (myFunc->parameters.size() >= 1) {
             myFunc->parameters[0]->setType(program.typeHandler.sint.get());
+            myFunc->parameters[0]->setName("argc");
         }
 
         if (myFunc->parameters.size() >= 2) {
             myFunc->parameters[1]->setType(uchar_ptr_ptr);
+            myFunc->parameters[1]->setName("argv");
         }
 
     }
