@@ -19,8 +19,8 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
                     if (allocaInst->isArrayAllocation()) {
-                        llvm::errs() << *allocaInst << "\n";
-                        llvm::errs() << *allocaInst->getAllocatedType() << "\n";
+                       //llvm::errs() << *allocaInst << "\n";
+                       //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
                         auto *llsize = allocaInst->getArraySize();
                         Expr *size = nullptr;
                         if (llvm::isa<llvm::ConstantInt>(llsize)) {
