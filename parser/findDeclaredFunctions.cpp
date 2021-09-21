@@ -17,6 +17,16 @@ static void declareFunc(const llvm::Function* func, Program& program) {
         decl->setVarArg(func->isVarArg());
     }
 
+    // FIXME: a hack for CPAchecker -- do this optional
+    if (func->getName().startswith("__VERIFIER_nondet_") &&
+        (func->getName().endswith("int") || 
+         func->getName().endswith("long") || 
+         func->getName().endswith("short") || 
+         func->getName().endswith("char") || 
+         func->getName().endswith("float") ||
+         func->getName().endswith("double"))) {
+        decl->returnType = program.typeHandler.setSigned(static_cast<IntegerType*>(decl->returnType));
+    }
     program.addFunction(func, std::move(decl));
 }
 
