@@ -429,6 +429,23 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
         expr = std::make_unique<OrExpr>(val0, val1);
         break;
     case llvm::Instruction::Xor:
+        // LLVM uses xor to create a negation -- detect the
+        // cases and do the negation, because otherwise
+        // the translation is wrong (xor on 8 bits is different
+        // to xor on 1 bit)
+        if (ins.getType()->isIntegerTy(1)) {
+            if (auto *T = dyn_cast<ConstantInt>(ins.getOperand(0))) {
+                if (T->isOne()) {
+                    expr = std::make_unique<LogicalNot>(val1);
+                    break;
+                }
+            } else if (auto *T = dyn_cast<ConstantInt>(ins.getOperand(1))) {
+                if (T->isOne()) {
+                    expr = std::make_unique<LogicalNot>(val0);
+                    break;
+                }
+            }
+        }
         expr = std::make_unique<XorExpr>(val0, val1);
         break;
     default:
