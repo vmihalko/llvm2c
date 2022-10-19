@@ -43,7 +43,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // This pass is buggy. It can do signed type from
     // unsigned type when the original type is unsigned...
     // Do not use it until we fix that.
-    //RUN_PASS(parseMetadataTypes);
+    RUN_PASS(parseMetadataTypes);
 
     if (bitcastUnions) {
         RUN_PASS(prepareBitcastUnion);
