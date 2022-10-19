@@ -1,4 +1,3 @@
-
 int foo(int[*]);
 
 
@@ -14,6 +13,8 @@ union kokot {
 int b[] = {0};
 
 int main(int argc, char**argv) {
+    int *d = &argc;
+    char c = 'c';
     if (argc == 2) {
         int unsigned * b;
         int* a = b + 1;

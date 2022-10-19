@@ -23,8 +23,10 @@ static Type *fixType(Program& program, const llvm::DIType *ditype, Type *mytype)
             default:
                 break;
             }
-            return;
+        } else if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
+            return fixType(program, diDerivedType->getBaseType(), mytype);
         }
+        return nullptr;
 }
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
@@ -40,13 +42,14 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
-        fixType(program, localVar->getType(),variable->getType());
+        if (auto t = fixType(program, localVar->getType(),variable->getType()))
+            variable->setType(t);
 
         //  && *type->getSignedness() == llvm::DIBasicType::Signedness::Unsigned ) {
         //     if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(variable->getType())) {
         //         //variable->setType(program.typeHandler.setUnsigned(IT));
         //     }
-  //      }
+  //      } 
         // if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
         //}
     }
