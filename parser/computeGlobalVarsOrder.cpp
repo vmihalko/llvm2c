@@ -23,6 +23,8 @@ static void computeTopo(const llvm::Constant* con, std::vector<const llvm::Globa
     }
 }
 
+Type *fixType(Program& program, const llvm::DIType *ditype);
+
 static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
     std::string gvarName = gvar.getName().str();
     std::replace(gvarName.begin(), gvarName.end(), '.', '_');
@@ -32,9 +34,20 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
         program.globalVarNames.insert(gvarName);
     }
 
+
+
     auto type = program.getType(gvar.getValueType());
     if (!type)
         assert(false && "Unable to determine global variable type");
+
+    if (gvar.getParent()->getNamedMetadata("llvm.dbg.cu")) {
+        // gvar.get
+        // TODO: if debuginfo
+        llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> gVarDebugInfos;
+        gvar.getDebugInfo(gVarDebugInfos);     
+        for (auto*GV : gVarDebugInfos)
+            type = fixType(program, GV->getVariable()->getType());
+    }
 
     auto var = std::make_unique<GlobalValue>(gvarName, nullptr, type);
     var->isStatic = gvar.hasInternalLinkage();
@@ -64,6 +77,8 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
 
         computeTopo(&gvar, order, visited);
     }
+
+    if (module->getNamedMetadata("llvm.dbg.cu"))
 
     for (const auto* gvar : order) {
         parseGlobalVar(*gvar, program);

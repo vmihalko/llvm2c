@@ -5,26 +5,39 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
-static Type *fixType(Program& program, const llvm::DIType *ditype, Type *mytype){
-        // composite, derived, else
-        if( const llvm::DIBasicType* diBasicType = llvm::dyn_cast<llvm::DIBasicType>(ditype)) {
-            switch (*diBasicType->getSignedness()) // OPTIONAl -> handle it
-            {
-            case llvm::DIBasicType::Signedness::Unsigned:
-                if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(mytype)) {
-                    return program.typeHandler.setUnsigned(IT);
+Type *fixType(Program& program, const llvm::DIType *ditype){
+        // Int or float
+        if (auto tbasic = llvm::dyn_cast_or_null<llvm::DIBasicType>(ditype)) {
+            if (!tbasic->getSignedness().hasValue()) {
+                if (tbasic->getEncoding() == llvm::dwarf::DW_ATE_float) {
+                    if (tbasic->getSizeInBits() <= 32)
+                        return program.typeHandler.floatType.get();
+                    if (tbasic->getSizeInBits() <= 64)
+                        return program.typeHandler.doubleType.get();
+                    return program.typeHandler.longDoubleType.get();
                 }
-                break;
-            case llvm::DIBasicType::Signedness::Signed:
-            if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(mytype)) {
-                    return program.typeHandler.setSigned(IT);
-                }
-                break;
-            default:
-                break;
             }
-        } else if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
-            return fixType(program, diDerivedType->getBaseType(), mytype);
+
+            bool signedness = llvm::DIBasicType::Signedness::Signed == *tbasic->getSignedness();
+            if (tbasic->getSizeInBits() == 1) {
+                return (signedness ? program.typeHandler.sint.get() : program.typeHandler.uint.get());
+            }
+            if (tbasic->getSizeInBits() <= 8) {
+                return (signedness ? program.typeHandler.schar.get() : program.typeHandler.uchar.get());
+            }
+            if (tbasic->getSizeInBits() <= 16) {
+                return (signedness ? program.typeHandler.sshort.get() : program.typeHandler.ushort.get());
+            }
+            if (tbasic->getSizeInBits() <= 32) {
+                return (signedness ? program.typeHandler.sint.get() : program.typeHandler.uint.get());
+            }
+            if (tbasic->getSizeInBits() <= 64) {
+                return (signedness ? program.typeHandler.slong.get() : program.typeHandler.ulong.get());
+            }
+        }
+
+        if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
+            return fixType(program, diDerivedType->getBaseType());
         }
         return nullptr;
 }
@@ -42,7 +55,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
-        if (auto t = fixType(program, localVar->getType(),variable->getType()))
+        if (auto t = fixType(program, localVar->getType()))
             variable->setType(t);
 
         //  && *type->getSignedness() == llvm::DIBasicType::Signedness::Unsigned ) {
@@ -77,6 +90,5 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
 
         }
     }
-
     program.addPass(PassType::ParseMetadataTypes);
 }

@@ -21,6 +21,7 @@ private:
     Program* program;
     llvm::DenseMap<const llvm::Type*, std::unique_ptr<Type>> typeDefs; //map containing typedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
+    std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
 
     // key = T, value = Type representing pointer to T
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
@@ -37,6 +38,11 @@ private:
         return ret;
     }
 
+    /**
+     * @brief makeCachedType Is putting together during recursion
+     * saved types.
+     * @return Type to which we are pointing 
+     */
     template<typename T, typename ...Args>
     Type* makeCachedType(const llvm::Type* ty, Args&&... args) {
         auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -70,6 +76,12 @@ public:
     TypeHandler(Program* program)
         : program(program) { 
     }
+    /**
+     * @brief getDIType Transforms llvm::DIType into corresponding Type object
+     * @param type llvm::DIType for transformation
+     * @return unique_ptr to corresponding Type object
+     */
+    Type* getTypeFromDI(const llvm::DIType* type);
 
     /**
      * @brief getType Transforms llvm::Type into corresponding Type object

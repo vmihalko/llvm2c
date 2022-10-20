@@ -59,6 +59,8 @@ public:
     }
 
     static bool classof(const Type* type);
+
+    //virtual Type* getPointingToType();
 };
 
 /**
@@ -156,6 +158,8 @@ public:
     std::string surroundName(const std::string& name) override;
 
     static bool classof(const Type* type);
+
+    Type* getPointingToType();
 };
 
 /**

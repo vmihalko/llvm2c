@@ -90,7 +90,7 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 CFPvalue = std::to_string(CFP->getValueAPF().convertToFloat());
             } else if (CFP->getType()->isDoubleTy()) {
                 CFPvalue = std::to_string(CFP->getValueAPF().convertToDouble());
-            } else {
+            } else { //TODO: missing support fort long double here!
                 assert(false && "constval: unknown constant floating point type");
             }
 

@@ -258,6 +258,10 @@ std::string PointerType::surroundName(const std::string& name) {
     return name;
 }
 
+// Type* PointerType::getPointingToType() {
+//     return type;
+// }
+
 IntegerType::IntegerType(const std::string& name, bool unsignedType)
     : Type(TK_IntegerType),
       name(name),
