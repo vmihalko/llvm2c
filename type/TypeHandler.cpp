@@ -172,7 +172,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
     if (type->isArrayTy()) {
         auto ty = std::make_unique<ArrayType>(getType(type->getArrayElementType()), type->getArrayNumElements());
         auto result = ty.get();
-        typeCache.insert(it, std::make_pair(type, std::move(ty)));
+        // typeCache.insert(it, std::make_pair(type, std::move(ty)));
         return result;
     }
 

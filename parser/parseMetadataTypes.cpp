@@ -35,6 +35,14 @@ Type *fixType(Program& program, const llvm::DIType *ditype){
                 return (signedness ? program.typeHandler.slong.get() : program.typeHandler.ulong.get());
             }
         }
+        // what is llvm::DICompositeTypeArray ?
+        if ( const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype) &&
+                                                                llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
+            auto ty = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()) ,
+                                                            diCompType->getElements().size());
+            auto result = ty.get();
+            // TODO Insert to typeCache.insert(it, std::make_pair(type, std::move(ty)));
+        }
 
         if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
             return fixType(program, diDerivedType->getBaseType());
@@ -57,14 +65,6 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType()))
             variable->setType(t);
-
-        //  && *type->getSignedness() == llvm::DIBasicType::Signedness::Unsigned ) {
-        //     if (IntegerType* IT = llvm::dyn_cast_or_null<IntegerType>(variable->getType())) {
-        //         //variable->setType(program.typeHandler.setUnsigned(IT));
-        //     }
-  //      } 
-        // if (type && type->getName().str().compare(0, 8, "unsigned") == 0) {
-        //}
     }
 }
 
