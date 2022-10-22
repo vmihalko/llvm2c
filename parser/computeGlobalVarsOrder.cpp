@@ -40,17 +40,21 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
     if (!type)
         assert(false && "Unable to determine global variable type");
 
-    if (gvar.getParent()->getNamedMetadata("llvm.dbg.cu")) {
+    if (gvar.getParent()->getNamedMetadata("llvm.dbg.cu") /*&& !gvar.getType()->getPointerElementType()->isArrayTy()*/) {
         // gvar.get
         // TODO: if debuginfo
         llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> gVarDebugInfos;
         gvar.getDebugInfo(gVarDebugInfos);     
-        for (auto*GV : gVarDebugInfos)
+        for (auto* GV : gVarDebugInfos)
             type = fixType(program, GV->getVariable()->getType());
+            //if (type->getKind() == Type::TK_ArrayType)
     }
 
     auto var = std::make_unique<GlobalValue>(gvarName, nullptr, type);
     var->isStatic = gvar.hasInternalLinkage();
+    // this means this is PROBABLY array in function
+    // gvar.isPrivateLinkage(gvar.getLinkage());
+    var->isPrivate = gvar.isPrivateLinkage(gvar.getLinkage());
 
     program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get(), program.typeHandler.pointerTo(var->getType()));
 

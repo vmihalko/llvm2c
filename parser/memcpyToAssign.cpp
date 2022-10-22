@@ -78,7 +78,11 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
 
                                             if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcExpr)) {
                                                 if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstExpr)) {
-                                                    auto assignment = std::make_unique<AssignExpr>(dstRef->expr, srcRef->expr);
+                                                    GlobalValue *ptrGV = nullptr;
+                                                    if (auto rgv = program.getGlobalVar(src))
+                                                        ptrGV = llvm::dyn_cast_or_null<GlobalValue>(rgv->expr);
+
+                                                    auto assignment = std::make_unique<AssignExpr>(dstRef->expr, (ptrGV && ptrGV->isPrivate ? ptrGV->value : srcRef->expr));
                                                     Expr* newExpr = assignment.get();
                                                     myBlock->addOwnership(std::move(assignment));
                                                     std::replace(myBlock->expressions.begin(), myBlock->expressions.end(), exprToReplace, newExpr);
@@ -88,7 +92,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                     }
                                 }
                             }
-
                         }
                     }
                 }
