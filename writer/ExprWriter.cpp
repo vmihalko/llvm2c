@@ -448,9 +448,11 @@ void ExprWriter::parensIfNotSimple(Expr* expr) {
 
 void ExprWriter::visit(AggregateInitializer& expr) {
     ss << "{";
+    std::string del = "";
     for (auto& val : expr.values) {
+        ss << del;
         val->accept(*this);
-        ss << ",";
+        del = ",";
     }
     ss << "}";
 }
