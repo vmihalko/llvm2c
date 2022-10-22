@@ -5,7 +5,7 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
-Type *fixType(Program& program, const llvm::DIType *ditype){
+Type *fixType(Program& program, const llvm::DIType *ditype) {
         // Int or float
         if (auto tbasic = llvm::dyn_cast_or_null<llvm::DIBasicType>(ditype)) {
             if (!tbasic->getSignedness().hasValue()) {
@@ -36,14 +36,32 @@ Type *fixType(Program& program, const llvm::DIType *ditype){
             }
         }
         // what is llvm::DICompositeTypeArray ?
-        if ( const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype) &&
-                                                                llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
-            auto ty = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()) ,
-                                                            diCompType->getElements().size());
-            auto result = ty.get();
-            // TODO Insert to typeCache.insert(it, std::make_pair(type, std::move(ty)));
-        }
+        // if ( (const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype)) &&
+        //                                             llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
+        //     auto ty = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()) ,
+        //                                                     diCompType->getElements().size());
+        //     //auto result = ty.get();
+        //     //auto* inner = getType(PT->getPointerElementType());
+        //     //makeCachedType<PointerType>(PT, inner)
+        //     // program.typeHandler.makeCachedType<ArrayType>(type, fixType(program, diCompType->getBaseType()),
+        //     //                                                         diCompType->getElements().size());
+        //     // TODO Insert to typeCache.insert(it, std::make_pair(type, std::move(ty)));
+        // }
+        const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);
+        if ( diCompType && llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
+            // WRONG NUMBER OF ELEMENTS
+            uint32_t numberOfArrElem = 1;
 
+            if (auto *Element = llvm::dyn_cast_or_null<llvm::DINode>(diCompType->getElements()[0])) {
+                if (Element->getTag() == llvm::dwarf::DW_TAG_subrange_type) {
+                    const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(Element);
+                    auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+                    numberOfArrElem = CI->getSExtValue();
+            return program.typeHandler.cachedDITypeInserter<ArrayType>(ditype, fixType(program, diCompType->getBaseType()),
+                                                                 numberOfArrElem);
+                }
+            }
+        }
         if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
             return fixType(program, diDerivedType->getBaseType());
         }

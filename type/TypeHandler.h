@@ -50,8 +50,18 @@ private:
         typeCache[ty] = std::move(ptr);
         return result;
     }
-
 public:
+    // TODO
+    // we dont have to pass here someType
+    template<typename T, typename ...Args>
+    Type* cachedDITypeInserter(const llvm::DIType *ditype, Args&&... args) {
+        auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
+        auto *result = ptr.get();
+        ditypeCache[ditype] = std::move(ptr);
+        return result;
+    }
+
+
     std::vector<const FunctionPointerType*> sortedTypeDefs; //vector of sorted typedefs, used in output
 
     // basic C types
