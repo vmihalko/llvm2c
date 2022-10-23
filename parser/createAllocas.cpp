@@ -18,7 +18,14 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<Value> theVariable;
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
-                    if (allocaInst->isArrayAllocation()) {
+
+                    // from https://llvm.org/doxygen/Local_8cpp_source.html#l01600
+                    // Determine whether this alloca is either a VariableLengthArray or an array.
+                    // static bool isArray(AllocaInst *AI) {
+                    //     return AI->isArrayAllocation() ||
+                    //             (AI->getAllocatedType() && AI->getAllocatedType()->isArrayTy());
+                    if (allocaInst->getAllocatedType()->isArrayTy() ||
+                                   (allocaInst->getAllocatedType() && allocaInst->isArrayAllocation())) {
                        //llvm::errs() << *allocaInst << "\n";
                        //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
                         auto *llsize = allocaInst->getArraySize();
