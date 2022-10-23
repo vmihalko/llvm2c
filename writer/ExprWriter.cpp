@@ -328,7 +328,18 @@ void ExprWriter::visit(SubExpr& expr) {
 }
 
 void ExprWriter::visit(AssignExpr& expr) {
-    parensIfNotSimple(expr.left);
+    if( auto array = llvm::dyn_cast_or_null<ArrayType>(expr.left->getType())) {
+        ss << expr.left->getType()->toString() << " ";
+        parensIfNotSimple(expr.left);
+        ss << array->sizeToString();
+    } else {
+        parensIfNotSimple(expr.left);
+    }
+    //  wr.raw(gvar->getType()->toString());
+    //  wr.raw(" ");
+    //  wr.raw(gvar->getType()->surroundName(gvar->valueName)); 
+    // } else 
+        // parensIfNotSimple(expr.left);
     ss << " = ";
     parensIfNotSimple(expr.right);
 }

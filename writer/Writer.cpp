@@ -190,6 +190,9 @@ void Writer::globalVarDefinitions(const Program& program) {
             continue;
         }
 
+        if(gvar->isPrivate)
+            continue;
+
         if (gvar->isStatic) {
             wr.raw("static ");
         }
