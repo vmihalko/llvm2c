@@ -52,6 +52,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             // WRONG NUMBER OF ELEMENTS
             uint32_t numberOfArrElem = 1;
 
+            // https://llvm.org/doxygen/BPFAbstractMemberAccess_8cpp_source.html#l00334
+            // why this heuristic?
             if (auto *Element = llvm::dyn_cast_or_null<llvm::DINode>(diCompType->getElements()[0])) {
                 if (Element->getTag() == llvm::dwarf::DW_TAG_subrange_type) {
                     const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(Element);
