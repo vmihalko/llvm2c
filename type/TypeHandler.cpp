@@ -164,6 +164,9 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         return typeDefs[type].get();
     }
 
+    // this is not optimlization, we should rename this to typeMEMORY!
+    // beceause of std::move in 177, array types are saved here
+    // Question is where are we saving pointers and structs?! 
     auto it = typeCache.find(type);
     if (it != typeCache.end()) {
         return it->second.get();

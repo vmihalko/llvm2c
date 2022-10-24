@@ -13,7 +13,7 @@ static void deleteExprFromBlock(Block* block, Expr* toDelete) {
     }
 }
 
-
+// this pass extracts variables from blocks into function beginning
 void extractVars(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateAllocas));
     assert(program.isPassCompleted(PassType::CreateExpressions));

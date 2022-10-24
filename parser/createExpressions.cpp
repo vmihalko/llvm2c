@@ -103,7 +103,7 @@ static bool canInline(const llvm::Value* value) {
 
     return false;
 }
-
+// this step is removing SSA form
 static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* func, Block* block) {
     if (canInline(value)) {
         func->program->addExpr(value, expr);
