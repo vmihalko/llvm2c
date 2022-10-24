@@ -3,6 +3,23 @@
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Transforms/Utils/SimplifyCFGOptions.h>
+#include <functional>
+#include "llvm/Analysis/GlobalsModRef.h"
+#include "llvm/Analysis/Passes.h"
+#include "llvm/Analysis/LoopPass.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/DynamicLibrary.h"
+#include "llvm/Support/PluginLoader.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/FunctionAttrs.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include <iostream>
 
 #define RUN_PASS(pass) \
@@ -10,6 +27,25 @@
         pass(mod, result); \
     } while (0);
 
+// inspired by https://github.com/klee/klee/blob/v2.3/lib/Module/Optimize.cpp#L83-L92
+static inline void addPass(llvm::legacy::PassManager &PM, llvm::Pass *P) {
+  // Add the pass to the pass manager...
+  PM.add(P);
+
+  PM.add(llvm::createVerifierPass());
+}
+
+
+void run_llvm_passes(llvm::Module &mod) {
+    llvm::legacy::PassManager passes;
+    addPass(passes, llvm::createDeadStoreEliminationPass());
+    addPass(passes, llvm::createDeadCodeEliminationPass());
+    addPass(passes, llvm::createCFGSimplificationPass());
+    passes.run(mod);
+
+    // llvm::createVerifierPass();
+
+}
 
 Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     Program result;
@@ -21,7 +57,10 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
         throw std::invalid_argument("Error loading module - invalid input file:\n" + file + "\n");
     }
 
+    run_llvm_passes(*module);
     const auto* mod = module.get();
+
+    //dont reinvent wheel
 
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
