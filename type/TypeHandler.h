@@ -39,7 +39,7 @@ private:
     }
 
     /**
-     * @brief makeCachedType Is putting together during recursion
+     * @brief makeCachedType Is putting together, during recursion,
      * saved types.
      * @return Type to which we are pointing 
      */

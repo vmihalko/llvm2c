@@ -24,8 +24,9 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     // static bool isArray(AllocaInst *AI) {
                     //     return AI->isArrayAllocation() ||
                     //             (AI->getAllocatedType() && AI->getAllocatedType()->isArrayTy());
-                    if (allocaInst->getAllocatedType()->isArrayTy() ||
-                                   (allocaInst->getAllocatedType() && allocaInst->isArrayAllocation())) {
+                    if ((allocaInst->getAllocatedType()->isArrayTy() ||
+                                   (allocaInst->getAllocatedType() && allocaInst->isArrayAllocation()))) {
+                                    // continue;
                        //llvm::errs() << *allocaInst << "\n";
                        //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
                         auto *llsize = allocaInst->getArraySize();
@@ -52,11 +53,11 @@ void createAllocas(const llvm::Module* module, Program& program) {
 
                         // assign the result of the call to the variable
                         theVariable = std::make_unique<Value>(func->getVarName(), allocacall->getType());
-                        alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        auto assign = std::make_unique<AssignExpr>(theVariable.get(), allocacall.get());
-                        myBlock->addExprAndOwnership(std::move(alloc));
-                        myBlock->addOwnership(std::move(allocacall));
-                        myBlock->addExprAndOwnership(std::move(assign));
+                        // alloc = std::make_unique<StackAlloc>(theVariable.get());
+                        // auto assign = std::make_unique<AssignExpr>(theVariable.get(), allocacall.get());
+                        // myBlock->addExprAndOwnership(std::move(alloc));
+                        // myBlock->addOwnership(std::move(allocacall));
+                        // myBlock->addExprAndOwnership(std::move(assign));
                         //func->createExpr(&ins, std::move(allocacall));
                     } else  {
                         // normal alloca on the stack

@@ -57,7 +57,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
         throw std::invalid_argument("Error loading module - invalid input file:\n" + file + "\n");
     }
 
-    run_llvm_passes(*module);
+    //run_llvm_passes(*module);   
     const auto* mod = module.get();
 
     //dont reinvent wheel

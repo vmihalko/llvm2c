@@ -47,14 +47,12 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
         gvar.getDebugInfo(gVarDebugInfos);     
         for (auto* GV : gVarDebugInfos)
             type = fixType(program, GV->getVariable()->getType());
-            //if (type->getKind() == Type::TK_ArrayType)
     }
 
     auto var = std::make_unique<GlobalValue>(gvarName, nullptr, type);
+
     var->isStatic = gvar.hasInternalLinkage();
-    // this means this is PROBABLY array in function
-    // gvar.isPrivateLinkage(gvar.getLinkage());
-    var->isPrivate = gvar.isPrivateLinkage(gvar.getLinkage());
+    var->isPrivate = gvar.hasPrivateLinkage();
 
     program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get(), program.typeHandler.pointerTo(var->getType()));
 
