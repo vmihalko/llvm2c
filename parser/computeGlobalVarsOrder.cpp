@@ -38,6 +38,7 @@ static void parseGlobalVar(const llvm::GlobalVariable& gvar, Program& program) {
 
     auto var = std::make_unique<GlobalValue>(gvarName, nullptr, type);
     var->isStatic = gvar.hasInternalLinkage();
+    var->isPrivate = gvar.isPrivateLinkage(gvar.getLinkage());
 
     program.globalRefs[&gvar] = std::make_unique<RefExpr>(var.get(), program.typeHandler.pointerTo(var->getType()));
 

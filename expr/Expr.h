@@ -192,6 +192,7 @@ class GlobalValue : public Value {
 public:
     Expr* value;
     bool isStatic = false;
+    bool isPrivate = false;
 
     GlobalValue(const std::string&, Expr*, Type*);
 
@@ -356,6 +357,10 @@ public:
     void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
+
+    bool isSimple() const override {
+        return true;
+    }
 };
 
 /**
