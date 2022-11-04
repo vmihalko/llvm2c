@@ -11,6 +11,8 @@ from subprocess import run, STDOUT, DEVNULL
 # * csmith arguments [simple, full_grammar]
 # * llvm2c coredump!
 
+csmith_options = ["--no-comma-operators", "--no-compound-assignment", "--no-jumps", "--no-inline-function"]
+
 llvm2c = "/home/vmihalko/DIPLO/llvm2c/build/llvm2c"
 def run_tests(how_many, arg_compile, arg_keep, dir_name):
     for i in range(how_many):
@@ -19,7 +21,7 @@ def run_tests(how_many, arg_compile, arg_keep, dir_name):
             tmp_file_c = tmp_file + '.c'
             tmp_file_re_c = tmp_file + '_re.c'
             tmp_file_ll = tmp_file + '.ll'
-            rcsmith = run(['csmith', '--output',  tmp_file_c])
+            rcsmith = run(['csmith', " ".join(csmith_options) ,'--output',  tmp_file_c])
             run(['clang', '-S', '-emit-llvm', tmp_file_c, '-o', tmp_file_ll], stdout=DEVNULL, stderr=DEVNULL)
             #run([llvm2c, '-o', tmp_file_re_c, tmp_file_ll], stdout=STDOUT)
             proc = run(['../build/llvm2c', '-o', tmp_file_re_c, tmp_file_ll], capture_output=True, text=True)
