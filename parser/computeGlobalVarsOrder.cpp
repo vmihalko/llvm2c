@@ -81,10 +81,9 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
     }
 
     if (module->getNamedMetadata("llvm.dbg.cu"))
-
-    for (const auto* gvar : order) {
-        parseGlobalVar(*gvar, program);
-    }
+        for (const auto* gvar : order) {
+            parseGlobalVar(*gvar, program);
+        }
 
     program.addPass(PassType::ComputeGlobalVarsOrder);
 }
