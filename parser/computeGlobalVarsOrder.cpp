@@ -80,7 +80,6 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program) {
         computeTopo(&gvar, order, visited);
     }
 
-    if (module->getNamedMetadata("llvm.dbg.cu"))
         for (const auto* gvar : order) {
             parseGlobalVar(*gvar, program);
         }
