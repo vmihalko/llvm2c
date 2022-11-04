@@ -43,19 +43,19 @@ void createAllocas(const llvm::Module* module, Program& program) {
 
                        //theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getType()));
                        //alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        std::vector<Expr*> params;
-                        params.push_back(size);
-                        auto allocacall = std::make_unique<CallExpr>(
-                                nullptr,
-                                "alloca",
-                                params,
-                                func->getType(allocaInst->getType()));
+                        // std::vector<Expr*> params;
+                        // params.push_back(size);
+                        // auto allocacall = std::make_unique<CallExpr>(
+                        //         nullptr,
+                        //         "alloca",
+                        //         params,
+                        //         func->getType(allocaInst->getType()));
 
                         // assign the result of the call to the variable
-                        theVariable = std::make_unique<Value>(func->getVarName(), allocacall->getType());
-                        // alloc = std::make_unique<StackAlloc>(theVariable.get());
+                        theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
+                        alloc = std::make_unique<StackAlloc>(theVariable.get());
                         // auto assign = std::make_unique<AssignExpr>(theVariable.get(), allocacall.get());
-                        // myBlock->addExprAndOwnership(std::move(alloc));
+                        myBlock->addExprAndOwnership(std::move(alloc));
                         // myBlock->addOwnership(std::move(allocacall));
                         // myBlock->addExprAndOwnership(std::move(assign));
                         //func->createExpr(&ins, std::move(allocacall));
