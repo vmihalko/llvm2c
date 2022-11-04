@@ -745,6 +745,22 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         if ((funcName.compare("memcpy") == 0 || funcName.compare("memmove") == 0 || funcName.compare("memset") == 0)  && i == 3) {
             break;
         }
+            llvm::errs() << funcName << " " << i << ": " << *callInst->getArgOperand(i) << "\n";
+        if ((funcName.compare("memcpy") == 0) && i == 1) { // processing second arg == source
+            auto* BC = llvm::dyn_cast_or_null<llvm::BitCastInst>(callInst->getArgOperand(1));
+            if (BC) { // is bitcast
+                auto* src =  BC->getOperand(0);
+                GlobalValue *ptrGV = nullptr;
+                if (auto rgv = func->program->getGlobalVar(src)) {
+                    ptrGV = llvm::dyn_cast_or_null<GlobalValue>(rgv->expr);
+                    if (ptrGV && ptrGV->isPrivate) {
+                        params.push_back(ptrGV->value);
+                        i++; continue;
+                    }
+                }
+            }
+        }
+
 
         if (!func->getExpr(param)) {
             createFuncCallParam(param, *func->program);
