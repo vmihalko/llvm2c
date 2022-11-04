@@ -64,6 +64,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 }
             }
         }
+        assert(false && "fixType");
         if( const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype)) {
             return fixType(program, diDerivedType->getBaseType());
         }
