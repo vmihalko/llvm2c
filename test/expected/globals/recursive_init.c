@@ -8,19 +8,19 @@ struct s_list {
 };
 
 // function declarations
-int main(int var0, char** var1);
+int main(int argc, char** argv);
 
 // global variable definitions
 struct s_list mylist = {0,&mylist,};
 
-int main(int var0, char** var1){
+int main(int argc, char** argv){
     unsigned int var2;
     unsigned int argc;
     unsigned char** argv;
     block0:
     var2 = 0;
-    argc = var0;
-    argv = var1;
+    argc = argc;
+    argv = argv;
     return (unsigned int)(mylist.structVar0);
 }
 

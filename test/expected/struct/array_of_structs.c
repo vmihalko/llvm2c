@@ -7,10 +7,10 @@ struct s_test {
 };
 
 // function declarations
-int main(int var0, char** var1);
+int main(int argc, char** argv);
 extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
 
-int main(int var0, char** var1){
+int main(int argc, char** argv){
     unsigned int var2;
     unsigned int argc;
     unsigned char** argv;
@@ -22,14 +22,14 @@ int main(int var0, char** var1){
     unsigned int i2;
     block0:
     var2 = 0;
-    argc = var0;
-    argv = var1;
+    argc = argc;
+    argv = argv;
     if (argc != 2) {
         var2 = -1;
         return var2;
     } else {
         num = strtol(*(((unsigned char**)(argv)) + 1), &p, 10);
-        if (((int)(*p)) != 0) {
+        if (((int)((char)(*p))) != 0) {
             var2 = -1;
             return var2;
         } else {
@@ -39,7 +39,7 @@ int main(int var0, char** var1){
     }
     block5:
     if (((int)i) < ((int)5)) {
-        ((arr[(long)i]).structVar0) = ((unsigned int)(((long)num) + ((long)i)));
+        ((arr[(long)((int)i)]).structVar0) = ((unsigned int)(((long)num) + ((long)((long)((int)i)))));
         i = (((int)i) + ((int)1));
         goto block5;
     } else {
@@ -49,7 +49,7 @@ int main(int var0, char** var1){
     }
     block9:
     if (((int)i2) < ((int)5)) {
-        sum = (((int)sum) + ((int)((arr[(long)i2]).structVar0)));
+        sum = (((int)sum) + ((int)((arr[(long)((int)i2)]).structVar0)));
         i2 = (((int)i2) + ((int)1));
         goto block9;
     } else {

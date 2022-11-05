@@ -1,12 +1,12 @@
 // function declarations
-int main(int var0, char** var1);
+int main(int argc, char** argv);
 extern unsigned long strtol(unsigned char* var0, unsigned char** var1, unsigned int var2);
 
-int main(int var0, char** var1){
+int main(int argc, char** argv){
     unsigned char* p;
     unsigned int var3_phi;
     block0:
-    switch ((unsigned int)strtol(*(((unsigned char**)(var1)) + 1), &p, 10)) {
+    switch ((unsigned int)strtol(*(((unsigned char**)(argv)) + 1), &p, 10)) {
         case 1:
             var3_phi = 43;
             return var3_phi;
