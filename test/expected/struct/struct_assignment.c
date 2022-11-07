@@ -24,14 +24,8 @@ unsigned long get_struct(void){
 }
 
 int main(int argc, char** argv){
-    unsigned int var2;
-    unsigned int argc;
-    unsigned char** argv;
     struct s_mystruct a;
     block0:
-    var2 = 0;
-    argc = argc;
-    argv = argv;
     (*((unsigned long*)(&a))) = get_struct();
     return ((int)counter) + ((int)((int)((char)(a.structVar1))));
 }

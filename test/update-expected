@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! [[ -e llvm2c ]]; then
+if ! [[ -e $1 ]]; then
     echo "llvm2c not found!"
     exit 1
 fi
@@ -19,7 +19,7 @@ for FOLDER in `ls inputs`; do
             opt -mem2reg $TEMPDIR/temp.ll -o $TEMPDIR/temp.ll
         fi
 
-        if ! ./llvm2c ${TEMPDIR}/temp.ll --o expected/${FOLDER}/`basename $f`; then
+        if ! $1 ${TEMPDIR}/temp.ll --o expected/${FOLDER}/`basename $f`; then
           echo "Paused. Press enter to continue"
           echo "$TEMPDIR"
           read

@@ -14,10 +14,8 @@ unsigned char _str_2[13] = {32,114,101,97,108,108,111,99,116,101,115,116,0,};
 unsigned char _str_3[3] = {37,115,0,};
 
 int main(void){
-    unsigned int var0;
     unsigned char* str;
     block0:
-    var0 = 0;
     str = malloc(20);
     strcpy(str, &(_str[0]));
     printf(&(_str_1[0]), str);

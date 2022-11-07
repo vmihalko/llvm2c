@@ -20,13 +20,7 @@ int main(int argc, char** argv);
 struct s_parent p = {{0,0,},0,0,};
 
 int main(int argc, char** argv){
-    unsigned int var2;
-    unsigned int argc;
-    unsigned char** argv;
     block0:
-    var2 = 0;
-    argc = argc;
-    argv = argv;
     return (unsigned int)((p.structVar0).structVar4);
 }
 
