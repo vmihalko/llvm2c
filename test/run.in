@@ -43,20 +43,21 @@ for f in @CMAKE_CURRENT_SOURCE_DIR@/inputs/$FOLDER/*.c; do
         echo -e "\n\t[NOK] llvm2c failed to translate $f!"
         FAILED=$((FAILED+1))
     else
-        @CLANG@ $LDFLAGS $TEMPDIR/temp.c -o $TEMPDIR/new
-        if [[ $? != 0 ]]; then
-            echo -e "\n\t[NOK] Clang could not compile translated file $f!"
-            FAILED=$((FAILED+1))
-        else
-          for i in `seq -10 10`; do
-              $TEMPDIR/orig $i
-              ORIG=$?
-              $TEMPDIR/new $i
-              if [[ $ORIG != $? ]]; then
-                  echo -e "\t[NOK] Test $f failed with input $i!"
-                  FAILED=$((FAILED+1))
-              fi
-          done
+#        @CLANG@ $LDFLAGS $TEMPDIR/temp.c -o $TEMPDIR/new
+#        if [[ $? != 0 ]]; then
+#            echo -e "\n\t[NOK] Clang could not compile translated file $f!"
+#            FAILED=$((FAILED+1))
+#        else
+#          for i in `seq -10 10`; do
+#              $TEMPDIR/orig $i
+#              ORIG=$?
+#              $TEMPDIR/new $i
+#              if [[ $ORIG != $? ]]; then
+#                  echo -e "\t[NOK] Test $f failed with input $i!"
+#                  FAILED=$((FAILED+1))
+#              fi
+#          done
+#          fi
 
           if diff -y --suppress-common-lines @CMAKE_CURRENT_SOURCE_DIR@/expected/$FOLDER/$(basename $f) $TEMPDIR/temp.c; then
               echo -e "\n\t[OK ] Files are as expected"
@@ -64,7 +65,6 @@ for f in @CMAKE_CURRENT_SOURCE_DIR@/inputs/$FOLDER/*.c; do
               echo -e "\n\t[NOK] Translated C file is different than expected"
               FAILED=$((FAILED+1))
           fi
-        fi
     fi
     rm -rf $TEMPDIR/*
 done
