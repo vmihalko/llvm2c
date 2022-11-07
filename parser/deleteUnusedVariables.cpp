@@ -9,9 +9,20 @@
 
 static void deleteExprFromBlock(Block* block, Expr* toDelete) {
     for (auto it = block->expressions.begin(); it != block->expressions.end(); ++it) {
-        if (*it == toDelete) {
-            block->expressions.erase(it);
-            return;
+        if (auto refExpr = llvm::dyn_cast_or_null<RefExpr>(toDelete)) {
+            auto valueFromRefExpr = refExpr->expr;
+            if (auto stackAlloca = llvm::dyn_cast_or_null<StackAlloc>(*it)) {
+                auto valueFromStackAlloca = stackAlloca->value;
+                if (valueFromStackAlloca == valueFromRefExpr) {
+                    block->expressions.erase(it);
+                    return;
+                }
+            } 
+        } else if (auto assignExpr = llvm::dyn_cast_or_null<AssignExpr>(*it)) {
+                if (assignExpr->right == toDelete) {
+                    block->expressions.erase(it);
+                    return;
+                }
         }
     }
 }
@@ -35,7 +46,7 @@ void deleteUnusedVariables(const llvm::Module* module, Program& program) {
                         // make sure the allocation is only used as a target of store
                         if (user->getValueOperand() != &ins && user->getPointerOperand() == &ins) {
                             deleteExprFromBlock(myBlock, alloca);
-                            deleteExprFromBlock(myBlock, function->getExpr(user));
+                            deleteExprFromBlock(myBlock, function->getExpr(user->getOperand(0)));
                         }
                     }
                 }
