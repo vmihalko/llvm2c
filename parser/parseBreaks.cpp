@@ -42,9 +42,7 @@ static Expr* createListOfOneGoto(Block* container, Block* gotoTarget) {
     return result;
 }
 
-static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
-    //no condition
-    if (ins.getNumOperands() == 1) {
+static void parseUncondBranch(const llvm::Instruction& ins, Func* func, Block* block) {
         Block* target = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(0));
 
         auto assignments = generatePhiAssignments(block, target);
@@ -55,10 +53,10 @@ static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* 
         auto gotoExpr = std::make_unique<GotoExpr>(target);
         func->program->exprMap[&ins] = gotoExpr.get();
         block->addExprAndOwnership(std::move(gotoExpr));
-        return;
-    }
+}
 
-    Expr* cmp = func->getExpr(ins.getOperand(0));
+static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block) {
+    Expr* cmp = func->getExpr(ins.getCondition());
 
     Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
     Block* trueBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
@@ -67,6 +65,14 @@ static void parseBrInstruction(const llvm::Instruction& ins, Func* func, Block* 
 
     func->createExpr(&ins, std::move(ifExpr));
     block->addExpr(func->getExpr(&ins));
+}
+
+static void parseBrInstruction(const llvm::BranchInst& ins, Func* func, Block* block) {
+    //no condition
+    if ( ins.isUnconditional() )
+        return parseUncondBranch(ins, func, block);
+    
+    parseCondBranch(ins, func, block);
 }
 
 static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
@@ -96,7 +102,8 @@ void parseBreaks(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 auto opcode = ins.getOpcode();
                 if (opcode == llvm::Instruction::Br) {
-                    parseBrInstruction(ins, func, myBlock);
+                    const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(&ins);
+                    parseBrInstruction(*br, func, myBlock);
                 } else if (opcode == llvm::Instruction::Ret) {
                     parseRetInstruction(ins, func, myBlock);
                 }
