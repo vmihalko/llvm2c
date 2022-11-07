@@ -16,6 +16,7 @@ UnaryExpr::UnaryExpr(Expr *expr, ExprKind kind): ExprBase(kind) {
 
 RefExpr::RefExpr(Expr* expr, Type* type) :
     UnaryExpr(expr, EK_RefExpr) {
+        _expr = expr;
     setType(type);
 }
 

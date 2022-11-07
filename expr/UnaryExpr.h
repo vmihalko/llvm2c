@@ -21,6 +21,8 @@ class RefExpr : public UnaryExpr {
 public:
     RefExpr(Expr*, Type*);
 
+    Expr *_expr;
+
     void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
