@@ -5,6 +5,9 @@
 #include "constval.h"
 
 #include <llvm/IR/Instruction.h>
+#include <llvm/Analysis/LoopAnalysisManager.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Analysis/LoopInfo.h>
 
 /**
  * return phi assignments as ExprList
@@ -54,8 +57,20 @@ static void parseUncondBranch(const llvm::Instruction& ins, Func* func, Block* b
         func->program->exprMap[&ins] = gotoExpr.get();
         block->addExprAndOwnership(std::move(gotoExpr));
 }
+// TODO?
+// We do not want to traverse through all loops every time.. O(n^2), where n i number of loops.
+// Find way how to uniquely map branching instruction with concrete loops. (nested loops might be problem)
 
-static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block) {
+static llvm::Loop *inInstructionOutLoop(const llvm::BranchInst& ins, Func* func, Block* block, llvm::LoopInfo &LI) {
+    for (const auto &loop : LI){
+        // loop->getLatchCmpInst
+    }
+}
+static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block, const llvm::LoopInfo &LI) {
+
+    // give
+    
+
     Expr* cmp = func->getExpr(ins.getCondition());
 
     Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
@@ -67,12 +82,12 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
     block->addExpr(func->getExpr(&ins));
 }
 
-static void parseBrInstruction(const llvm::BranchInst& ins, Func* func, Block* block) {
+static void parseBrInstruction(const llvm::BranchInst& ins, Func* func, Block* block, llvm::LoopInfo &LI) {
     //no condition
     if ( ins.isUnconditional() )
         return parseUncondBranch(ins, func, block);
     
-    parseCondBranch(ins, func, block);
+    parseCondBranch(ins, func, block, LI);
 }
 
 static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
@@ -96,14 +111,19 @@ void parseBreaks(const llvm::Module* module, Program& program) {
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
+        llvm::FunctionAnalysisManager FAM;
+        // Small TODO: remove const and use function instead of func
+        // LoopInfo counted per function only once
+        llvm::LoopInfo &LI = FAM.getResult<llvm::LoopAnalysis>(*llvm::dyn_cast<llvm::Function>(func));
         for (const auto& block : function) {
+            
             auto* myBlock = func->getBlock(&block);
 
             for (const auto& ins : block) {
                 auto opcode = ins.getOpcode();
                 if (opcode == llvm::Instruction::Br) {
                     const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(&ins);
-                    parseBrInstruction(*br, func, myBlock);
+                    parseBrInstruction(*br, func, myBlock, LI);
                 } else if (opcode == llvm::Instruction::Ret) {
                     parseRetInstruction(ins, func, myBlock);
                 }
