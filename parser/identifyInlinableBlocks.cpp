@@ -6,7 +6,9 @@
 #include <iostream>
 
 static bool isSafeToInline(const llvm::BasicBlock* llvmBlock, const Block* block) {
+    std::cout << "vinco:" << llvmBlock->getNumUses() << std::endl;
     if (llvmBlock->getSinglePredecessor()) {
+        // TODO If'm my predeccessor
         return true;
     }
 
