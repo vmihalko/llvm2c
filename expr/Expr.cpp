@@ -307,7 +307,7 @@ bool ExprList::classof(const Expr* expr) {
     return expr->getKind() == EK_ExprList;
 }
 
-DoWhile::DoWhile(Expr* body, Expr* cond): Expr(EK_DoWhile), body(body), cond(cond) { }
+DoWhile::DoWhile(Expr* body, Expr* cond): ExprBase(EK_DoWhile), body(body), cond(cond) { }
 
 void DoWhile::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

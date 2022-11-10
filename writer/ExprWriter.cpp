@@ -479,8 +479,12 @@ void ExprWriter::visit(LogicalNot& expr) {
 
 void ExprWriter::visit(DoWhile& expr) {
     ss << "do {" << std::endl;
+    indentCount++;
+    indent();
     expr.body->accept(*this);
+    indentCount--;
+    indent();
     ss << "} while (";
     expr.cond->accept(*this);
-    ss << ");" << std::endl;
+    ss << ")" << std::endl;
 }

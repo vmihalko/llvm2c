@@ -398,7 +398,7 @@ public:
     static bool classof(const Expr* expr);
 };
 
-class DoWhile : public Expr {
+class DoWhile : public ExprBase {
 public:
     Expr* body;
     Expr* cond;

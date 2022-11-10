@@ -60,6 +60,8 @@
 #include "llvm/Transforms/Vectorize/LoopVectorize.h"
 #include "llvm/Transforms/Vectorize/SLPVectorizer.h"
 
+#include <string>
+
 
 #define RUN_PASS(pass) \
     do {\
@@ -77,15 +79,20 @@ static inline void addPass(llvm::legacy::PassManager &PM, llvm::Pass *P) {
 void run_llvm_passes(llvm::Module &mod) {
     llvm::legacy::PassManager passes;
     
+
+    // --loop-simplify --simplifycfg --loop-rotate --lcssa --licm --loop-unswitch --simplifycfg --instcombine --indvars
     addPass(passes, llvm::createLoopInstSimplifyPass());
+    addPass(passes,llvm::createLoopSimplifyPass ());
     addPass(passes, llvm::createLoopSimplifyCFGPass());
 
 
     addPass(passes, llvm::createLoopRotatePass());
+    addPass(passes, llvm::createLCSSAPass());
     addPass(passes, llvm::createLICMPass());
     addPass(passes, llvm::createSimpleLoopUnswitchLegacyPass());
     // addPass(passes,llvm::createLoopUnswitchPass());
     addPass(passes,llvm::createCFGSimplificationPass());
+    // addPass(passes,llvm::create());
     addPass(passes,llvm::createIndVarSimplifyPass());
     addPass(passes,llvm::createLoopIdiomPass());
 
@@ -112,6 +119,11 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
 
     run_llvm_passes(*module);
     const auto* mod = module.get();
+    std::string Str;
+    llvm::raw_string_ostream OS(Str);
+    OS << *mod;
+    OS.flush();
+    std::cout << Str << std::endl;
 
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
