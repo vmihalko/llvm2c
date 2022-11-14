@@ -68,14 +68,18 @@ static void parseUncondBranch(const llvm::Instruction& ins, Func* func, Block* b
 //         // loop->getLatchCmpInst
 //     }
 // }
-static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block, std::map<llvm::Value*, llvm::Loop *> *loops) {
+static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block) {
 
     // if (std::end(loops) != std::find(loops->begin(), loops->end(), ins.getCondition() )) {
 
     // }
 
+    llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
+    auto it = std::find_if(LI.begin(), LI.end(), [&ins](llvm::Loop *l){
+        return llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition() == ins.getCondition();});
 
-    if (false && loops->end() != loops->find(ins.getCondition())) {
+    if (LI.end() != it) {
+
         Expr* cmp = func->getExpr(ins.getCondition());
         // llvm::errs << *ins;
         // ((llvm::BasicBlock*)ins.getOperand(2))->print(llvm::errs());
@@ -98,12 +102,12 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
     block->addExpr(func->getExpr(&ins));
 }
 
-static void parseBrInstruction(const llvm::BranchInst& ins, Func* func, Block* block, std::map<llvm::Value*, llvm::Loop *> *loops) {
+static void parseBrInstruction(const llvm::BranchInst& ins, Func* func, Block* block) {
     //no condition
     if ( ins.isUnconditional() )
         return parseUncondBranch(ins, func, block);
     
-    parseCondBranch(ins, func, block, loops);
+    parseCondBranch(ins, func, block);
 }
 
 static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
@@ -130,13 +134,6 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
 //     return loops;
 // }    
 
-static std::map<llvm::Value*, llvm::Loop *> *parseLoops(std::map<llvm::Value*, llvm::Loop *> *loops, llvm::LoopInfo &LI) {
-    std::for_each(LI.begin(), LI.end(), [&loops](llvm::Loop *l) {
-        loops->insert({llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition(), l});
-        //loops[llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition()] = l;
-    });
-    return loops;
-}  
 
 
 void parseBreaks(const llvm::Module* module, Program& program) {
@@ -145,33 +142,12 @@ void parseBreaks(const llvm::Module* module, Program& program) {
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
         // function.getFun
-        llvm::PassBuilder passBuilder;
-        llvm::FunctionAnalysisManager FAM;
-        llvm::LoopAnalysisManager LAM;
-        llvm::CGSCCAnalysisManager CGAM;
-        llvm::ModuleAnalysisManager MAM;
 
 
-        // MAM .run(module, MAM); 
-
-        // Small TODO: remove const and use function instead of func
-        // LoopInfo counted per function only once
-        //llvm::LoopInfo &LI = FAM.getResult<llvm::LoopAnalysis>(*llvm::dyn_cast<llvm::Function>(func));
-        //    const auto &LI = FAM.getResult<LoopAnalysis>(const_cast<Function &>(F));
-        passBuilder.registerModuleAnalyses(MAM);
-        passBuilder.registerFunctionAnalyses(FAM);
-        passBuilder.registerCGSCCAnalyses(CGAM);
-        passBuilder.registerLoopAnalyses(LAM);
 
 
-        passBuilder.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-        // passBuilder.
 
-        llvm::LoopInfo &LI = FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(function));
-
-        std::map<llvm::Value*, llvm::Loop *> loops;
-        parseLoops(&loops, LI);
         for (const auto& block : function) {
             
             auto* myBlock = func->getBlock(&block);
@@ -180,7 +156,7 @@ void parseBreaks(const llvm::Module* module, Program& program) {
                 auto opcode = ins.getOpcode();
                 if (opcode == llvm::Instruction::Br) {
                     const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(&ins);
-                    parseBrInstruction(*br, func, myBlock, &loops);
+                    parseBrInstruction(*br, func, myBlock);
                 } else if (opcode == llvm::Instruction::Ret) {
                     parseRetInstruction(ins, func, myBlock);
                 }
