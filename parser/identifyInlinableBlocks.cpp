@@ -28,13 +28,15 @@ void identifyInlinableBlocks(const llvm::Module* module, Program& program) {
         auto* function = program.getFunction(&func);
         for (const auto& block : func) {
             auto* myBlock = function->createBlockIfNotExist(&block);
-            myBlock->doInline = isSafeToInline(&block, myBlock);
+            if (!myBlock->doInline)
+                myBlock->doInline = isSafeToInline(&block, myBlock);
         }
 
         if (func.begin() == func.end())
             continue;
 
         // first block is only inlinable if there are no predecessors
+        // ??? missing if?
         auto& firstBlock = *func.begin();
         auto* myBlock = function->createBlockIfNotExist(&firstBlock);
 
