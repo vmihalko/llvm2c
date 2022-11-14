@@ -76,7 +76,8 @@ static inline void addPass(llvm::legacy::PassManager &PM, llvm::Pass *P) {
   PM.add(llvm::createVerifierPass());
 }
 
-void run_llvm_passes(llvm::Module &mod) {
+void run_llvm_passes(llvm::Module *m) {
+    auto &mod = *m;
     llvm::legacy::PassManager passes;
     
 
@@ -101,10 +102,20 @@ void run_llvm_passes(llvm::Module &mod) {
     // addPass(passes,);
     // addPass(passes,);
     // addPass(passes,);
-    passes.run(mod);
+    if (passes.run(mod))
+        std::cout << "modified\n";
+    std::cout << "nomodification\n";
 
     // llvm::createVerifierPass();
 
+}
+
+void printModule(llvm::Module *m) {
+    std::string Str;
+    llvm::raw_string_ostream OS(Str);
+    OS << *m;
+    OS.flush();
+    std::cout << Str << std::endl;
 }
 
 Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
@@ -117,13 +128,10 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
         throw std::invalid_argument("Error loading module - invalid input file:\n" + file + "\n");
     }
 
-    run_llvm_passes(*module);
-    const auto* mod = module.get();
-    std::string Str;
-    llvm::raw_string_ostream OS(Str);
-    OS << *mod;
-    OS.flush();
-    std::cout << Str << std::endl;
+    printModule(module.get());
+    run_llvm_passes(module.get());
+    const auto *mod = module.get();
+    printModule(module.get());
 
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
