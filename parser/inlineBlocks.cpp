@@ -80,6 +80,8 @@ void inlineBlocks(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::IdentifyInlinableBlocks));
 
     for (const llvm::Function& func : module->functions()) {
+        if (func.isIntrinsic())
+            continue;
         auto* function = program.getFunction(&func);
         inlineLoopBlocksInFunction(function);
         for (const auto& block : func) {
