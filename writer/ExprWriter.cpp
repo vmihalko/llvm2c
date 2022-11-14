@@ -486,5 +486,5 @@ void ExprWriter::visit(DoWhile& expr) {
     indent();
     ss << "} while (";
     expr.cond->accept(*this);
-    ss << ")" << std::endl;
+    ss << ")";
 }
