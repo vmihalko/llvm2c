@@ -14,11 +14,20 @@
 #include <set>
 #include <regex>
 
+
 Func::Func(const llvm::Function* func, Program* program, bool isDeclaration) {
 	this->program = program;
 	function = func;
 	this->isDeclaration = isDeclaration;
 	returnType = getType(func->getReturnType());
+
+	passBuilder.registerModuleAnalyses(MAM);
+	passBuilder.registerFunctionAnalyses(FAM);
+	passBuilder.registerCGSCCAnalyses(CGAM);
+	passBuilder.registerLoopAnalyses(LAM);
+
+
+	passBuilder.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 }
 
 Expr* Func::getExpr(const llvm::Value* val) {
