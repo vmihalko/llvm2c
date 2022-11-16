@@ -82,20 +82,21 @@ void run_llvm_passes(llvm::Module *m) {
     
 
     // --loop-simplify --simplifycfg --loop-rotate --lcssa --licm --loop-unswitch --simplifycfg --instcombine --indvars
-    addPass(passes, llvm::createLoopInstSimplifyPass());
+    // addPass(passes, llvm::createLoopInstSimplifyPass());
     addPass(passes,llvm::createLoopSimplifyPass ());
-    addPass(passes, llvm::createLoopSimplifyCFGPass());
+    // addPass(passes, llvm::createLoopSimplifyCFGPass());
 
 
     addPass(passes, llvm::createLoopRotatePass());
-    addPass(passes, llvm::createLCSSAPass());
-    addPass(passes, llvm::createLICMPass());
-    addPass(passes, llvm::createSimpleLoopUnswitchLegacyPass());
-    // addPass(passes,llvm::createLoopUnswitchPass());
-    addPass(passes,llvm::createCFGSimplificationPass());
-    // addPass(passes,llvm::create());
-    addPass(passes,llvm::createIndVarSimplifyPass());
-    addPass(passes,llvm::createLoopIdiomPass());
+    // addPass(passes,llvm::createLoopSimplifyPass ());
+    // addPass(passes, llvm::createLCSSAPass());
+    // addPass(passes, llvm::createLICMPass());
+    // addPass(passes, llvm::createSimpleLoopUnswitchLegacyPass());
+    // // addPass(passes,llvm::createLoopUnswitchPass());
+    // addPass(passes,llvm::createCFGSimplificationPass());
+    // // addPass(passes,llvm::create());
+    // addPass(passes,llvm::createIndVarSimplifyPass());
+    // addPass(passes,llvm::createLoopIdiomPass());
 
     // addPass(passes,llvm::createLoopInterchangePass());
     // addPass(passes,);
@@ -104,7 +105,8 @@ void run_llvm_passes(llvm::Module *m) {
     // addPass(passes,);
     if (passes.run(mod))
         std::cout << "modified\n";
-    std::cout << "nomodification\n";
+    else
+        std::cout << "nomodification\n";
 
     // llvm::createVerifierPass();
 
@@ -128,7 +130,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
         throw std::invalid_argument("Error loading module - invalid input file:\n" + file + "\n");
     }
 
-    printModule(module.get());
+    // printModule(module.get());
     run_llvm_passes(module.get());
     const auto *mod = module.get();
     printModule(module.get());
