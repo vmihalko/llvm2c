@@ -79,17 +79,51 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
         return llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition() == ins.getCondition();});
 
     if (LI.end() != it) {
+        llvm::errs() << "doWhile created\n";
+        // 3 options
+        // #1 latch == header
+        if ((*it)->getHeader() == (*it)->getLoopLatch() /*|| HEAD ---1---> LATCH */) {
+            Expr* cmp = func->getExpr(ins.getCondition());
+            Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
+            for (auto e : loopNodes->expressions)
+                llvm::errs() << "Kind: " << e->getKind() << "\n";
 
-        Expr* cmp = func->getExpr(ins.getCondition());
+            // I want to move all expresions into doWhile!
+            auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
+            Expr *doWhileBodyPtr = doWhileBody.get();
+            auto doWhile = std::make_unique<DoWhile>(doWhileBodyPtr, cmp);
+            loopNodes->addOwnership(std::move(doWhileBody));
+            func->createExpr(&ins, std::move(doWhile));
+            // body of our doWhile should not contain any goto.
+        }
+        // llvm::errs() << *(*it)->getHeader()->getTerminator()->getSuccessor(0);
+        // #2 latch --EDGE--> header
+        if ((*it)->getHeader()->getTerminator()->getSuccessor(0) == (*it)->getLoopLatch()) {
+            // HOIST LATCH TO HEADER
+            // Why not to use llvm functions?
+            // because in this moment block were already parsed...
+            Expr* cmp = func->getExpr(ins.getCondition());
+            Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
+            for (auto e : loopNodes->expressions)
+                llvm::errs() << "Kind: " << e->getKind() << "\n";
+
+            // I want to move all expresions into doWhile!
+            auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
+            Expr *doWhileBodyPtr = doWhileBody.get();
+            auto doWhile = std::make_unique<DoWhile>(doWhileBodyPtr, cmp);
+            loopNodes->addOwnership(std::move(doWhileBody));
+            func->createExpr(&ins, std::move(doWhile));
+        }
         // llvm::errs << *ins;
         // ((llvm::BasicBlock*)ins.getOperand(2))->print(llvm::errs());
-        Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
-        auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto(block, loopNodes), cmp);
-        func->createExpr(&ins, std::move(doWhile));
         // loopNodes
         // create block with loopNodes
         // create at least something for now
+        
+        // header ---1---> latch
+        // header ---*---> latch
     } else {
+        llvm::errs() << "Ifcond created\n";
         Expr* cmp = func->getExpr(ins.getCondition());
 
         Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
@@ -125,33 +159,13 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
     block->addExpr(func->getExpr(&ins));
 }
 
-
-// static std::map<llvm::Value*, llvm::Loop *> parseLoops(llvm::LoopInfo &LI) {
-//     std::map<llvm::Value*, llvm::Loop *> loops;
-//     std::for_each(LI.begin(), LI.end(), [&loops](llvm::Loop *l) {
-//         loops[llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition()] = l;
-//     });
-//     return loops;
-// }    
-
-
-
 void parseBreaks(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateExpressions));
 
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
-        // function.getFun
-
-
-
-
-
-
         for (const auto& block : function) {
-            
             auto* myBlock = func->getBlock(&block);
-
             for (const auto& ins : block) {
                 auto opcode = ins.getOpcode();
                 if (opcode == llvm::Instruction::Br) {

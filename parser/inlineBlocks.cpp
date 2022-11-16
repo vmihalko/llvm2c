@@ -43,31 +43,92 @@ Expr* InliningVisitor::simplify(Expr* expr) {
 
     return expr;
 }
-
+#include <iostream>
 // (HEADER --inline-> LATCH) --inline--> PREHEADER
 void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
-    if (!loop->isLoopSimplifyForm() || !loop->isRotatedForm() )
-        return;
+    // llvm::errs() << "----Header----"
+    //              << *loop->getHeader() << '\n'
+    //              << "----preheader----"
+    //              << *loop->getLoopPreheader()
+    //              << "\n----latch----"
+    //              << *loop->getLoopLatch()    
+    //              << "\n----latch----";
+    if (!loop->isLoopSimplifyForm())
+        llvm::errs() << "s"; return;
+    if (!loop->isRotatedForm() )
+        llvm::errs() << "r"; return;
 
+
+
+    llvm::errs() << "----Header----"
+                 << *loop->getHeader() << '\n'
+                 << "----preheader----"
+                 << *loop->getLoopPreheader()
+                 << "\n----latch----"
+                 << *loop->getLoopLatch()    
+                 << "\n----latch----";
     // move HEAD into LATCH
+    // IF not header == latch
     auto header = fun->createBlockIfNotExist(loop->getHeader());
-    auto headminator = llvm::dyn_cast_or_null<GotoExpr>(header->expressions.back());
     auto latch  = fun->createBlockIfNotExist(loop->getLoopLatch());
-    if (headminator->target == latch)
-        header->expressions.pop_back();
-    auto list = std::make_unique<ExprList>(std::move( header->expressions ));
-    Expr* result = list.get();
-    latch->addOwnership(std::move(list));
+    if ( ! (header == latch) )  {
+        // Find edge to latch (dfs?) [example if inside for cycle?]
+        auto headminator = llvm::dyn_cast_or_null<GotoExpr>(header->expressions.back());
+        if (headminator->target == latch)
+            header->expressions.pop_back();
+        auto list = std::make_unique<ExprList>(std::move( header->expressions ));
+        Expr* result = list.get();
+        latch->addOwnership(std::move(list));
 
-    // replace goto with ExprList
-    auto dowhile = llvm::dyn_cast_or_null<DoWhile>(latch->expressions[0]);
-    dowhile->body = result;
+    } // header and latch are the same thing
+    if (header == latch) {
+        
+        for (auto e : latch->expressions) {
+        std::cout << e->getKind() << std::endl;
+        switch (e->getKind())
+        {
+        case Expr::EK_AssignExpr:
+            std::cout << "ass\n";
+            break;
+        case Expr::EK_GotoExpr:
+            // auto* gotoExpr = ;   
+            std::cout << "goto: " << llvm::dyn_cast_or_null<GotoExpr>(e)->target->blockName << std::endl;
+            break;
+        case Expr::EK_DoWhile:
+            std::cout << "dwhile\n";
+            break;
+        case Expr::EK_RetExpr:
+            std::cout << "ret\n";
+            break;
+        default:
+            break;
+        }
+        }
 
-    auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
-    preHeader->expressions.back() = dowhile;
+        auto it = std::find_if(latch->expressions.begin(), latch->expressions.end(),
+            [](Expr *e){return llvm::dyn_cast_or_null<DoWhile>(e);});
 
-    preHeader->doInline = false;
-    header->doInline = latch->doInline = true;
+        if (latch->expressions.end() == it)
+            assert(0 && "Cannot find doWhile");
+
+        auto *dowhile = llvm::dyn_cast_or_null<DoWhile>(*it);
+        if (!dowhile) {
+            exit(254);
+        }
+
+        //get gotoExpr from doWhile0
+        // auto *exprList = llvm::dyn_cast_or_null<ExprList *>(dowhile->body());
+        // exprL
+        // auto itt = std::find_if(latch->expressions.begin(), latch->expressions.end(),
+        //     [](Expr *e){return llvm::dyn_cast_or_null<GotoExpr>(e);});
+
+        auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
+        preHeader->expressions.back() = dowhile;
+        preHeader->doInline = false;
+
+        header->doInline = false;
+        latch->doInline = false;
+        }
 }
 
 void inlineLoopBlocksInFunction( Func * fun) {
