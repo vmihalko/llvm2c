@@ -78,7 +78,7 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
     auto it = std::find_if(LI.begin(), LI.end(), [&ins](llvm::Loop *l){
         return llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition() == ins.getCondition();});
 
-    if (LI.end() != it) {
+    if (  LI.end() != it && (*it)->contains(block->block) ) {
         llvm::errs() << "doWhile created\n";
         // 3 options
         // #1 latch == header
