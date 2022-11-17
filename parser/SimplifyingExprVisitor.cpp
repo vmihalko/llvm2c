@@ -236,6 +236,7 @@ void SimplifyingExprVisitor::visit(AggregateInitializer& expr) {
 
 void SimplifyingExprVisitor::visit(ExprList& expr) {
     for (auto it = expr.expressions.begin(); it != expr.expressions.end(); ++it) {
+        (*it)->accept(*this);
         *it = simplify(*it);
     }
 }
