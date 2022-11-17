@@ -28,7 +28,7 @@ Expr* InliningVisitor::simplify(Expr* expr) {
                 // nothing interesting happens until we found gotoExpr
 
                 // Why simplify is necessary?
-                targetBlockExpressions.push_back(simplify(expr));
+                targetBlockExpressions.push_back( simplify(expr) );
                 // becasue we want to replace goto with block on
                 // which is goto pointing...
                 // targetBlockExpressions.push_back(expr);
@@ -46,31 +46,34 @@ Expr* InliningVisitor::simplify(Expr* expr) {
 #include <iostream>
 // (HEADER --inline-> LATCH) --inline--> PREHEADER
 void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
-    // llvm::errs() << "----Header----"
-    //              << *loop->getHeader() << '\n'
-    //              << "----preheader----"
-    //              << *loop->getLoopPreheader()
-    //              << "\n----latch----"
-    //              << *loop->getLoopLatch()    
-    //              << "\n----latch----";
-    if (!loop->isLoopSimplifyForm())
-        llvm::errs() << "s"; return;
-    if (!loop->isRotatedForm() )
-        llvm::errs() << "r"; return;
-
-
-
-    llvm::errs() << "----Header----"
-                 << *loop->getHeader() << '\n'
-                 << "----preheader----"
+    llvm::errs() << "----preeader----"
                  << *loop->getLoopPreheader()
+                 << "\n----header----"
+                 << *loop->getHeader()
                  << "\n----latch----"
                  << *loop->getLoopLatch()    
-                 << "\n----latch----";
-    // move HEAD into LATCH
+                 << "\n----latch----\n";
+    if (!loop->isLoopSimplifyForm())
+        llvm::errs() << "simplified\n";
+    if (!loop->isRotatedForm() )
+        llvm::errs() << "roated\n";
+
+
+
+
+    // move HEAD into LATCH 
     // IF not header == latch
     auto header = fun->createBlockIfNotExist(loop->getHeader());
+    // llvm::errs() << header->expressions.size();
     auto latch  = fun->createBlockIfNotExist(loop->getLoopLatch());
+    auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
+    preHeader->doInline = true;
+    header->doInline = true;
+    latch->doInline = true;
+    // preHeader->doInline = false;
+    // header->doInline = false;
+    // latch->doInline = false;
+    return;
     if ( ! (header == latch) )  {
         // Find edge to latch (dfs?) [example if inside for cycle?]
         auto headminator = llvm::dyn_cast_or_null<GotoExpr>(header->expressions.back());
@@ -112,7 +115,7 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
             assert(0 && "Cannot find doWhile");
 
         auto *dowhile = llvm::dyn_cast_or_null<DoWhile>(*it);
-        if (!dowhile) {
+        if (!dowhile) {     
             exit(254);
         }
 
@@ -122,13 +125,11 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
         // auto itt = std::find_if(latch->expressions.begin(), latch->expressions.end(),
         //     [](Expr *e){return llvm::dyn_cast_or_null<GotoExpr>(e);});
 
-        auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
-        preHeader->expressions.back() = dowhile;
-        preHeader->doInline = false;
+        // preHeader->expressions.back() = dowhile;
 
-        header->doInline = false;
         latch->doInline = false;
         }
+        
 }
 
 void inlineLoopBlocksInFunction( Func * fun) {
