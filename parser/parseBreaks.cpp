@@ -59,69 +59,69 @@ static void parseUncondBranch(const llvm::Instruction& ins, Func* func, Block* b
         func->program->exprMap[&ins] = gotoExpr.get();
         block->addExprAndOwnership(std::move(gotoExpr));
 }
-// TODO?
-// We do not want to traverse through all loops every time.. O(n^2), where n i number of loops.
-// Find way how to uniquely map branching instruction with concrete loops. (nested loops might be problem)
 
-// static llvm::Loop *inInstructionOutLoop(const llvm::BranchInst& ins, Func* func, Block* block, llvm::LoopInfo &LI) {
-//     for (const auto &loop : LI){
-//         // loop->getLatchCmpInst
-//     }
-// }
 static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block) {
 
-    // if (std::end(loops) != std::find(loops->begin(), loops->end(), ins.getCondition() )) {
-
-    // }
-
     llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
+    // llvm::errs() << *LI.begin();
     auto it = std::find_if(LI.begin(), LI.end(), [&ins](llvm::Loop *l){
         return llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition() == ins.getCondition();});
 
     if (  LI.end() != it && (*it)->contains(block->block) ) {
         llvm::errs() << "doWhile created\n";
-        // 3 options
-        // #1 latch == header
-        if ((*it)->getHeader() == (*it)->getLoopLatch() /*|| HEAD ---1---> LATCH */) {
-            Expr* cmp = func->getExpr(ins.getCondition());
-            Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
-            for (auto e : loopNodes->expressions)
-                llvm::errs() << "Kind: " << e->getKind() << "\n";
 
-            // I want to move all expresions into doWhile!
+        if ((*it)->getHeader() == (*it)->getLoopLatch()) { // #1 HEADER and LATCH are same
+            llvm::errs() << "LATCH is HEADER\n";
+
+            // move all exprs into the body of doWhile!
+            Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
             auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
             Expr *doWhileBodyPtr = doWhileBody.get();
+
+            // create condition
+            Expr* cmp = func->getExpr(ins.getCondition());
+
+            // create doWhile
             auto doWhile = std::make_unique<DoWhile>(doWhileBodyPtr, cmp);
             loopNodes->addOwnership(std::move(doWhileBody));
             func->createExpr(&ins, std::move(doWhile));
-            // body of our doWhile should not contain any goto.
-        }
-        // llvm::errs() << *(*it)->getHeader()->getTerminator()->getSuccessor(0);
-        // #2 latch --EDGE--> header
-        if ((*it)->getHeader()->getTerminator()->getSuccessor(0) == (*it)->getLoopLatch()) {
-            // HOIST LATCH TO HEADER
-            // Why not to use llvm functions?
-            // because in this moment block were already parsed...
-            Expr* cmp = func->getExpr(ins.getCondition());
-            Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
-            for (auto e : loopNodes->expressions)
-                llvm::errs() << "Kind: " << e->getKind() << "\n";
+            Block* afterDoWhileBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
+            block->addExpr(func->getExpr(&ins));
+            block->addExpr(createListOfOneGoto(block, afterDoWhileBlock));
+            return;
 
-            // I want to move all expresions into doWhile!
-            auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
+        }
+        if ((*it)->getHeader()->getTerminator()->getSuccessor(0) == (*it)->getLoopLatch()) {// #2 latch --SINGLE-EDGE--> header
+            llvm::errs() << "HOIST LATCH TO HEADER\n";
+
+            Expr* cmp = func->getExpr(ins.getCondition());
+            Block* HeaderBlock = func->getBlock((*it)->getHeader());
+
+            if (llvm::dyn_cast_or_null<GotoExpr>(HeaderBlock->expressions.back())->target != block)
+                assert(false && "The header is not jumping into the (latch) block!");
+            HeaderBlock->expressions.pop_back(); // Remove the uncoditional jump into the latch block
+
+            auto doWhileBody = std::make_unique<ExprList>(std::move( HeaderBlock->expressions ));
+            
+            if( block->expressions.size()) { //If the latch contains any EXPRS add also them inside the doWhile block:
+                auto latchNodeBody = std::make_unique<ExprList>(std::move( block->expressions ));
+                doWhileBody->expressions.push_back( latchNodeBody.get() );
+                HeaderBlock->addOwnership( std::move( latchNodeBody ) );
+            }
+            
             Expr *doWhileBodyPtr = doWhileBody.get();
             auto doWhile = std::make_unique<DoWhile>(doWhileBodyPtr, cmp);
-            loopNodes->addOwnership(std::move(doWhileBody));
+            HeaderBlock->addOwnership( std::move(doWhileBody) );
             func->createExpr(&ins, std::move(doWhile));
+            HeaderBlock->addExpr(func->getExpr(&ins));
+
+            Block* afterDoWhileBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
+            HeaderBlock->addExpr(createListOfOneGoto(HeaderBlock, afterDoWhileBlock));
+            return; // block is not our daddy, but rather: HeaderBlock->addExprAndOwnership 
+            
         }
-        // llvm::errs << *ins;
-        // ((llvm::BasicBlock*)ins.getOperand(2))->print(llvm::errs());
-        // loopNodes
-        // create block with loopNodes
-        // create at least something for now
-        
-        // header ---1---> latch
-        // header ---*---> latch
+        std::terminate();
+        assert(false && "Something unloopected happend!");
     } else {
         llvm::errs() << "Ifcond created\n";
         Expr* cmp = func->getExpr(ins.getCondition());
