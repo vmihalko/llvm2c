@@ -60,6 +60,61 @@ static void parseUncondBranch(const llvm::Instruction& ins, Func* func, Block* b
         block->addExprAndOwnership(std::move(gotoExpr));
 }
 
+void parseComplexLoop(const llvm::BranchInst& ins, Func* func, Block* block, llvm::Loop *loop) {
+    // This is the doWhile condition
+    Expr* doWhileCondExpr = func->getExpr(ins.getCondition());
+
+    Block* HeaderBlock = func->getBlock( loop->getHeader() );
+    HeaderBlock->expressions;
+
+
+    //create doWhile node
+    Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
+    auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
+    Expr *doWhileBodyPtr = doWhileBody.get();
+    // merge eveything into doWhile body
+    return;
+}
+
+Expr *parseBlockReturn(const llvm::ReturnInst& retIns, Func* func/*, Block *block*/) {
+    if ( !retIns.getReturnValue() ) {
+        func->createExpr(&retIns, std::make_unique<RetExpr>());
+    } else {
+        func->createExpr(&retIns, std::make_unique<RetExpr>(func->getExpr(retIns.getReturnValue())));
+    }
+    return func->getExpr(&retIns);
+}
+
+Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
+    return func->entry->expressions[0];
+    // const llvm::Instruction *blockTerminator = block->getTerminator();
+    // auto *currBlock = func->getBlock(block);
+
+    // if (llvm::isa<llvm::ReturnInst *>(block->getTerminator())) {
+    //     auto *retE = parseBlockReturn(*llvm::dyn_cast<const llvm::ReturnInst *>(blockTerminator), func/*, block*/);
+    //     currBlock->addExpr(retE);
+    //     return retE;
+    // }
+    //else if (llvm::isa<llvm::BranchInst>(*blockTerminator)) {
+    //     if ( llvm::dyn_cast<llvm::BranchInst>(blockTerminator)->isConditional())
+    //         return parseBlockCondBranch();
+    //     return parseBlockUncondBranch();
+    // }
+
+}
+
+void parseBreakRec(const llvm::Module* module, Program& program) {
+    assert(program.isPassCompleted(PassType::CreateExpressions));
+
+    for (const auto& function : module->functions()) {
+        auto* func = program.getFunction(&function);
+        for (const auto& block : function) {
+            auto* myBlock = func->getBlock(&block);
+            parseBlock(func, &block);
+        }
+    }
+}
+
 static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* block) {
 
     llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
@@ -72,7 +127,6 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
 
         if ((*it)->getHeader() == (*it)->getLoopLatch()) { // #1 HEADER and LATCH are same
             llvm::errs() << "LATCH is HEADER\n";
-
             // move all exprs into the body of doWhile!
             Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
             auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
@@ -88,6 +142,7 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
             Block* afterDoWhileBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
             block->addExpr(func->getExpr(&ins));
             block->addExpr(createListOfOneGoto(block, afterDoWhileBlock));
+            block->brHandled = true;
             return;
 
         }
@@ -117,9 +172,12 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
 
             Block* afterDoWhileBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
             HeaderBlock->addExpr(createListOfOneGoto(HeaderBlock, afterDoWhileBlock));
+            block->brHandled = true;
             return; // block is not our daddy, but rather: HeaderBlock->addExprAndOwnership 
             
         }
+        // Loop with complex CFG inside
+        parseComplexLoop(ins, func, block, *it);
         std::terminate();
         assert(false && "Something unloopected happend!");
     } else {
@@ -133,6 +191,7 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
         func->createExpr(&ins, std::move(ifExpr));
     }
 
+    block->brHandled = true;
     block->addExpr(func->getExpr(&ins));
 }
 
@@ -156,6 +215,7 @@ static void parseRetInstruction(const llvm::Instruction& ins, Func* func, Block*
         func->createExpr(value, std::make_unique<RetExpr>(expr));
     }
 
+    block->brHandled = true;
     block->addExpr(func->getExpr(&ins));
 }
 
