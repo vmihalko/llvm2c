@@ -318,7 +318,7 @@ bool DoWhile::classof(const Expr* expr) {
 }
 
 
-Do::Do(Expr* body, Expr* cond): Expr(EK_Do), body(body), cond(cond) { }
+Do::Do(Expr* body): Expr(EK_Do), body(body) { }
 
 void Do::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

@@ -62,7 +62,7 @@ public:
         EK_MinusExpr,
         EK_DoWhile,
         EK_Do,
-        EK_While,
+        EK_While
     };
 private:
     const ExprKind kind;
@@ -415,9 +415,8 @@ public:
 class Do : public Expr {
 public:
     Expr* body;
-    Expr* cond;
 
-    Do(Expr* body, Expr* cond);
+    Do(Expr* body);
 
     void accept(ExprVisitor& visitor) override;
 

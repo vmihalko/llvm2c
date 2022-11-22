@@ -488,9 +488,6 @@ void ExprWriter::visit(DoWhile& expr) {
 void ExprWriter::visit(Do& expr) {
     ss << "do {" << std::endl;
     expr.body->accept(*this);
-    ss << "} while (";
-    expr.cond->accept(*this);
-    ss << ");" << std::endl;
 }
 
 void ExprWriter::visit(While& expr) {
