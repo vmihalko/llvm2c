@@ -316,3 +316,25 @@ void DoWhile::accept(ExprVisitor& visitor) {
 bool DoWhile::classof(const Expr* expr) {
     return expr->getKind() == EK_DoWhile;
 }
+
+
+Do::Do(Expr* body): Expr(EK_Do), body(body) { }
+
+void Do::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool Do::classof(const Expr* expr) {
+    return expr->getKind() == EK_Do;
+}
+
+
+While::While(Expr* body, Expr* cond): Expr(EK_While), body(body), cond(cond) { }
+
+void While::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool While::classof(const Expr* expr) {
+    return expr->getKind() == EK_While;
+}
