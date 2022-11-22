@@ -155,39 +155,51 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // remove `goto loopHeader;`
     loopPreheader->expressions.pop_back();
 
-    // #1 create the condition c from `while( C )`
-    Expr* cmp = func->getExpr( loop->getLatchCmpInst() );
-    // do { goto loop.header() } while (c)
-
-    // #2 create the doWhile body `do { goto loopHeader; }`
-    Block* doWhileBody = func->createBlockIfNotExist( loop->getHeader() );
+    // #1 create the `do` and `goto loopBody;` `do { goto loopHeader; }`
+    Block* doBody = func->createBlockIfNotExist( loop->getHeader() );
 
     // #3 create doWhileBody expr
-    auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
-                                                                    doWhileBody),
-                                                cmp);
-    // mark latchNode as processed
+    // auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
+    //                                                                 doWhileBody),
+    //                                             cmp);
+    auto _do = std::make_unique<Do>(createListOfOneGoto( loopPreheader, doBody ));
+    loopPreheader->addExprAndOwnership(std::move(_do));
+    
+    // we run into a problem, 
+    // Must every Expr be in a function (ownership)?
+    //func->createExpr( *_d, std::move( _do ));
+
+
+    // #1 create the condition c from `while( C )`
+    Expr* cmp = func->getExpr( loop->getLatchCmpInst() );
+    auto _while = std::make_unique<While>( nullptr, cmp );
+    func->createExpr( loop->getLatchCmpInst(), std::move( _while ));
     func->getBlock( loop->getLoopLatch() )->brHandled = true;
+    func->getBlock( loop->getLoopLatch() )->addExpr( func->getExpr(loop->getLatchCmpInst()));
+    Block* afterDoWhile = func->createBlockIfNotExist(
+                                llvm::dyn_cast<llvm::BasicBlock>(
+                                        loop->getLoopLatch()->getTerminator()->getOperand(1)
+                                        ));
+    func->getBlock( loop->getLoopLatch() )->addExpr(createListOfOneGoto(func->getBlock( loop->getLoopLatch() ), afterDoWhile));
+
+    // add `goto afterDoWhileBlock;` expression after doWhile expr
+    // func->getBlock( loop->getLoopLatch() )
+    // do { goto loop.header() } while (c)
+
+    // mark latchNode as processed
     
     // TODO: expression in latchnode! 
 
     // save the newly created expression
-    func->createExpr( loop->getLatchCmpInst(), std::move( doWhile ));
     
     // intuition behind this step can be described as "dummy force inlining"
     // add it to the preheader block (on the place were )
-    loopPreheader->expressions.push_back( func->getExpr( loop->getLatchCmpInst() ) );
+    // loopPreheader->expressions.push_back( func->getExpr( loop->getLatchCmpInst() ) );
 
     // auto latchBlock = func->getBlock( loop->getLoopLatch() ); // in this block loop ~= latch node ~= while ( c ) i=
     // latchBlock->addExpr( func->getExpr( loop->getLatchCmpInst() )); // while condition == DoWhile
     
     // when `eval( C ) == false, for C from `while( C )`, we are jumping to the next block after doWhile
-    Block* afterDoWhile = func->createBlockIfNotExist(
-                                llvm::dyn_cast<llvm::BasicBlock>(
-                                        loop->getLoopLatch()->getTerminator()->getOperand(1)
-                                        ));
-    // add `goto afterDoWhileBlock;` expression after doWhile expr
-    loopPreheader->addExpr(createListOfOneGoto(loopPreheader, afterDoWhile));
 
     // nested loops are already parsed
     for( const auto& loopBodyBlock : loop->blocks() ) {

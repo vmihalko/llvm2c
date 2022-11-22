@@ -428,7 +428,8 @@ void ExprWriter::visit(ExprList& exprList) {
             indent();
         first = false;
         expr->accept(*this);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+        // llvm::errs() << "\n" << expr->getKind() << "\n";
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<While>(expr) && !llvm::isa<Do>(expr) ) {
             ss << ";" << std::endl;
         }
     }
@@ -489,15 +490,44 @@ void ExprWriter::visit(DoWhile& expr) {
     ss << ")";
 }
 
+
+// void ExprWriter::visit(IfExpr& expr) {
+//     ss << "if (";
+//     expr.cmp->accept(*this);
+//     ss << ") {" << std::endl;
+//     indentCount++;
+//     indent();
+//     expr.trueList->accept(*this);
+//     indentCount--;
+//     indent();
+//     ss << "} else {" << std::endl;
+//     indentCount++;
+//     indent();
+//     expr.falseList->accept(*this);
+//     indentCount--;
+//     indent();
+//     ss << "}" << std::endl;
+// }
+
 void ExprWriter::visit(Do& expr) {
-    ss << "do {" << std::endl;
+    // llvm::errs() << "\n" << expr.getKind() << "\n";
+    ss << "Xdo {" << std::endl;
+    indentCount++;
+    indent();
     expr.body->accept(*this);
 }
 
 void ExprWriter::visit(While& expr) {
-    ss << "do {" << std::endl;
-    expr.body->accept(*this);
-    ss << "} while (";
+    // llvm::errs() << "\n" << expr.getKind() << "\n";
+    if (expr.body) {
+        llvm::errs() << "bol som tu";
+        expr.body->accept(*this);
+    } else {
+        ss << ";";
+    }
+    indentCount--;
+    // indent();
+    ss << "} Xwhile (";
     expr.cond->accept(*this);
-    ss << ");" << std::endl;
+    ss << ")";
 }

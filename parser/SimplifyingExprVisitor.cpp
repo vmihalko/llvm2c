@@ -288,8 +288,10 @@ void SimplifyingExprVisitor::visit(Do& expr) {
 
 void SimplifyingExprVisitor::visit(While& expr) {
     expr.cond->accept(*this);
-    expr.body->accept(*this);
+    if (expr.body)
+        expr.body->accept(*this);
 
     expr.cond = simplify(expr.cond);
-    expr.body = simplify(expr.body);
+    if (expr.body)
+        expr.body = simplify(expr.body);
 }

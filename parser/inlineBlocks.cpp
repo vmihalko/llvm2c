@@ -69,10 +69,10 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
     auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
     preHeader->doInline = true;
     header->doInline = true;
-    latch->doInline = true;
+    // latch->doInline = true;
     // preHeader->doInline = false;
     // header->doInline = false;
-    // latch->doInline = false;
+    latch->doInline = false;
     return;
     if ( ! (header == latch) )  {
         // Find edge to latch (dfs?) [example if inside for cycle?]

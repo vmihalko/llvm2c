@@ -412,7 +412,7 @@ public:
     static bool classof(const Expr* expr);
 };
 
-class Do : public Expr {
+class Do : public ExprBase {
 public:
     Expr* body;
 
@@ -423,12 +423,13 @@ public:
     static bool classof(const Expr* expr);
 };
 
-class While : public Expr {
+class While : public ExprBase {
 public:
     Expr* body;
     Expr* cond;
 
     While(Expr* body, Expr* cond);
+    While(Expr* cond);
 
     void accept(ExprVisitor& visitor) override;
 

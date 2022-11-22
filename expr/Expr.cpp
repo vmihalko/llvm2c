@@ -318,7 +318,7 @@ bool DoWhile::classof(const Expr* expr) {
 }
 
 
-Do::Do(Expr* body): Expr(EK_Do), body(body) { }
+Do::Do(Expr* body): ExprBase(EK_Do), body(body) { }
 
 void Do::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
@@ -329,8 +329,8 @@ bool Do::classof(const Expr* expr) {
 }
 
 
-While::While(Expr* body, Expr* cond): Expr(EK_While), body(body), cond(cond) { }
-
+While::While(Expr* body, Expr* cond): ExprBase(EK_While), body(body), cond(cond) { }
+While::While(Expr* cond): ExprBase(EK_While), cond(cond) { }
 void While::accept(ExprVisitor& visitor) {
     visitor.visit(*this);
 }
