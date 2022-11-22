@@ -39,6 +39,8 @@ class GotoExpr;
 class ExprList;
 class MinusExpr;
 class DoWhile;
+class Do;
+class While;
 
 class ExprVisitor {
 public:
@@ -81,6 +83,8 @@ public:
     virtual void visit(MinusExpr& ) {}
     virtual void visit(LogicalNot& ) {}
     virtual void visit(DoWhile& ) {}
+    virtual void visit(Do& ) {}
+    virtual void visit(While& ) {}
 
     virtual ~ExprVisitor() = default;
 };

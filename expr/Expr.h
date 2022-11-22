@@ -61,6 +61,8 @@ public:
         EK_ExprList,
         EK_MinusExpr,
         EK_DoWhile,
+        EK_Do,
+        EK_While,
     };
 private:
     const ExprKind kind;
@@ -404,6 +406,30 @@ public:
     Expr* cond;
 
     DoWhile(Expr* body, Expr* cond);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+class Do : public Expr {
+public:
+    Expr* body;
+    Expr* cond;
+
+    Do(Expr* body, Expr* cond);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+class While : public Expr {
+public:
+    Expr* body;
+    Expr* cond;
+
+    While(Expr* body, Expr* cond);
 
     void accept(ExprVisitor& visitor) override;
 
