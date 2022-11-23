@@ -239,8 +239,9 @@ public:
 class LatchExpr : public ExprBase {
 public:
     Block* target; //else goto falseBlock
+    bool latchIsHeader;
 
-    LatchExpr(Block* target);
+    LatchExpr(Block* target, bool latchIsHeader);
 
     void accept(ExprVisitor& visitor) override;
 
