@@ -59,6 +59,7 @@
 #include "llvm/Transforms/Vectorize.h"
 #include "llvm/Transforms/Vectorize/LoopVectorize.h"
 #include "llvm/Transforms/Vectorize/SLPVectorizer.h"
+#include <llvm/Bitcode/BitcodeWriter.h>
 
 #include <string>
 
@@ -115,6 +116,10 @@ void run_llvm_passes(llvm::Module *m) {
 void printModule(llvm::Module *m) {
     std::string Str;
     llvm::raw_string_ostream OS(Str);
+    std::error_code EC;
+    llvm::raw_fd_ostream FS("module.ll", EC);
+    FS << *m;
+    FS.flush();
     OS << *m;
     OS.flush();
     std::cout << Str << std::endl;
