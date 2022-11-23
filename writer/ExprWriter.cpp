@@ -110,6 +110,10 @@ void ExprWriter::visit(GotoExpr& expr) {
     ss << "goto " << expr.target->blockName;
 }
 
+void ExprWriter::visit(LatchExpr& expr) {
+    ss << "LATCH:";
+}
+
 void ExprWriter::visit(SwitchExpr& expr) {
     ss << "switch (";
     expr.cmp->accept(*this);
