@@ -111,7 +111,11 @@ void ExprWriter::visit(GotoExpr& expr) {
 }
 
 void ExprWriter::visit(LatchExpr& expr) {
-    ss << "LATCH:";
+    Block *latchBlock = expr.target;
+    if (expr.latchIsHeader)
+        return;
+    if (latchBlock->expressions.empty())
+        ss << latchBlock->blockName << ":";
 }
 
 void ExprWriter::visit(SwitchExpr& expr) {
