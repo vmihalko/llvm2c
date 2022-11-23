@@ -137,6 +137,17 @@ void inlineLoopBlocksInFunction( Func * fun) {
     for( auto l : LI)
         inlineLoopBlocks(l, fun);
 }
+void doNotInlineLatchBlocksIntoGotoLatch(Func * fun) {
+    llvm::LoopInfo &LI = fun->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*fun->function));
+    for( auto l : LI)
+        fun->getBlock( l->getLoopLatch() )->doInline = false;
+}
+void markLatchBlockAsInlined(Func *fun) /*fool writer*/ {
+    llvm::LoopInfo &LI = fun->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*fun->function));
+    for( auto l : LI)
+        fun->getBlock( l->getLoopLatch() )->doInline = true;
+}
+
 
 void inlineBlocks(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::IdentifyInlinableBlocks));
@@ -145,7 +156,8 @@ void inlineBlocks(const llvm::Module* module, Program& program) {
         if (func.isIntrinsic())
             continue;
         auto* function = program.getFunction(&func);
-        inlineLoopBlocksInFunction(function);
+        // inlineLoopBlocksInFunction(function);
+        doNotInlineLatchBlocksIntoGotoLatch(function);
         for (const auto& block : func) {
             auto* myBlock = function->createBlockIfNotExist(&block);
             InliningVisitor iv(myBlock);
@@ -155,6 +167,7 @@ void inlineBlocks(const llvm::Module* module, Program& program) {
                 expr = iv.simplify(expr);
             }
         }
+        markLatchBlockAsInlined(function);
     }
 
     program.addPass(PassType::InlineBlocks);
