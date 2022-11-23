@@ -26,6 +26,7 @@ public:
         EK_GlobalValue,
         EK_IfExpr,
         EK_GotoExpr,
+        EK_LatchExpr,
         EK_SwitchExpr,
         EK_AsmExpr,
         EK_CallExpr,
@@ -227,6 +228,20 @@ public:
     Block* target; //else goto falseBlock
 
     GotoExpr(Block* target);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+/**
+ * @brief The LatchExpr class represents artifical `latch:` label for a DoWhile expr.
+ */
+class LatchExpr : public ExprBase {
+public:
+    Block* target; //else goto falseBlock
+
+    LatchExpr(Block* target);
 
     void accept(ExprVisitor& visitor) override;
 

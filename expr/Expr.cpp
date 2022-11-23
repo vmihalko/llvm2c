@@ -297,6 +297,16 @@ bool GotoExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GotoExpr;
 }
 
+LatchExpr::LatchExpr(Block* target) : ExprBase(EK_LatchExpr), target(target) { }
+
+void LatchExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool LatchExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_LatchExpr;
+}
+
 ExprList::ExprList(std::vector<Expr*>&& expressions) : ExprBase(EK_ExprList), expressions(std::move(expressions)) {}
 
 void ExprList::accept(ExprVisitor& visitor) {
