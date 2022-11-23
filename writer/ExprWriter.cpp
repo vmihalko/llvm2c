@@ -455,7 +455,7 @@ void ExprWriter::visit(ExprList& exprList) {
         first = false;
         expr->accept(*this);
         // llvm::errs() << "\n" << expr->getKind() << "\n";
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<While>(expr) && !llvm::isa<Do>(expr) ) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<Do>(expr) ) {
             ss << ";" << std::endl;
         }
     }
@@ -548,12 +548,10 @@ void ExprWriter::visit(While& expr) {
     if (expr.body) {
         llvm::errs() << "bol som tu";
         expr.body->accept(*this);
-    } else {
-        ss << ";";
     }
     indentCount--;
     indent();
     ss << "} while (";
     expr.cond->accept(*this);
-    ss << ")\n";
+    ss << ")";
 }

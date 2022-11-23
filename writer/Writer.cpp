@@ -3,6 +3,8 @@
 
 #include <unordered_set>
 
+#include <llvm/Support/Casting.h>
+
 #define SECTION_START(name, cond)\
     bool __sectionEnabled = ((cond));\
     if (__sectionEnabled) {\
@@ -296,15 +298,33 @@ bool Writer::isFunctionPrinted(const Func* func) const {
     return true;
 }
 
+bool isWhile(Expr *expr);
+
+bool isWhileInExprList(Expr *expr){
+    if (auto exprList = llvm::dyn_cast<ExprList>(expr)) {
+        if (!exprList->expressions.empty())
+            return isWhile(exprList->expressions[0]);
+        // return llvm::isa<While>(expr);
+    }
+    return false;
+}
+bool isWhile(Expr *expr){
+    return llvm::isa<While>(expr) || isWhileInExprList(expr);
+}
+
 void Writer::writeBlock(const Block* block) {
     wr.indent(1);
     wr.startBlock(block->blockName);
 
+    if( block->expressions.size() == 1 )   
+        if (isWhile( block->expressions[0] ))
+            wr.raw(";"); 
+
     for (const auto& expr : block->expressions) {
-        // if (!llvm::isa<While>(expr))
-        wr.indent(1);
+        if (!isWhileInExprList(expr))
+            wr.indent(1);
         expr->accept(ew);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<While>(expr) && !llvm::isa<Do>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<Do>(expr)) {
             wr.line(";");
         }
     }
