@@ -167,9 +167,16 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
                                                                     doWhileBody),
                                                 cmp);
     // mark latchNode as processed
-    func->getBlock( loop->getLoopLatch() )->brHandled = true;
-    
+    // func->getBlock( loop->getLoopLatch() )->doInline = false;
     // TODO: expression in latchnode! 
+
+    //##############################################
+    bool latchIsHeader = loop->getHeader() == loop->getLoopLatch();
+    auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), latchIsHeader );
+    llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( &(*latchWrap) );
+    doWhileBody->addOwnership( std::move(latchWrap) );
+    //##############################################
+    func->getBlock( loop->getLoopLatch() )->brHandled = true;
 
     // save the newly created expression
     func->createExpr( loop->getLatchCmpInst(), std::move( doWhile ));
