@@ -421,11 +421,37 @@ void ExprWriter::visit(ArrowExpr& expr) {
     ss << ty->items[expr.element].second;
 }
 
+// Expr *whileInExprList(Expr *expr){
+//     if (auto exprList = llvm::dyn_cast<ExprList>(expr)) {
+//         if (!exprList->expressions.empty())
+//             return whileInExprList(exprList->expressions[0]);
+//         if (llvm::isa<While>(expr))
+//             return expr;
+//     }
+//     return nullptr;
+// }
+
+Expr *whileInExprList(Expr *expr){
+    if (auto exprList = llvm::dyn_cast<ExprList>(expr)) {
+        if (!exprList->expressions.empty())
+            return whileInExprList(exprList->expressions[0]);
+    }
+    if (llvm::isa<While>(expr))
+        return expr;
+    return nullptr;
+}
+
 void ExprWriter::visit(ExprList& exprList) {
     bool first = true;
     for (const auto& expr : exprList.expressions) {
-        if (!first)
+        if (!first && !whileInExprList(expr))
             indent();
+        // if (whileInExprList(expr) && indentCount > 2)
+        //     indentCount--;
+        //  && !llvm::isa<While>(expr))
+        // indent();
+        // indent();
+        
         first = false;
         expr->accept(*this);
         // llvm::errs() << "\n" << expr->getKind() << "\n";
@@ -511,7 +537,7 @@ void ExprWriter::visit(DoWhile& expr) {
 
 void ExprWriter::visit(Do& expr) {
     // llvm::errs() << "\n" << expr.getKind() << "\n";
-    ss << "Xdo {" << std::endl;
+    ss << "do {" << std::endl;
     indentCount++;
     indent();
     expr.body->accept(*this);
@@ -526,8 +552,8 @@ void ExprWriter::visit(While& expr) {
         ss << ";";
     }
     indentCount--;
-    // indent();
-    ss << "} Xwhile (";
+    indent();
+    ss << "} while (";
     expr.cond->accept(*this);
-    ss << ")";
+    ss << ")\n";
 }

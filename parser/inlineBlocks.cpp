@@ -67,12 +67,12 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
     // llvm::errs() << header->expressions.size();
     auto latch  = fun->createBlockIfNotExist(loop->getLoopLatch());
     auto preHeader = fun->createBlockIfNotExist(loop->getLoopPreheader());
-    preHeader->doInline = true;
+    // preHeader->doInline = true;
     header->doInline = true;
-    // latch->doInline = true;
-    // preHeader->doInline = false;
+    latch->doInline = true;
+    preHeader->doInline = false;
     // header->doInline = false;
-    latch->doInline = false;
+    // latch->doInline = false;
     return;
     if ( ! (header == latch) )  {
         // Find edge to latch (dfs?) [example if inside for cycle?]
@@ -134,7 +134,7 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
 
 void inlineLoopBlocksInFunction( Func * fun) {
     llvm::LoopInfo &LI = fun->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*fun->function));
-    for( auto l : LI)
+    for( auto l : LI) //go thourh loops also!
         inlineLoopBlocks(l, fun);
 }
 

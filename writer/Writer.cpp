@@ -301,9 +301,10 @@ void Writer::writeBlock(const Block* block) {
     wr.startBlock(block->blockName);
 
     for (const auto& expr : block->expressions) {
+        // if (!llvm::isa<While>(expr))
         wr.indent(1);
         expr->accept(ew);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<While>(expr) && !llvm::isa<Do>(expr)) {
             wr.line(";");
         }
     }

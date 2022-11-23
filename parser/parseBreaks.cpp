@@ -157,6 +157,7 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 
     // #1 create the `do` and `goto loopBody;` `do { goto loopHeader; }`
     Block* doBody = func->createBlockIfNotExist( loop->getHeader() );
+    doBody->doInline = true; //TODO check if there is no more than 2 precessors
 
     // #3 create doWhileBody expr
     // auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
