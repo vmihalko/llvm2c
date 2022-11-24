@@ -211,10 +211,6 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     }
 
     func->getBlock( loop->getHeader() )->doInline = true;
-    // // not containing any loops
-    // for( const auto& loopBodyBlock : loop->blocks() ) {
-    //     parseBlock(func, loopBodyBlock);
-    // }
 }
 
 void parseBreakRec(const llvm::Module* module, Program& program) {
