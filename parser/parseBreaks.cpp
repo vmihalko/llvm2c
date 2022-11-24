@@ -162,18 +162,10 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // #2 create the doWhile body `do { goto loopHeader; }`
     Block* doWhileBody = func->createBlockIfNotExist( loop->getHeader() );
 
-    // if ( loop->getHeader() == loop->getLoopLatch() ){
-    //     // auto listExpr = std::make_unique<>(doWhileBody->expressions 
-    //     auto doWhile = std::make_unique<DoWhile>(cmp, cmp);
-    // } else {
-    // // #3 create doWhileBody expr
-    // }
+    // #3 create doWhileBody expr
     auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
                                                                     doWhileBody),
                                                 cmp);
-    // mark latchNode as processed
-    // func->getBlock( loop->getLoopLatch() )->doInline = false;
-    // TODO: expression in latchnode! 
 
     //##############################################
     if ( loop->getHeader() != loop->getLoopLatch() ){
@@ -192,9 +184,6 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // intuition behind this step can be described as "dummy force inlining"
     // add it to the preheader block (on the place were )
     loopPreheader->expressions.push_back( func->getExpr( loop->getLatchCmpInst() ) );
-
-    // auto latchBlock = func->getBlock( loop->getLoopLatch() ); // in this block loop ~= latch node ~= while ( c ) i=
-    // latchBlock->addExpr( func->getExpr( loop->getLatchCmpInst() )); // while condition == DoWhile
     
     // when `eval( C ) == false, for C from `while( C )`, we are jumping to the next block after doWhile
     Block* afterDoWhile = func->createBlockIfNotExist(
@@ -209,8 +198,6 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
         if (!func->getBlock(loopBodyBlock)->brHandled)
             parseBlock(func, loopBodyBlock);
     }
-
-    func->getBlock( loop->getHeader() )->doInline = true;
 }
 
 void parseBreakRec(const llvm::Module* module, Program& program) {
