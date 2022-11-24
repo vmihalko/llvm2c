@@ -240,9 +240,9 @@ public:
 class LatchExpr : public ExprBase {
 public:
     Block* target; //else goto falseBlock
-    bool latchIsHeader;
+    bool headEdgeLatch;
 
-    LatchExpr(Block* target, bool latchIsHeader);
+    LatchExpr(Block* target, bool headEdgeLatch);
 
     void accept(ExprVisitor& visitor) override;
 

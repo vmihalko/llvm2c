@@ -139,7 +139,10 @@ void inlineLoopBlocksInFunction( Func * fun) {
 }
 
 void doNotInlineSubloopLatchBlockIntoGotoLatch(Func * fun, llvm::Loop *loop) {
-    fun->getBlock( loop->getLoopLatch() )->doInline = loop->getLoopLatch() == loop->getHeader();
+    fun->getBlock( loop->getLoopLatch() )->doInline = loop->getLoopLatch() == loop->getHeader() ||
+                                                        ( (loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch()) &&
+            loop->getLoopLatch()->getSinglePredecessor() != nullptr /*loopHeader --SINGLE-EDGE--> loopLatch*/ );
+
     for(auto subLoop : loop->getSubLoops()){
         doNotInlineSubloopLatchBlockIntoGotoLatch( fun, subLoop );
     }
