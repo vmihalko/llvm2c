@@ -137,15 +137,33 @@ void inlineLoopBlocksInFunction( Func * fun) {
     for( auto l : LI)
         inlineLoopBlocks(l, fun);
 }
+
+void doNotInlineSubloopLatchBlockIntoGotoLatch(Func * fun, llvm::Loop *loop) {
+    fun->getBlock( loop->getLoopLatch() )->doInline = loop->getLoopLatch() == loop->getHeader();
+    for(auto subLoop : loop->getSubLoops()){
+        doNotInlineSubloopLatchBlockIntoGotoLatch( fun, subLoop );
+    }
+
+}
+
 void doNotInlineLatchBlocksIntoGotoLatch(Func * fun) {
     llvm::LoopInfo &LI = fun->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*fun->function));
     for( auto l : LI)
-        fun->getBlock( l->getLoopLatch() )->doInline = false;
+        doNotInlineSubloopLatchBlockIntoGotoLatch(fun, l);
 }
+
+void markLatchBlockAsInlined(Func * fun, llvm::Loop *loop) {
+    fun->getBlock( loop->getLoopLatch() )->doInline = true;
+    for(auto subLoop : loop->getSubLoops()){
+        markLatchBlockAsInlined( fun, subLoop );
+    }
+
+}
+
 void markLatchBlockAsInlined(Func *fun) /*fool writer*/ {
     llvm::LoopInfo &LI = fun->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*fun->function));
     for( auto l : LI)
-        fun->getBlock( l->getLoopLatch() )->doInline = true;
+        markLatchBlockAsInlined(fun, l);
 }
 
 
