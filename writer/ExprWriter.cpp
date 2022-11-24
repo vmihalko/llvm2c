@@ -114,8 +114,18 @@ void ExprWriter::visit(LatchExpr& expr) {
     Block *latchBlock = expr.target;
     if (expr.latchIsHeader)
         return;
-    if (latchBlock->expressions.empty())
-        ss << latchBlock->blockName << ":";
+    // if (latchBlock->expressions.empty())
+    size_t tmp = indentCount;
+    // auto *latchExprs = llvm::dyn_cast<ExprList>( &latchBlock->expressions );
+    ss << latchBlock->blockName << ":";
+    if (!latchBlock->expressions.empty())
+        ss << "\n";
+    for (const auto& expr : latchBlock->expressions) {
+        indent();
+        expr->accept(*this);
+        // if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+    }
+    // latchExprs->accept(*this);
 }
 
 void ExprWriter::visit(SwitchExpr& expr) {
