@@ -162,7 +162,12 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // #2 create the doWhile body `do { goto loopHeader; }`
     Block* doWhileBody = func->createBlockIfNotExist( loop->getHeader() );
 
-    // #3 create doWhileBody expr
+    // if ( loop->getHeader() == loop->getLoopLatch() ){
+    //     // auto listExpr = std::make_unique<>(doWhileBody->expressions 
+    //     auto doWhile = std::make_unique<DoWhile>(cmp, cmp);
+    // } else {
+    // // #3 create doWhileBody expr
+    // }
     auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
                                                                     doWhileBody),
                                                 cmp);
@@ -171,10 +176,13 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // TODO: expression in latchnode! 
 
     //##############################################
-    bool latchIsHeader = loop->getHeader() == loop->getLoopLatch();
-    auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), latchIsHeader );
-    llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( &(*latchWrap) );
-    doWhileBody->addOwnership( std::move(latchWrap) );
+    if ( loop->getHeader() != loop->getLoopLatch() ){
+        auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), false);
+        llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( &(*latchWrap) );
+        doWhileBody->addOwnership( std::move(latchWrap) );
+    }
+    for( auto e : doWhileBody->expressions)
+        llvm::errs() << e->getKind() << "\n";
     //##############################################
     func->getBlock( loop->getLoopLatch() )->brHandled = true;
 
@@ -202,6 +210,7 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
             parseBlock(func, loopBodyBlock);
     }
 
+    func->getBlock( loop->getHeader() )->doInline = true;
     // // not containing any loops
     // for( const auto& loopBodyBlock : loop->blocks() ) {
     //     parseBlock(func, loopBodyBlock);
