@@ -167,6 +167,12 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
                                                                     doWhileBody),
                                                 cmp);
 
+    // #4 it's safe to inline loopheader:
+    // loopHeader.succ_first() == loopLatch, loopHeader.succ_second() = loopPreheader
+    // we transform the edge from the loopLatch to loopHeader into to do{}while() block
+    // there will be single succesor - the edge from loopPreheader leading to the loopHeader
+    doWhileBody->doInline = true;
+
     //##############################################
     if ( loop->getHeader() != loop->getLoopLatch() ){
         auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), false);
