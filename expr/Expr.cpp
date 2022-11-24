@@ -297,7 +297,7 @@ bool GotoExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GotoExpr;
 }
 
-LatchExpr::LatchExpr(Block* target, bool latchIsHeader ) : ExprBase(EK_LatchExpr), target(target), latchIsHeader(latchIsHeader) { }
+LatchExpr::LatchExpr(Block* target, bool headEdgeLatch ) : ExprBase(EK_LatchExpr), target(target), headEdgeLatch(headEdgeLatch) { }
 
 void LatchExpr::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

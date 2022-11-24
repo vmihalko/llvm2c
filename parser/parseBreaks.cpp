@@ -174,11 +174,19 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     doWhileBody->doInline = true;
 
     //##############################################
-    if ( loop->getHeader() != loop->getLoopLatch() ){
-        auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), false);
+    /* size(path[header -> latch]) > 1 */
+    if ( loop->getHeader() != loop->getLoopLatch() && 
+         loop->getHeader()->getTerminator()->getSuccessor(0) != loop->getLoopLatch()) {
+        bool headEdgeLatch = false;
+        if ( (loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch()) &&
+            loop->getLoopLatch()->getSinglePredecessor() != nullptr /*loopHeader --SINGLE-EDGE--> loopLatch*/ ) {
+                headEdgeLatch = true;
+            }
+        auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), headEdgeLatch);
         llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( &(*latchWrap) );
         doWhileBody->addOwnership( std::move(latchWrap) );
     }
+
     for( auto e : doWhileBody->expressions)
         llvm::errs() << e->getKind() << "\n";
     //##############################################
