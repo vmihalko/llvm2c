@@ -156,7 +156,12 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     loopPreheader->expressions.pop_back();
 
     // #1 create the condition c from `while( C )`
-    Expr* cmp = func->getExpr( loop->getLatchCmpInst() );
+    // llvm::errs() << "c: " << loop->getLatchCmpInst() << "\n";
+    // Expr* cmp = func->getExpr( loop->getLatchCmpInst() );
+    Expr* cmp =  func->getExpr( 
+                        llvm::dyn_cast<llvm::BranchInst>(
+                            loop->getLoopLatch()->getTerminator())->getCondition()
+                            );
     // do { goto loop.header() } while (c)
 
     // #2 create the doWhile body `do { goto loopHeader; }`
