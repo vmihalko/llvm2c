@@ -119,12 +119,13 @@ void ExprWriter::visit(LatchExpr& expr) {
     // if( expr.headEdgeLatch ) { // this is necessary to print whenever the path is longer than 1
     //     return;
     // }
-    ss << latchBlock->blockName << ":";
-        if (!latchBlock->expressions.empty())
-            ss << "\n";
+    ss << latchBlock->blockName << ":" << (latchBlock->expressions.empty() ? ";\n" : "\n");
+        // if (!latchBlock->expressions.empty())
+        //     ss << "\n";
     for (const auto& expr : latchBlock->expressions) {
         indent();
         expr->accept(*this);
+        ss << ";\n";
         // if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
     }
     // latchExprs->accept(*this);
@@ -450,7 +451,7 @@ void ExprWriter::visit(ExprList& exprList) {
             indent();
         first = false;
         expr->accept(*this);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<LatchExpr>(expr) ) {
             ss << ";" << std::endl;
         }
     }
