@@ -222,7 +222,7 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 void parseBreakRec(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateExpressions));
     for (const auto& function : module->functions()) {
-        if(function.isIntrinsic()) continue;
+        if(function.isIntrinsic() || function.isDeclaration()) continue;
         auto* func = program.getFunction(&function);
         llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
         for( const auto& loop : LI) {
