@@ -218,17 +218,12 @@ void parseBreakRec(const llvm::Module* module, Program& program) {
         for( const auto& loop : LI) {
             if ( !loop->isRotatedForm()) std::terminate();
             parseLoop(func, loop);
-            for (const auto& block : function) {
-                if (func->getBlock( &block )->brHandled)
-                    continue;
-                parseBlock( func, &block);
-            }
-        //     for( const auto& it = function.begin(); !it.isEnd() &&
-        //                                             !func->getBlock( &(*it) )->brHandled;
-        //                                             std::next(it) )
-                
-        //         parseBlock( func, &(*it) );
-        // }
+        }
+        for (const auto& block : function) {
+            if (func->getBlock( &block )->brHandled)
+                continue;
+            parseBlock( func, &block);
+        }
     }
 }
 
