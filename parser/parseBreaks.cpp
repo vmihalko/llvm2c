@@ -127,11 +127,17 @@ Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
 }
 
 void parseLoop(Func* func, const llvm::Loop *loop) {
-    for( const auto& subLoop : loop->getSubLoops()) {
+    for( const auto& subLoop : loop->getSubLoops())
         parseLoop( func, subLoop );
-    }
     // ------------------------------------------------------------------------------------
 
+    if ( !loop->isRotatedForm()) {
+        for( const auto& loopBodyBlock : loop->blocks() ) {
+            if (!func->getBlock(loopBodyBlock)->brHandled)
+                parseBlock(func, loopBodyBlock);
+        }
+        return;
+    }
     // preheader is not yet processed...process it!
     parseBlock( func, loop->getLoopPreheader() );
     // preheader is processed
@@ -214,11 +220,11 @@ void parseBreakRec(const llvm::Module* module, Program& program) {
     for (const auto& function : module->functions()) {
         if(function.isIntrinsic() || function.isDeclaration()) continue;
         auto* func = program.getFunction(&function);
+
         llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
-        for( const auto& loop : LI) {
-            if ( !loop->isRotatedForm()) std::terminate();
+        for( const auto& loop : LI)
             parseLoop(func, loop);
-        }
+
         for (const auto& block : function) {
             if (func->getBlock( &block )->brHandled)
                 continue;
