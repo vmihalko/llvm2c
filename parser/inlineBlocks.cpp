@@ -174,7 +174,7 @@ void inlineBlocks(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::IdentifyInlinableBlocks));
 
     for (const llvm::Function& func : module->functions()) {
-        if (func.isIntrinsic())
+        if (func.isIntrinsic() || func.isDeclaration())
             continue;
         auto* function = program.getFunction(&func);
         // inlineLoopBlocksInFunction(function);
