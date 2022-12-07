@@ -105,7 +105,7 @@ Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
     auto *currBlock = func->getBlock(block);
     llvm::errs() << "Parsing: " << currBlock->blockName << "\n";
 
-    Expr *terExpr;
+    Expr *terExpr = nullptr;
     if (auto returnInst = llvm::dyn_cast<llvm::ReturnInst>(blockTerminator)) {
         terExpr = parseRETURN(*returnInst, func/*, block*/);
         currBlock->addExpr(terExpr);
