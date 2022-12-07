@@ -187,12 +187,11 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     //##############################################
     func->getBlock( loop->getLoopLatch() )->brHandled = true;
 
-    // save the newly created expression
-    func->createExpr( loop->getLatchCmpInst(), std::move( doWhile ));
-    
-    // intuition behind this step can be described as "dummy force inlining"
-    // add it to the preheader block (on the place were )
-    loopPreheader->expressions.push_back( func->getExpr( loop->getLatchCmpInst() ) );
+    // "dummy force inlining": add DOWHILE to the preheader block
+    // (on the place were the goto doWhileHeader should be)
+    loopPreheader->addExpr( doWhile.get() );
+    func->createExpr( loop->getLoopLatch()->getTerminator(), std::move( doWhile ) );
+
     
     // when `eval( C ) == false, for C from `while( C )`, we are jumping to the next block after doWhile
     Block* afterDoWhile = func->createBlockIfNotExist(
