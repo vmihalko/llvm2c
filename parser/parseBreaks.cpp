@@ -216,6 +216,7 @@ void parseBreakRec(const llvm::Module* module, Program& program) {
         auto* func = program.getFunction(&function);
         llvm::LoopInfo &LI = func->FAM.getResult<llvm::LoopAnalysis>(const_cast<llvm::Function &>(*func->function));
         for( const auto& loop : LI) {
+            if ( !loop->isRotatedForm()) std::terminate();
             parseLoop(func, loop);
             for (const auto& block : function) {
                 if (func->getBlock( &block )->brHandled)
