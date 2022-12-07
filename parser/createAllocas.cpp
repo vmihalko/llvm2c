@@ -18,7 +18,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<Value> theVariable;
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
-                    if (allocaInst->isArrayAllocation()) {
+                    if (false && allocaInst->isArrayAllocation()) {
                        //llvm::errs() << *allocaInst << "\n";
                        //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
                         auto *llsize = allocaInst->getArraySize();
@@ -29,7 +29,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                             size = program.getExpr(llsize);
                         }
                         if (!size) {
-                            llvm::errs() << "Unhandled size argument of alloca: " << *allocaInst << "\n";
+                            llvm::errs() << "Unhandled size: " << *llsize << " which was an first argument of alloca: " << *allocaInst << "\n";
                             throw std::invalid_argument("Unhandled alloca");
                         }
 
