@@ -140,9 +140,9 @@ void inlineLoopBlocksInFunction( Func * fun) {
 
 void doNotInlineSubloopLatchBlockIntoGotoLatch(Func * fun, llvm::Loop *loop) {
     if ( loop->isRotatedForm()) {
-        fun->getBlock( loop->getLoopLatch() )->doInline = loop->getLoopLatch() == loop->getHeader() ||
-                                                            ( (loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch()) &&
-                                            loop->getLoopLatch()->getSinglePredecessor() != nullptr /*loopHeader --SINGLE-EDGE--> loopLatch*/ );
+        bool headerTerGOTOlatch = (loop->getHeader()->getTerminator()->getNumSuccessors() == 1 &&
+                                   loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch());
+        fun->getBlock( loop->getLoopLatch() )->doInline = (loop->getLoopLatch() == loop->getHeader()) || headerTerGOTOlatch;
     }
     for(auto subLoop : loop->getSubLoops())
         doNotInlineSubloopLatchBlockIntoGotoLatch( fun, subLoop );
