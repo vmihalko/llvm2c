@@ -201,9 +201,13 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     
     // when `eval( C ) == false, for C from `while( C )`, we are jumping to the next block after doWhile
     Block* afterDoWhile = func->createBlockIfNotExist(
-                                llvm::dyn_cast<llvm::BasicBlock>(
+                                (llvm::dyn_cast<llvm::BasicBlock>(
                                         loop->getLoopLatch()->getTerminator()->getOperand(1)
-                                        ));
+                                        ) == loop->getHeader() ? llvm::dyn_cast<llvm::BasicBlock>(
+                                                                 loop->getLoopLatch()->getTerminator()->getOperand(2)) :
+                                                                 llvm::dyn_cast<llvm::BasicBlock>(
+                                                                 loop->getLoopLatch()->getTerminator()->getOperand(1)))
+                                        );
     // add `goto afterDoWhileBlock;` expression right after the doWhile expr
     loopPreheader->addExpr(createListOfOneGoto(loopPreheader, afterDoWhile));
 
