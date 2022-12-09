@@ -181,10 +181,11 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // there will be single succesor - the edge from loopPreheader leading to the loopHeader
     doWhileBody->doInline = true;
 
+    bool headerTerGOTOlatch = (loop->getHeader()->getTerminator()->getNumSuccessors() == 1 &&
+                               loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch());
     //##############################################
     /* size(path[header -> latch]) > 1 */
-    if ( loop->getHeader() != loop->getLoopLatch() && 
-         loop->getHeader()->getTerminator()->getSuccessor(0) != loop->getLoopLatch()) {
+    if ( (loop->getHeader() != loop->getLoopLatch()) && !headerTerGOTOlatch) {
         auto latchWrap = std::make_unique<LatchExpr> ( func->getBlock( loop->getLoopLatch() ), false);
 
         llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( latchWrap.get() );
