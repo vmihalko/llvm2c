@@ -64,25 +64,17 @@ set(llvm2c_sources
   main.cpp
 
   core/Block.cpp
-  core/Block.h
   core/Func.cpp
-  core/Func.h
   core/Program.cpp
-  core/Program.h
 
   expr/BinaryExpr.cpp
-  expr/BinaryExpr.h
   expr/Expr.cpp
-  expr/Expr.h
   expr/UnaryExpr.cpp
-  expr/UnaryExpr.h
 
   parser/ProgramParser.cpp
-  parser/ProgramParser.h
   parser/SimplifyingExprVisitor.cpp
   parser/addSignCasts.cpp
   parser/arrowify.cpp
-  parser/cfunc.h
   parser/computeGlobalVarsOrder.cpp
   parser/constval.cpp
   parser/createAllocas.cpp
@@ -108,16 +100,12 @@ set(llvm2c_sources
   parser/parseMetadataTypes.cpp
   parser/parseStructDeclarations.cpp
   parser/parseStructItems.cpp
-  parser/passes.h
   parser/prepareBitcastUnion.cpp
   parser/refDeref.cpp
   parser/toinst.cpp
-  parser/toinst.h
 
   type/Type.cpp
-  type/Type.h
   type/TypeHandler.cpp
-  type/TypeHandler.h
 
   writer/CWriter.cpp
   writer/ExprWriter.cpp
