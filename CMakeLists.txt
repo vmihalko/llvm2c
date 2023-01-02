@@ -20,7 +20,11 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
 # --------------------------------------------------
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-rtti")
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /W4 /GR-")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-rtti")
 
 # --------------------------------------------------
 # Sanitizers
@@ -65,6 +69,11 @@ include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
 option(LLVM_LINK_DYLIB "Link with LLVM dynamically" ON)
+if(MSVC)
+  message(WARNING "It is not possible to link with LLVM dynamically on Windows")
+  set(LLVM_LINK_DYLIB OFF)
+endif()
+
 if(LLVM_LINK_DYLIB)
   message(STATUS "LLVM linking: dynamic")
   set(llvm_libs LLVM)
@@ -73,6 +82,11 @@ else()
   # Find the libraries that correspond to the LLVM components
   # that we wish to use
   llvm_map_components_to_libnames(llvm_libs irreader)
+
+  if(MSVC)
+    add_compile_options($<$<CONFIG:Debug>:/MTd>
+                        $<$<NOT:$<CONFIG:Debug>>:/MT>)
+  endif()
 endif()
 
 # --------------------------------------------------
