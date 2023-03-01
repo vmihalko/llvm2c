@@ -94,9 +94,28 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                     }
                 }
             }
-
         }
     }
-
+    for (const llvm::GlobalVariable& gvar : module->globals()) {
+        // llvm::errs() << "Parsing: " << gvar.getName() << "\n";
+        // Vector bellow is always holding only current gvar,
+        // thus for-cycle bellow always has only one iteration.
+        llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> GVs;
+        gvar.getDebugInfo(GVs);
+        for (auto *GVE : GVs) {
+            // if( GVE.gt)
+            llvm::DIVariable *Var = GVE->getVariable();
+            llvm::errs() << "    Global var name: " << Var->getName() << "\n";
+            
+            if ( program.getGlobalVar( &gvar ) ) {
+                // fixType(program, Var->getType())->print();
+                program.getGlobalVar( &gvar )->expr->setType(
+                    fixType(program, Var->getType()));
+                 llvm::errs() << "        found\n";
+            } else
+                llvm::errs() << " Global v missing, but debuginfo\n";
+//   414       llvm::DIExpression *Expr = GVE->getExpression();
+        }
+    }
     program.addPass(PassType::ParseMetadataTypes);
 }
