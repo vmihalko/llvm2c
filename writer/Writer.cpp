@@ -170,7 +170,7 @@ void Writer::anonymousStructDeclarations(const Program& program) {
     SECTION_END;
 }
 
-void Writer::globalVars(const Program& program) {
+void Writer::globadlVars(const Program& program) {
     SECTION_START("global variable declarations", !program.globalVars.empty());
     for (const auto& gvar : program.globalVars) {
         if (useIncludes && (gvar->valueName == "stdin" || gvar->valueName == "stdout" || gvar->valueName == "stderr")) {
@@ -346,8 +346,9 @@ void Writer::functionDefinitions(const Program& program) {
 
             if (block == func->entry)
                 continue;
-
+            llvm::errs() << block->blockName << "\n";
             if (!block->doInline) {
+                llvm::errs() << "writing out " << block->blockName << "\n";
                 writeBlock(block);
             }
         }

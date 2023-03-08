@@ -184,6 +184,7 @@ bool VoidType::classof(const Type* type) {
 }
 
 PointerType::PointerType(Type* type): Type(TK_PointerType) {
+    //llvm::errs() << "inTypeCONSTRUCTOR: " << type << "\n";
     levels = 1;
     isArrayPointer = false;
     isStructPointer = false;

@@ -24,7 +24,7 @@ private:
     void unionDeclarations(const Program& program);
     void structDeclarations(const Program& program);
     void structDefinitions(const Program& program);
-    void globalVars(const Program& program);
+    void globadlVars(const Program& program);
     void anonymousStructDeclarations(const Program& program);
     void globalVarDefinitions(const Program& program);
     void functionDeclarations(const Program& program);

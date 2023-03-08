@@ -53,7 +53,9 @@ void createAllocas(const llvm::Module* module, Program& program) {
                         //func->createExpr(&ins, std::move(allocacall));
                     } else  {
                         // normal alloca on the stack
-                        theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
+                        auto T = func->getType(allocaInst->getAllocatedType());
+                        llvm::errs() << T->toString() <<"\n";
+                        theVariable = std::make_unique<Value>(func->getVarName(), T);
                         alloc = std::make_unique<StackAlloc>(theVariable.get());
                         myBlock->addExprAndOwnership(std::move(alloc));
                     }

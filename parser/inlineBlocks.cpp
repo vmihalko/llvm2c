@@ -143,6 +143,10 @@ void doNotInlineSubloopLatchBlockIntoGotoLatch(Func * fun, llvm::Loop *loop) {
         bool headerTerGOTOlatch = (loop->getHeader()->getTerminator()->getNumSuccessors() == 1 &&
                                    loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch());
         fun->getBlock( loop->getLoopLatch() )->doInline = (loop->getLoopLatch() == loop->getHeader()) || headerTerGOTOlatch;
+        llvm::errs() << "donotin: " << fun->name << " " << fun->getBlock( loop->getLoopLatch() )->blockName << "\n";
+        //  ||
+                                                            // ( (loop->getHeader()->getTerminator()->getSuccessor(0) == loop->getLoopLatch()) &&
+                                            // loop->getLoopLatch()->getSinglePredecessor() != nullptr /*loopHeader --SINGLE-EDGE--> loopLatch*/ );
     }
     for(auto subLoop : loop->getSubLoops())
         doNotInlineSubloopLatchBlockIntoGotoLatch( fun, subLoop );
@@ -156,8 +160,9 @@ void doNotInlineLatchBlocksIntoGotoLatch(Func * fun) {
 }
 
 void markLatchBlockAsInlined(Func * fun, llvm::Loop *loop) {
-    if ( loop->isRotatedForm()) {
+    if ( loop->isRotatedForm() ) {
         fun->getBlock( loop->getLoopLatch() )->doInline = true;
+        llvm::errs() << "mark: " << fun->name << " " << fun->getBlock( loop->getLoopLatch() )->blockName << "\n";
     }
     for(auto subLoop : loop->getSubLoops())
         markLatchBlockAsInlined( fun, subLoop );

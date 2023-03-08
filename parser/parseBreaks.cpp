@@ -128,7 +128,7 @@ Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
 
 void parseLoop(Func* func, const llvm::Loop *loop) {
     for( const auto& subLoop : loop->getSubLoops())
-        parseLoop( func, subLoop );
+        parseLoop( func, subLoop ); 
     // ------------------------------------------------------------------------------------
 
     if ( !loop->isRotatedForm()) {
@@ -201,6 +201,7 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 
     
     // when `eval( C ) == false, for C from `while( C )`, we are jumping to the next block after doWhile
+    // TODO: getTerminator()->  getSuccesor
     Block* afterDoWhile = func->createBlockIfNotExist(
                                 (llvm::dyn_cast<llvm::BasicBlock>(
                                         loop->getLoopLatch()->getTerminator()->getOperand(1)

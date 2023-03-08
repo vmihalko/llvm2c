@@ -31,17 +31,24 @@ static bool isSafeToInline(const llvm::BasicBlock* llvmBlock, const Block* block
     // every loop is simple form has two predecessors
     // itself and preheader,
     // make loop inlinable - but not here, rather in parsing
+    llvm::errs() << block->blockName;
 
     if (llvmBlock->getSinglePredecessor()) {
         // TODO If'm my predeccessor
+        llvm::errs() << " SINLINED\n";
+        llvm::errs() << *llvmBlock;
         return true;
     }
 
     if (block->expressions.size() == 1) {
         const Expr* fst = block->expressions.front();
-        return llvm::isa<RetExpr>(fst);
+        auto b = llvm::isa<RetExpr>(fst);
+        if( b )
+            llvm::errs() << " RINLINED\n";
+        return b;
     }
 
+    llvm::errs() << " NOTINLINED\n";
     return false;
 }
 
@@ -82,7 +89,10 @@ void identifyInlinableBlocks(const llvm::Module* module, Program& program) {
 
 
     for (const llvm::Function& func : module->functions()) {
+        if (func.isIntrinsic())
+            continue;
         auto* function = program.getFunction(&func);
+                llvm::errs() << "In " << function->name << "\n";
         for (const auto& block : func) {
             auto* myBlock = function->createBlockIfNotExist(&block);
             if (!myBlock->doInline)

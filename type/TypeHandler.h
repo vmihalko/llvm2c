@@ -18,8 +18,10 @@ private:
     template<typename T>
     using uptr = std::unique_ptr<T>;
 
+public:
     Program* program;
     llvm::DenseMap<const llvm::Type*, std::unique_ptr<Type>> typeDefs; //map containing typedefs
+    llvm::DenseMap<const llvm::DIType*, std::unique_ptr<Type>> ditypeDefs; //map containing ditypedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
     std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
 
@@ -38,6 +40,11 @@ private:
         return ret;
     }
 
+    /**
+     * @brief makeCachedType Is putting together, during recursion,
+     * saved types.
+     * @return Type to which we are pointing 
+     */
     template<typename T, typename ...Args>
     Type* makeCachedType(const llvm::Type* ty, Args&&... args) {
         auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -45,11 +52,21 @@ private:
         typeCache[ty] = std::move(ptr);
         return result;
     }
-public:
+
     template<typename T, typename ...Args>
     Type* cachedDITypeInserter(const llvm::DIType *ditype, Args&&... args) {
-        auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
+        // llvm::errs() << "Address of DItype " << ditype << "\n";
+        // auto ptr2 = std::make_unique<T>(std::forward<Args>(args)...);
+        // llvm::errs() << "FROM ptr2: " << ptr2.get() << "\n";
+        // llvm::errs() << "FROM ptr: " << ptr.get() << "\n";
+        // llvm::errs() << "IN: " << ditypeCache[ditype].get() <<"\n";
+        // llvm::errs() << "OUT: " << ditypeCache[ditype].get() <<"\n";
+        auto ptr  = std::make_unique<T>(std::forward<Args>(args)...);
         auto *result = ptr.get();
+        if (ditypeCache[ditype]) {
+            llvm::errs() << "diType already cached! Terminating...\n";
+            std::terminate();
+        }
         ditypeCache[ditype] = std::move(ptr);
         return result;
     }
