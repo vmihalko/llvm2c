@@ -37,33 +37,23 @@ void vectorToString( const std::vector<std::string> &vectorOfStrings, std::strin
 Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
                                          const llvm::DISubroutineType *diStype) {
 
-        // std::string rtrnType = (*diStype->getTypeArray().begin() != NULL ? 
-        //                                         fixType(program, (*diStype->getTypeArray().begin())
-        //                                             )->toString() :
-        //                                             "void");
         std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()))->toString();
         
         std::vector<std::string> fnctnTypesOfArgs;
-        std::transform(diStype->getTypeArray().begin()++, diStype->getTypeArray().end(), 
+        std::transform(++diStype->getTypeArray().begin(), diStype->getTypeArray().end(), 
                        std::back_inserter(fnctnTypesOfArgs),
                    [&program](auto argType){ return fixType(program, argType)->toString(); });
 
-        // for (auto argType : diStype->getTypeArray()) {
-        //         if ( argType )
-        //             fnctnTypesOfArgs.emplace_back(
-        //                 fixType(program, argType)->toString()
-        //             );
-        //         else
-        //             fnctnTypesOfArgs.emplace_back("void");
-        // }
         std::string fnctnTypesOfArgsString;
         vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
 
+        auto nthTypeDef = program.typeHandler.getTypeDefNumber();
         program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
-                    rtrnType + "(*", program.typeHandler.getTypeDefName(), ")" + fnctnTypesOfArgsString);
-        program.typeHandler.sortedTypeDefs.push_back(static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
-        p("HEJJ: ",static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
-        p("HEJ: ",program.typeHandler.sortedTypeDefs.back());
+                    rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
+        // program.typeHandler.sortedTypeDefs.push_back(static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
+        program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
+        // p("HEJJ: ",static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
+        // p("HEJ: ",program.typeHandler.sortedTypeDefs.back());
         return program.typeHandler.ditypeCache[diDtype].get();
 
         //[TODO] if metadata present replace sortedTypeDefs with 
@@ -117,6 +107,24 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             // WRONG NUMBER OF ELEMENTS
             uint32_t numberOfArrElem = 1;
 
+
+            std::vector<llvm::DINodeArray *> elmnts = std::transform(diCompType->getElements().begin(),
+                                                                     diCompType->getElements().end());
+            std::accumulate(diCompType->getElements().begin(),
+                            diCompType->getElements().end(),
+                            (ArrayType*)nullptr,
+                            [](auto prev, auto acc){
+                                const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(acc);
+                                auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+                                auto arrType = program.typeHandler.cachedDITypeInserter<ArrayType>(
+                                    ditype, 
+                                    fixType(program, diCompType->getBaseType()),
+                                                                 CI->getSExtValue());
+                                if(!prev)
+                                    return arrType;
+
+                            }
+                );
             // https://llvm.org/doxygen/BPFAbstractMemberAccess_8cpp_source.html#l00334
             // why this heuristic?
             if (auto *Element = llvm::dyn_cast_or_null<llvm::DINode>(diCompType->getElements()[0])) {
@@ -124,7 +132,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                     const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(Element);
                     auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
                     numberOfArrElem = CI->getSExtValue();
-            return program.typeHandler.cachedDITypeInserter<ArrayType>(ditype, fixType(program, diCompType->getBaseType()),
+                    return program.typeHandler.cachedDITypeInserter<ArrayType>(ditype, fixType(program, diCompType->getBaseType()),
                                                                  numberOfArrElem);
                 }
                 llvm::errs() << "WHOA?\n";
@@ -133,41 +141,25 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
         const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
-        if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type ||
-                             diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
-            // if (!diDerivedType->getBaseType()) /* <void *> " */{
-            //     return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType,
-            //                                                  program.typeHandler.voidType.get());
-            // }
+        if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
 
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
                 return getFnctnPtrType(program, diDerivedType, diStype);
             }
             auto *innerType = fixType(program, diDerivedType->getBaseType());
-            // const llvm::PointerType* PT;
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
+        } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
+            return fixType(program, diDerivedType->getBaseType());
         }
 
 
-        llvm::errs() << "Unknown type <"<< ditype->getTag() << ">! Terminating...\n";
+        p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
+        // lvm::errs() << "Unknown type <"<< ditype->getTag() <<  << ">! Terminating...\n";
         std::terminate();
         return nullptr;
 }
 
 
-
-        // what is llvm::DICompositeTypeArray ?
-        // if ( (const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype)) &&
-        //                                             llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
-        //     auto y = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()) ,
-        //                                                     diCompType->getElements().size());
-        //     //auto result = ty.get();
-        //     //auto* inner = getType(PT->getPointerElementType());
-        //     //makeCachedType<PointerType>(PT, inner)
-        //     // program.typeHandler.makeCachedType<ArrayType>(type, fixType(program, diCompType->getBaseType()),
-        //     //                                                         diCompType->getElements().size());
-        //     // TODO Insert to typeCache.insert(it, std::make_pair(type, std::move(ty)));
-        // }t
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
@@ -187,6 +179,10 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
             variable->setType(t);
         }
     }
+}
+void remove_half_of_elements(std::vector<const FunctionPointerType*>& vec) {
+    if (vec.size() >= 2)
+        vec.erase(vec.begin(), vec.begin() + vec.size()/2);
 }
 
 void parseMetadataTypes(const llvm::Module* module, Program& program) {
@@ -228,5 +224,8 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
 //   414       llvm::DIExpression *Expr = GVE->getExpression();
         }
     }
+
+    // 
+    // remove_half_of_elements( program.typeHandler.sortedTypeDefs );
     program.addPass(PassType::ParseMetadataTypes);
 }
