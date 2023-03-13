@@ -1,0 +1,33 @@
+char a;
+char b;
+unsigned char c;
+short d;
+unsigned short e;
+int f;
+unsigned g;
+long h;
+unsigned long i;
+long long j;
+unsigned long long k;
+
+float l;
+double m;
+long double n;
+int main() {
+	char o;
+	char p;
+	unsigned char s;
+	short t;
+	unsigned short u;
+	int v;
+	unsigned x;
+	long y;
+	unsigned long z;
+	long long q;
+	unsigned long long w;
+
+	float fl;
+	double dm;
+	long double ldn;
+	return 1;
+}

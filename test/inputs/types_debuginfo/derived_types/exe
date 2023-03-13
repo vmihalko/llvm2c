@@ -1,0 +1,15 @@
+typedef int * pint;
+pint a;
+
+//struct ahoj {
+//    pint b;
+//};
+
+//void *vp;
+
+int main() {
+//    struct ahoj g;
+    *a = 8;
+	    pint *b;
+    return *a;
+}
