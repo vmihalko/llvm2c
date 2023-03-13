@@ -47,7 +47,7 @@ Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
         std::string fnctnTypesOfArgsString;
         vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
 
-        auto nthTypeDef = program.typeHandler.getTypeDefNumber();
+        auto nthTypeDef = 1;//program.typeHandler.getTypeDefNumber();
         program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
                     rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
         // program.typeHandler.sortedTypeDefs.push_back(static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
@@ -105,38 +105,48 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);
         if ( diCompType && llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
             // WRONG NUMBER OF ELEMENTS
-            uint32_t numberOfArrElem = 1;
+            // uint32_t numberOfArrElem = 1;
 
 
-            std::vector<llvm::DINodeArray *> elmnts = std::transform(diCompType->getElements().begin(),
-                                                                     diCompType->getElements().end());
-            std::accumulate(diCompType->getElements().begin(),
-                            diCompType->getElements().end(),
-                            (ArrayType*)nullptr,
-                            [](auto prev, auto acc){
-                                const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(acc);
-                                auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
-                                auto arrType = program.typeHandler.cachedDITypeInserter<ArrayType>(
+            std::vector<llvm::DINodeArray *> elmnts;
+            std::transform(diCompType->getElements().begin(),
+                           diCompType->getElements().end(),
+                           std::back_inserter(elmnts),
+                           [](auto e){return e;});
+            
+
+            const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(elmnts.back()); // last element
+            auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+            auto innermost_array = program.typeHandler.cachedDITypeInserter<ArrayType>(
                                     ditype, 
                                     fixType(program, diCompType->getBaseType()),
                                                                  CI->getSExtValue());
-                                if(!prev)
-                                    return arrType;
 
+            return std::accumulate(++elmnts.rbegin(),
+                            elmnts.rend(),
+                            innermost_array,
+                            [](auto rght_arr, auto lft_arr){
+                                const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(lft_arr);
+                                auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+                                return std::make_unique<ArrayType>(rght_arr, CI->getSExtValue());
+                                // ArrayType at(rght_arr, CI->getSExtValue());
+                                // auto arrType = 
+                                // if(!prev)
+                                //     return arrType;
                             }
                 );
             // https://llvm.org/doxygen/BPFAbstractMemberAccess_8cpp_source.html#l00334
             // why this heuristic?
-            if (auto *Element = llvm::dyn_cast_or_null<llvm::DINode>(diCompType->getElements()[0])) {
-                if (Element->getTag() == llvm::dwarf::DW_TAG_subrange_type) {
-                    const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(Element);
-                    auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
-                    numberOfArrElem = CI->getSExtValue();
-                    return program.typeHandler.cachedDITypeInserter<ArrayType>(ditype, fixType(program, diCompType->getBaseType()),
-                                                                 numberOfArrElem);
-                }
-                llvm::errs() << "WHOA?\n";
-            }
+            // if (auto *Element = llvm::dyn_cast_or_null<llvm::DINode>(diCompType->getElements()[0])) {
+            //     if (Element->getTag() == llvm::dwarf::DW_TAG_subrange_type) {
+            //         const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(Element);
+            //         auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+            //         numberOfArrElem = CI->getSExtValue();
+            //         return program.typeHandler.cachedDITypeInserter<ArrayType>(ditype, fixType(program, diCompType->getBaseType()),
+            //                                                      numberOfArrElem);
+            //     }
+            //     llvm::errs() << "WHOA?\n";
+            // }
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
