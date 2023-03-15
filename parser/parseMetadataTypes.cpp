@@ -75,9 +75,21 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                     }
                 }
             }
-
         }
     }
-
+    for (const llvm::GlobalVariable& gvar : module->globals()) {
+        // Vector bellow is always holding only current gvar,
+        // thus for-cycle bellow always has only one iteration.
+        llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> GVs;
+        gvar.getDebugInfo(GVs);
+        for (auto *GVE : GVs) {
+            llvm::DIVariable *Var = GVE->getVariable();
+            if ( program.getGlobalVar( &gvar ) ) {
+                program.getGlobalVar( &gvar )->expr->setType(
+                    fixType(program, Var->getType()));
+            } else
+                llvm::errs() << " Global v missing, but debuginfo\n";
+        }
+    }
     program.addPass(PassType::ParseMetadataTypes);
 }
