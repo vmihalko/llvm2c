@@ -24,6 +24,7 @@ public:
     llvm::DenseMap<const llvm::DIType*, std::unique_ptr<Type>> ditypeDefs; //map containing ditypedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
     std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
+    std::unordered_map<const llvm::DISubrange*, std::unique_ptr<Type>> diSubrangeCache;
 
     // key = T, value = Type representing pointer to T
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
