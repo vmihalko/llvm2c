@@ -183,6 +183,8 @@ public:
 
     std::string surroundName(const std::string& name) override;
 
+    // ArrayType putInside(const ArrayType&);
+
     static bool classof(const Type* type);
 };
 

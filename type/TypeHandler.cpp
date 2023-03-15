@@ -4,6 +4,16 @@
 
 #include "../core/Program.h"
 
+ unsigned TypeHandler::getTypeDefNumber() {
+        llvm::errs() << "call #" << typeDefCountForMetadata << "\n";
+        return typeDefCountForMetadata++;
+        // std::string ret = "typeDef_" + std::to_string(typeDefCount);
+        // typeDefCount++;
+        // if (metadata)
+        //     return "typeDef_" + std::to_string(++typeDefCountForMetadata);
+        // return ret;
+    }
+
 void printMapKeys(const std::unordered_map<const llvm::Type *, std::unique_ptr<Type>> &map)
 {
     // Iterate over the map using a const_iterator

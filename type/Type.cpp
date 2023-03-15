@@ -169,6 +169,29 @@ std::string ArrayType::surroundName(const std::string& name) {
     }
 }
 
+// ArrayType ArrayType::putInside(const ArrayType& other) {
+//     isStructArray = false;
+//     isPointerArray = false;
+
+//     if (auto AT = llvm::dyn_cast_or_null<ArrayType>(other.type)) {
+//         isStructArray = AT->isStructArray;
+//         structName = AT->structName;
+
+//         isPointerArray = AT->isPointerArray;
+//         pointer = AT->pointer;
+//     }
+
+//     if (auto ST = llvm::dyn_cast_or_null<StructType>(other.type)) {
+//         isStructArray = true;
+//         structName = ST->name;
+//     }
+
+//     if (auto PT = llvm::dyn_cast_or_null<PointerType>(other.type)) {
+//         isPointerArray = true;
+//         pointer = PT;
+//     }
+// }
+
 VoidType::VoidType(): Type(TK_VoidType) {}
 
 void VoidType::print() const {
