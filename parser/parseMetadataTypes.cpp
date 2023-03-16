@@ -1,11 +1,50 @@
 #include "../core/Program.h"
 #include "../core/Func.h"
 #include "../core/Block.h"
+#include "../type/Type.h"
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
+Type *fixType(Program& program, const llvm::DIType *ditype);
+
+void vectorToString( const std::vector<std::string> &vectorOfStrings, std::string &result) {
+    result = "(";
+    std::for_each(vectorOfStrings.begin(), vectorOfStrings.end(),
+                  [&](const std::string& param) {
+                      if (result.size() > 1) {
+                          result += ", ";
+                      }
+                      result += param;
+                  });
+    result += ")";
+}
+
+Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
+                                         const llvm::DISubroutineType *diStype) {
+
+        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()))->toString();
+
+        std::vector<std::string> fnctnTypesOfArgs;
+        std::transform(++diStype->getTypeArray().begin(), diStype->getTypeArray().end(),
+                       std::back_inserter(fnctnTypesOfArgs),
+                   [&program](auto argType){ return fixType(program, argType)->toString(); });
+
+        std::string fnctnTypesOfArgsString;
+        vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
+
+        auto nthTypeDef = program.typeHandler.getTypeDefNumber();
+        program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
+                    rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
+        program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
+        return program.typeHandler.ditypeCache[diDtype].get();
+}
 Type *fixType(Program& program, const llvm::DIType *ditype) {
+        // pointerTypes are cached:
+        auto it = program.typeHandler.ditypeCache.find(ditype);
+        if (it != program.typeHandler.ditypeCache.end()) {
+            return it->second.get();
+        }
         // Int or float
         if (auto tbasic = llvm::dyn_cast_or_null<llvm::DIBasicType>(ditype)) {
             if (!tbasic->getSignedness().hasValue()) {
@@ -35,6 +74,20 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 return (signedness ? program.typeHandler.slong.get() : program.typeHandler.ulong.get());
             }
         }
+        // DIDerivedType is used to represent a type that is derived
+        // from another type, such as a pointer, or typedef.
+        const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
+        if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
+
+            if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
+                return getFnctnPtrType(program, diDerivedType, diStype);
+            }
+            auto *innerType = fixType(program, diDerivedType->getBaseType());
+            return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
+        }
+
+
+        llvm::errs() << "Unknown type <"<< ditype->getTag() << ">! Terminating...\n";
         std::terminate();
         return nullptr;
 }
