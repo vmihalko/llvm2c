@@ -6,6 +6,18 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
+template <typename T>
+void p(T arg) {
+  llvm::errs() << arg << " ";
+}
+
+template<typename T, typename... Args>
+void p(T t, Args... toPrint) {
+    llvm::errs() << t << " ";
+    p( toPrint... );
+    llvm::errs() << "\n";
+}
+
 Type *fixType(Program& program, const llvm::DIType *ditype);
 
 void vectorToString( const std::vector<std::string> &vectorOfStrings, std::string &result) {
