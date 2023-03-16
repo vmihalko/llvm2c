@@ -24,6 +24,11 @@ public:
     llvm::DenseMap<const llvm::DIType*, std::unique_ptr<Type>> ditypeDefs; //map containing ditypedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
     std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
+<<<<<<< HEAD
+=======
+    std::unordered_map<const llvm::DISubrange*, std::unique_ptr<Type>> diSubrangeCache;
+    std::vector<std::unique_ptr<Type>> diSubranges;
+>>>>>>> 6dc05e2 (fixup! fixup! parserMetadataTypes: implement array types parsing)
 
     // key = T, value = Type representing pointer to T
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
