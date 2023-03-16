@@ -91,6 +91,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             }
         }
         const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);
+        if ( diCompType && diCompType->getTag() == llvm::dwarf::DW_TAG_member) // type is a struct member
+            return fixType(program, diCompType->getBaseType());
         if ( diCompType && llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
 
             std::vector<llvm::DINode *> elmnts(diCompType->getElements().begin(), diCompType->getElements().end());
@@ -127,10 +129,29 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                                 std::terminate();
                             }
                 );
+        } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
+            std::string strctName = diCompType->getName().data();
+            auto strct = program.getStruct( "s_" + strctName );
+            if( !strct )
+                p("Unable to find struct with name: ", strctName, "\n"), std::terminate();
+
+            if (strct->items.size() != diCompType->getElements().size()) {
+                p("Struct and DIStruct has different number of attributes");
+                std::terminate();
+            }
+            size_t index = 0;
+            while( index < strct->items.size()) {
+                llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
+                                                diCompType->getElements()[index]);
+                strct->items[index].first = fixType(program, di_node);
+                index++;
+            }
+            return strct;
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
         const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
+        if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_member) return fixType(program, diDerivedType->getBaseType());
         if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
 
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
