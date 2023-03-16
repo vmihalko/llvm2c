@@ -164,7 +164,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         }
 
 
-        llvm::errs() << "Unknown type <"<< ditype->getTag() << ">! Terminating...\n";
+        p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
         std::terminate();
         return nullptr;
 }
