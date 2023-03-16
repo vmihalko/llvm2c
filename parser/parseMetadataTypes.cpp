@@ -52,6 +52,8 @@ Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
         return program.typeHandler.ditypeCache[diDtype].get();
 }
 Type *fixType(Program& program, const llvm::DIType *ditype) {
+        if (!ditype)
+            return program.typeHandler.voidType.get();
         // pointerTypes are cached:
         auto it = program.typeHandler.ditypeCache.find(ditype);
         if (it != program.typeHandler.ditypeCache.end()) {
