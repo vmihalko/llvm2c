@@ -6,6 +6,8 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
+#include <numeric>
+
 template <typename T>
 void p(T arg) {
   llvm::errs() << arg << " ";
@@ -87,6 +89,44 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             if (tbasic->getSizeInBits() <= 64) {
                 return (signedness ? program.typeHandler.slong.get() : program.typeHandler.ulong.get());
             }
+        }
+        const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);
+        if ( diCompType && llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
+
+            std::vector<llvm::DINode *> elmnts(diCompType->getElements().begin(), diCompType->getElements().end());
+
+
+            /* If there's an multidimensional array e.g. int arr_i[1][1][1];
+             * llvm2c creates this type using recursion, so it's an array of
+             * array of array of ints!
+             * The code bellow simulate recursion as follows:
+             * creates innermost_array
+             * uses `accumulate` to create outter arrays with inner arrays
+             * as childrens... we build MATRIOSHKA from innermost_array.
+             */
+            auto elmnt_rvrsd = llvm::reverse(elmnts);
+            const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(*(elmnt_rvrsd.begin())); // last element
+            auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+            auto innermost_array = program.typeHandler.cachedDITypeInserter<ArrayType>(
+                                    ditype,
+                                    fixType(program, diCompType->getBaseType()),
+                                                                 CI->getSExtValue());
+
+            return std::accumulate(++elmnt_rvrsd.begin(),
+                            elmnt_rvrsd.end(),
+                            innermost_array,
+                            [&program](auto rght_arr, auto lft_arr){
+                                if (const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(lft_arr)) {
+                                    auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+                                    auto ptr = std::make_unique<ArrayType>(rght_arr, CI->getSExtValue());
+                                    auto* result = ptr.get();
+                                    program.typeHandler.diSubranges.push_back(std::move(ptr));
+                                    return result;
+                                }
+                                p("Unexpected d(ebug)i(nfo)Type of array elements occured!\n");
+                                std::terminate();
+                            }
+                );
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
