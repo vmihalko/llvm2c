@@ -98,6 +98,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             }
             auto *innerType = fixType(program, diDerivedType->getBaseType());
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
+        } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
+            return fixType(program, diDerivedType->getBaseType());
         }
 
 
