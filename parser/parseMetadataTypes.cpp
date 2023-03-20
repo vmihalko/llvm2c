@@ -190,8 +190,27 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 void parseMetadataTypes(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateAllocas));
 
+    for (const llvm::GlobalVariable& gvar : module->globals()) {
+        // Vector bellow is always holding only current gvar,
+        // thus for-cycle bellow always has only one iteration.
+        llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> GVs;
+        gvar.getDebugInfo(GVs);
+        for (auto *GVE : GVs) {
+            llvm::DIVariable *Var = GVE->getVariable();
+            if ( program.getGlobalVar( &gvar ) ) {
+            p("Setting type for Gvar: ",  gvar.getName(), "\n");
+                program.getGlobalVar( &gvar )->expr->setType(
+                    fixType(program, Var->getType()));
+            p("type set for Gvar: ", gvar.getName(), "\n");
+            } else
+                llvm::errs() << " Global v missing, but debuginfo\n";
+        }
+    }
+
+    // We need to set the right type also for function arguments!
     for (const auto& function : module->functions()) {
         auto* func = program.getFunction(&function);
+
         for (const auto& block : function) {
             auto* myBlock = func->getBlock(&block);
 
@@ -206,19 +225,28 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                 }
             }
         }
-    }
-    for (const llvm::GlobalVariable& gvar : module->globals()) {
-        // Vector bellow is always holding only current gvar,
-        // thus for-cycle bellow always has only one iteration.
-        llvm::SmallVector<llvm::DIGlobalVariableExpression *, 1> GVs;
-        gvar.getDebugInfo(GVs);
-        for (auto *GVE : GVs) {
-            llvm::DIVariable *Var = GVE->getVariable();
-            if ( program.getGlobalVar( &gvar ) ) {
-                program.getGlobalVar( &gvar )->expr->setType(
-                    fixType(program, Var->getType()));
-            } else
-                llvm::errs() << " Global v missing, but debuginfo\n";
+
+        if (!func || (func->isDeclaration)) continue;
+        p("Parsin arg types of the ", func->name, " function.\n"/*, "With ", func->parameters.size(), " args.\n"*/);
+        func->returnType = fixType(program,
+                        *function.getSubprogram()->getType()->getTypeArray().begin()
+                                  );
+        size_t indx = 0;
+
+        if (func->parameters.size() != 
+                function.getSubprogram()->getType()->getTypeArray().size() - 1) {
+            p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
+            continue;
+        }
+        while( indx < func->parameters.size() ){
+            p("Arg numver: ", indx, "/",func->parameters.size(), " `", function.getSubprogram()->getType()->getTypeArray()[indx+1]);
+            func->parameters[indx]->setType(
+                fixType(program,
+                        function.getSubprogram()->getType()->getTypeArray()[++indx]
+                       )
+                // ++indx is here because the first element from a TypeArray
+                // is the function return type.
+            );
         }
     }
     program.addPass(PassType::ParseMetadataTypes);
