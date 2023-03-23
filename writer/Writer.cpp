@@ -195,6 +195,10 @@ void Writer::globalVarDefinitions(const Program& program) {
             wr.raw("static ");
         }
 
+        if (gvar->isExtern) {
+            wr.raw("extern ");
+        }
+
         wr.raw(gvar->getType()->toString());
         wr.raw(" ");
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
