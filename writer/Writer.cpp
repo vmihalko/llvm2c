@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Writer.h"
 #include "../parser/cfunc.h"
 
@@ -334,6 +335,7 @@ void Writer::functionDefinitions(const Program& program) {
 
         // start with variables
         for (const auto& var : func->variables) {
+            if( func->parameters.end() != std::find_if(func->parameters.begin(), func->parameters.end(), [&var](Value *v){return var->valueName == v->valueName;})) continue;
             wr.indent(1);
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }
