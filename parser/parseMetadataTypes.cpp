@@ -227,19 +227,21 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
         }
 
         if (!func || (func->isDeclaration)) continue;
-        p("Parsin arg types of the ", func->name, " function.\n"/*, "With ", func->parameters.size(), " args.\n"*/);
+
+       bool isStructInArgs = std::any_of(function.getSubprogram()->getType()->getTypeArray().begin(),
+                   function.getSubprogram()->getType()->getTypeArray().end(),
+                   [](auto argType){return llvm::dyn_cast<llvm::DICompositeType>(argType) &&
+                                            llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
+                                            llvm::dwarf::DW_TAG_structure_type;});
+        if (isStructInArgs) {
+            p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
+            continue;
+        }
         func->returnType = fixType(program,
                         *function.getSubprogram()->getType()->getTypeArray().begin()
                                   );
         size_t indx = 0;
-
-        if (func->parameters.size() != 
-                function.getSubprogram()->getType()->getTypeArray().size() - 1) {
-            p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
-            continue;
-        }
         while( indx < func->parameters.size() ){
-            p("Arg numver: ", indx, "/",func->parameters.size(), " `", function.getSubprogram()->getType()->getTypeArray()[indx+1]);
             func->parameters[indx]->setType(
                 fixType(program,
                         function.getSubprogram()->getType()->getTypeArray()[++indx]
