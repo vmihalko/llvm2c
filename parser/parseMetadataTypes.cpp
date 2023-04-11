@@ -129,7 +129,12 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                                 std::terminate();
                             }
                 );
-        } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
+        } else if (diCompType && (llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ||
+            /* Reson is: */       llvm::dwarf::DW_TAG_union_type == diCompType->getTag())) {
+            /* In LLVM there are no unions; there are only structs that can be cast into
+            *  whichever type the front-end want to cast the struct into.
+            *  from: https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/basic-constructs/unions.html
+            */
             std::string strctName = diCompType->getName().data();
             auto strct = program.getStruct( "s_" + strctName );
             if( !strct )
