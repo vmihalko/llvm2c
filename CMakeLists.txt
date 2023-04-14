@@ -20,7 +20,26 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
 # --------------------------------------------------
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -pedantic -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -pedantic")
+
+# --------------------------------------------------
+# Sanitizers
+# --------------------------------------------------
+if (USE_SANITIZERS)
+	set(CMAKE_REQUIRED_FLAGS "-fsanitize=undefined,address") # for linker
+  include(CheckCXXCompilerFlag)
+	check_cxx_compiler_flag("-fsanitize=undefined,address" sanitizers_work)
+	set(CMAKE_REQUIRED_FLAGS "")
+
+	if (sanitizers_work)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-sanitize-recover=all")
+		add_definitions(-DUSING_SANITIZERS)
+	else()
+		message(WARNING "Used compiler does not support sanitizers or its support is incomplete.")
+	endif()
+endif()
 
 # --------------------------------------------------
 # LLVM
