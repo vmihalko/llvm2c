@@ -226,7 +226,10 @@ void Writer::functionHead(const Func* func, bool isdecl) {
         wr.startFunction(func->returnType->toString(), func->name);
     }
 
-    auto last = func->parameters.cend() - 1;
+    //auto last = func->parameters;
+    auto last = func->parameters.cend();
+    if (func->parameters.size())
+        last--;
     wr.startFunctionParams();
     for (auto it = func->parameters.cbegin(); it != func->parameters.cend(); ++it) {
         const auto& param = *it;
