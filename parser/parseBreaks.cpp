@@ -11,6 +11,19 @@
 #include <llvm/Analysis/LoopInfo.h>
 
 #include <iterator>
+
+template <typename T>
+void p(T arg) {
+  llvm::errs() << arg << " ";
+}
+
+template<typename T, typename... Args>
+void p(T t, Args... toPrint) {
+    llvm::errs() << t << " ";
+    p( toPrint... );
+    llvm::errs() << "\n";
+}
+
 /**
  * return phi assignments as ExprList
  */
