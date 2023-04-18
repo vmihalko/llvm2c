@@ -121,6 +121,7 @@ set(llvm2c_sources
   parser/identifyInlinableBlocks.cpp
   parser/initializeGlobalVars.cpp
   parser/inlineBlocks.cpp
+  parser/myFirstPass.cpp
   parser/memcpyToAssign.cpp
   parser/nameFunctions.cpp
   parser/parseBreaks.cpp

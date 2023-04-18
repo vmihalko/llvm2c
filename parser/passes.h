@@ -33,3 +33,4 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program);
 void createConstants(const llvm::Module* mod, Program& program);
 void inlineBlocks(const llvm::Module* mod, Program& program);
 void prepareBitcastUnion(const llvm::Module* mod, Program& program);
+void myFirstPass(const llvm::Module* mod, Program& program);

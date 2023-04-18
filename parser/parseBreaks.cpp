@@ -164,6 +164,12 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
                         llvm::dyn_cast<llvm::BranchInst>(
                             loop->getLoopLatch()->getTerminator())->getCondition()
                             );
+    // FOR-LOOP
+    if (loop->getLoopGuardBranch()){
+        Expr* guardCmp = func->getExpr(
+                            loop->getLoopGuardBranch()->getCondition());
+        p(guardCmp);
+    } 
     // do { goto loop.header() } while (c)
 
     // #2 create the doWhile body `do { goto loopHeader; }`
