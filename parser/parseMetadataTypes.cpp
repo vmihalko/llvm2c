@@ -231,7 +231,7 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             }
         }
 
-        if (!func || (func->isDeclaration)) continue;
+        if (!func || (func->isDeclaration) || /* noMetadata */ !function.getSubprogram()) continue;
 
        bool isStructInArgs = std::any_of(function.getSubprogram()->getType()->getTypeArray().begin(),
                    function.getSubprogram()->getType()->getTypeArray().end(),
