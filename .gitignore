@@ -7,3 +7,4 @@ llvm2c
 test/llvm2c
 build
 build-*
+.vscode/
