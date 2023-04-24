@@ -166,7 +166,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     RUN_PASS(parseBreaks);
 
     RUN_PASS(refDeref);
-    RUN_PASS(memcpyToAssignment);
+    // RUN_PASS(memcpyToAssignment);
     RUN_PASS(arrowify);
     RUN_PASS(deleteUnusedVariables);
     RUN_PASS(fixMainParameters);
