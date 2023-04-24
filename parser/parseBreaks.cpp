@@ -130,8 +130,13 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
         parseLoop( func, subLoop );
     // ------------------------------------------------------------------------------------
 
-    if ( !loop->isRotatedForm()) {
+    if ( !loop->isRotatedForm()) { // loop.isExiting( loop.latch ) == FALSE
+        //potential FOR-LOOP
+
+        p("YAY!, Unrotated, but LOOP!\n");
+
         for( const auto& loopBodyBlock : loop->blocks() ) {
+            // loop->getHeader
             if (!func->getBlock(loopBodyBlock)->brHandled)
                 parseBlock(func, loopBodyBlock);
         }
@@ -221,6 +226,18 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 
 void parseBreakRec(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateExpressions));
+    // //link previously unlinked for-loops
+    // // Loop over all functions in the map
+    // for (auto &forLoopParent : program.forLoopHeaders) {
+    // llvm::Function *func = forLoopParent.first;
+
+    // // Loop over all basic blocks in the vector for this function
+    // for (auto &forLoopHeader : forLoopParent.second) {
+    //     // Do something with the basic block
+    //     func->getBasicBlockList().push_front( forLoopHeader );
+    // }
+    // }
+
     for (const auto& function : module->functions()) {
         if(function.isIntrinsic() || function.isDeclaration()) continue;
         auto* func = program.getFunction(&function);

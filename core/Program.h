@@ -95,6 +95,8 @@ public:
     bool includes; //program uses includes instead of declarations for standard library functions, for testing purposes only
     bool noFuncCasts; //program removes any function call casts, for testing purposes only
 
+
+    std::map<llvm::Function *, std::vector<llvm::BasicBlock *>> forLoopHeaders;
     /**
      * @brief Program Constructor of a Program class, parses given file into a llvm::Module.
      * @param file Path to a file for parsing.

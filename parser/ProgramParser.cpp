@@ -131,10 +131,10 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     }
 
     // printModule(module.get());
-    run_llvm_passes(module.get());
     const auto *mod = module.get();
     printModule(module.get());
 
+    //run_llvm_passes(module.get());
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
     RUN_PASS(parseStructItems);
