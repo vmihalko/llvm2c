@@ -187,8 +187,14 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
-        if (auto t = fixType(program, localVar->getType()))
+        if (auto t = fixType(program, localVar->getType())) {
+            if (t->getKind() != variable->getType()->getKind()) {
+                llvm::errs() << "The type of this variable:" << localVar->getName()
+                             << " specified by the user differs from the type in llvmir.\n";
+                return;
+            }
             variable->setType(t);
+        }
     }
 }
 
@@ -231,7 +237,7 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             }
         }
 
-        if (!func || (func->isDeclaration) || /* noMetadata */ !function.getSubprogram()) continue;
+       if (!func || (func->isDeclaration) || /* noMetadata */ !function.getSubprogram()) continue;
 
        bool isStructInArgs = std::any_of(function.getSubprogram()->getType()->getTypeArray().begin(),
                    function.getSubprogram()->getType()->getTypeArray().end(),
