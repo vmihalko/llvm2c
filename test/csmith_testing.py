@@ -7,7 +7,13 @@ csmith_runtime_dir = 'csmith-runtime'
 # * hardcoded paths to scripts and  llvm2c binary 
 # * add possibility to modify csmith flags
 
-csmith_options = [ '--no-bitfields', '--no-comma-operators', '--no-math64', '--inline-function', '--no-unions', '--no-volatiles', '--no-safe-math', '--no-consts', '--no-const-pointers']
+# Why --no-const, --no-const-pointers
+# 1. we cannot distinguish between "* const *" and "const **"
+# 2. has no effect on semantics
+csmith_options = [ '--no-bitfields', '--no-comma-operators', '--no-math64', '--inline-function', '--no-unions', '--no-volatiles', '--no-safe-math', '--no-const-pointers', '--no-consts']
+csmith_options += ['--max-block-depth', '2', '--max-block-size', '2','--max-expr-complexity', '2', '--max-funcs', '2', '--no-packed-struct']
+
+clang_flags = ['-S', '-emit-llvm', '-Xclang', '-disable-O0-optnone']
 
 def generate_test():
     llvm2c = "/home/vmihalko/DIPLO/llvm2c/build/llvm2c"
@@ -94,6 +100,13 @@ def generate_test():
     return True
 
 def main(num_tests=5):
+    develop = 0;
+    if develop:
+        n = 0
+        while( generate_test() ):
+            n += 1
+        print(n)
+
     for i in range(num_tests):
         if not generate_test():
             break
