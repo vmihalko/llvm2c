@@ -27,7 +27,7 @@ def generate_test():
 
             # Generate C code using csmith and write it to the temporary file
             csmith = subprocess.run(['csmith'] + csmith_options + ['--output', tmpfile.name], check=True)
-            print(f"Executed {' '.join(csmith.args)}")
+            #print(f"Executed {' '.join(csmith.args)}")
 
 
             # Compile the C code using clang
@@ -106,10 +106,10 @@ def main(num_tests=5):
         while( generate_test() ):
             n += 1
         print(n)
-
-    for i in range(num_tests):
-        if not generate_test():
-            break
+    else:
+        for i in range(num_tests):
+            if not generate_test():
+                break
 
 
 if __name__ == "__main__":
