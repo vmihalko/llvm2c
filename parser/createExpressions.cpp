@@ -1009,10 +1009,28 @@ static Expr* parseSelectInstruction(const llvm::Instruction& ins, Program& progr
 }
 
 static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program) {
+    llvm::errs() << "!GEP!\n";
+
     const llvm::GetElementPtrInst* gepInst = llvm::cast<llvm::GetElementPtrInst>(&ins);
 
     Expr* expr = program.getExpr(gepInst->getOperand(0));
     assert(expr);
+    // llvm::errs() << program. ->toString() << "hmm\n";
+
+    Expr *referred = expr; // since every var is RefExpr (createAllocas)
+    if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
+        referred = re->expr;
+        llvm::errs() << "refe\n";
+    }
+    Type *varType = referred->getType();
+    llvm::errs() << varType->toString() <<" qq\n";
+
+    if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
+        llvm::errs() << variable->valueName << " slimshady\n";
+        llvm::errs() << variable->getType()->toString() << " stype\n";
+        llvm::errs() << referred->getType()->toString() << " rtype\n";
+        llvm::errs() << expr->getType()->toString() << " etype\n";
+    }
 
     llvm::Type* prevType = gepInst->getOperand(0)->getType();
     Expr* prevExpr = expr;
@@ -1024,24 +1042,52 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
         prevExpr = newCast.get();
         program.addOwnership(std::move(newCast));
     }
-
+    llvm::errs() << *gepInst->getOperand(0) << "&\n";
     for (auto it = llvm::gep_type_begin(gepInst); it != llvm::gep_type_end(gepInst); it++) {
         Expr* index = program.getExpr(it.getOperand());
+        llvm::errs() << *it.getOperand() << "@\n";
+        // llvm::errs() << "    " <<index->getType()->toString() << "~~\n";
         assert(index);
 
         if (prevType->isPointerTy()) {
+            llvm::errs() << "    " <<prevExpr->getType()->toString() << "~~p\n";
+
             if (index->isZero()) {
                 indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
+                // indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
+                if (auto ptrBaseType = llvm::dyn_cast_or_null<PointerType>(varType))
+                    varType = ptrBaseType->type;
+                indices.push_back(program.makeExpr<PointerShift>(varType, prevExpr, index));
             }
         }
 
         if (prevType->isArrayTy()) {
-            indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType())));
+            llvm::errs() << "    " <<prevExpr->getType()->toString() << "~~a\n";
+
+            // We do not want here to deduce again the type, because type should be deduced from metadata already!
+            // indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, program.getType(prevType->getArrayElementType())));
+            // if(auto a = llvm::dyn_cast_or_null<ArrayType>(prevExpr->getType()))
+            //     llvm::errs() << a->toString() << " a\n";
+            // if(auto b = llvm::dyn_cast_or_null<ArrayType>(expr->getType()))
+            //     llvm::errs() << b->toString()  << " b\n";
+            // if(auto c = llvm::dyn_cast_or_null<ArrayType>(index->getType()))
+            //     llvm::errs() << c->toString()  << " c\n";
+
+            // auto* re = prevExpr;
+            // while( llvm::dyn_cast_or_null<RefExpr>(re) )
+            //     re = llvm::dyn_cast_or_null<RefExpr>(re)->expr;
+            // if (llvm::dyn_cast_or_null<ArrayType>(re->getType()) )
+            //     indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, llvm::dyn_cast_or_null<ArrayType>(re)->type));
+            auto arrayBaseType = llvm::dyn_cast_or_null<ArrayType>(varType)->type;
+            // indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, re->getType()));
+
+            indices.push_back(program.makeExpr<ArrayElement>(prevExpr, index, arrayBaseType));
         }
 
         if (prevType->isStructTy()) {
+            llvm::errs() << "    " <<prevExpr->getType()->toString() << "~~c\n";
+
             llvm::ConstantInt* CI = llvm::dyn_cast_or_null<llvm::ConstantInt>(it.getOperand());
             if (!CI) {
                 throw std::invalid_argument("Invalid GEP index - access to struct element only allows integer!");
