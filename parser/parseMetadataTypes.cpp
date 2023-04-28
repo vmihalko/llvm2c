@@ -129,12 +129,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                                 std::terminate();
                             }
                 );
-        } else if (diCompType && (llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ||
-            /* Reson is: */       llvm::dwarf::DW_TAG_union_type == diCompType->getTag())) {
-            /* In LLVM there are no unions; there are only structs that can be cast into
-            *  whichever type the front-end want to cast the struct into.
-            *  from: https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/basic-constructs/unions.html
-            */
+        } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
             std::string strctName = diCompType->getName().data();
             auto strct = program.getStruct( "s_" + strctName );
             if( !strct )
@@ -149,9 +144,34 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
                                                 diCompType->getElements()[index]);
                 strct->items[index].first = fixType(program, di_node);
+                strct->items[index].second = di_node->getName().str();
+
                 index++;
             }
             return strct;
+        } else if (diCompType && llvm::dwarf::DW_TAG_union_type == diCompType->getTag()) {
+            /* In LLVM there are no unions; there are only structs that can be cast into
+            *  whichever type the front-end want to cast the struct into.
+            *  from: https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/basic-constructs/unions.html
+            */
+            std::string unionName = diCompType->getName().data();
+            auto onion = program.getStruct( "u_" + unionName );
+            if( !onion )
+                p("Unable to find union with name: ", unionName, "\n"), std::terminate();
+
+            // ASSUMPTION: union has always single type (in LLVMIR)
+            size_t index = 0;
+            while( index < onion->items.size()) {
+                llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
+                                                diCompType->getElements()[index]);
+                if (onion->items.front().first->getKind() == fixType(program, di_node)->getKind()) {
+                    onion->items.front().first = fixType(program, di_node);
+                    onion->items.front().second = di_node->getName().str();
+                    break;
+                }
+                index++;
+            }
+            return onion;
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
@@ -249,8 +269,10 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
        bool isStructInArgs = std::any_of(function.getSubprogram()->getType()->getTypeArray().begin(),
                    function.getSubprogram()->getType()->getTypeArray().end(),
                    [](auto argType){return llvm::dyn_cast<llvm::DICompositeType>(argType) &&
-                                            llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
-                                            llvm::dwarf::DW_TAG_structure_type;});
+                                            ((llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
+                                            llvm::dwarf::DW_TAG_structure_type) ||
+                                            (llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
+                                            llvm::dwarf::DW_TAG_union_type));});
         if (isStructInArgs) {
             p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
             continue;
