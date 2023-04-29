@@ -25,6 +25,7 @@ public:
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
     std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
     std::unordered_map<const llvm::DISubrange*, std::unique_ptr<Type>> diSubrangeCache;
+    std::unordered_map<const llvm::DIType*, StructType*> StructTypeDiCache;
     std::vector<std::unique_ptr<Type>> diSubranges;
 
     // key = T, value = Type representing pointer to T

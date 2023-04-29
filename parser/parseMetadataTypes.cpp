@@ -61,6 +61,13 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         if (it != program.typeHandler.ditypeCache.end()) {
             return it->second.get();
         }
+ 
+        // StructTypes are cached
+        auto sit = program.typeHandler.StructTypeDiCache.find(ditype);
+        if (sit != program.typeHandler.StructTypeDiCache.end()) {
+            return sit->second;
+        }
+
         // Int or float
         if (auto tbasic = llvm::dyn_cast_or_null<llvm::DIBasicType>(ditype)) {
             if (!tbasic->getSignedness().hasValue()) {
@@ -139,6 +146,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 p("Struct and DIStruct has different number of attributes");
                 std::terminate();
             }
+            program.typeHandler.StructTypeDiCache[diCompType] = strct;
             size_t index = 0;
             while( index < strct->items.size()) {
                 llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
