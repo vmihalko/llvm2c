@@ -268,7 +268,7 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
 
        bool isStructInArgs = std::any_of(function.getSubprogram()->getType()->getTypeArray().begin(),
                    function.getSubprogram()->getType()->getTypeArray().end(),
-                   [](auto argType){return llvm::dyn_cast<llvm::DICompositeType>(argType) &&
+                   [](auto argType){return argType && llvm::dyn_cast<llvm::DICompositeType>(argType) &&
                                             ((llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
                                             llvm::dwarf::DW_TAG_structure_type) ||
                                             (llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
