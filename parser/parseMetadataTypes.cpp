@@ -78,6 +78,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                         return program.typeHandler.doubleType.get();
                     return program.typeHandler.longDoubleType.get();
                 }
+                if(tbasic->getEncoding() == llvm::dwarf::DW_ATE_boolean)
+                    return program.typeHandler.uint.get();
             }
 
             bool signedness = llvm::DIBasicType::Signedness::Signed == *tbasic->getSignedness();
