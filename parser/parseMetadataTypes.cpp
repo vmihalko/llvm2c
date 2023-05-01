@@ -182,6 +182,10 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 index++;
             }
             return onion;
+        } else if (diCompType && llvm::dwarf::DW_TAG_enumeration_type == diCompType->getTag()) {
+            //TODO: llvm2c decompiles enum as a global variable
+            // it should be easy to add a support for enum...
+            return program.typeHandler.uint.get();
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
