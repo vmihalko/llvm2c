@@ -196,6 +196,10 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             // return ft;
         if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
 
+            if (!diDerivedType->getBaseType())
+                return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType,
+                            program.typeHandler.voidType.get());
+
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
                 return getFnctnPtrType(program, diDerivedType, diStype);
             }
