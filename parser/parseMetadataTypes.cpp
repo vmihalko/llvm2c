@@ -200,6 +200,11 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 return getFnctnPtrType(program, diDerivedType, diStype);
             }
             auto *innerType = fixType(program, diDerivedType->getBaseType());
+
+            auto it = program.typeHandler.ditypeCache.find(ditype);
+            if (it != program.typeHandler.ditypeCache.end()) {
+                return it->second.get();
+            }
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
         } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
             return fixType(program, diDerivedType->getBaseType());
