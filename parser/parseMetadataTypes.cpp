@@ -259,12 +259,10 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
         for (auto *GVE : GVs) {
             llvm::DIVariable *Var = GVE->getVariable();
             if ( program.getGlobalVar( &gvar ) ) {
-            p("Setting type for Gvar: ",  gvar.getName(), "\n");
                 program.getGlobalVar( &gvar )->expr->setType(
                     fixType(program, Var->getType()));
-            p("type set for Gvar: ", gvar.getName(), "\n");
             } else
-                llvm::errs() << " Global v missing, but debuginfo\n";
+                llvm::errs() << " Global Var missing, but debuginfo occured\n";
         }
     }
 
