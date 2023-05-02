@@ -85,7 +85,6 @@ Expr *parseRETURN(const llvm::ReturnInst& retIns, Func* func/*, Block *block*/) 
     return func->getExpr(&retIns);
 }
 Expr *parseIF(const llvm::BranchInst& ins, Func* func, Block* block) {
-        llvm::errs() << "Ifcond created\n";
         Expr* cmp = func->getExpr(ins.getCondition());
 
         Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));
@@ -102,7 +101,6 @@ Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
     const llvm::Instruction *blockTerminator = block->getTerminator();
  // const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
     auto *currBlock = func->getBlock(block);
-    llvm::errs() << "Parsing: " << currBlock->blockName << "\n";
 
     Expr *terExpr = nullptr;
     if (auto returnInst = llvm::dyn_cast<llvm::ReturnInst>(blockTerminator)) {
@@ -120,7 +118,6 @@ Expr *parseBlock( Func* func, const llvm::BasicBlock *block) {
             parseUncondBranch(*blockTerminator, func, currBlock); // this function process and add EXPR into <currBlock>
         }
     }
-    llvm::errs() << currBlock->blockName << " parsed: " << "\n";
 
     return terExpr;
 }
@@ -150,8 +147,6 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // sanity check
     if (auto brToLoopHeader = llvm::dyn_cast<GotoExpr>( loopPreheaderTerminator)) {
         if ( brToLoopHeader->target != func->getBlock( loop->getHeader() ) ) {
-            llvm::errs() << brToLoopHeader->target->blockName << " != " << func->getBlock( loop->getHeader() )->blockName << "\n";    
-            llvm::errs() << brToLoopHeader->target << " != " << func->getBlock( loop->getHeader() ) << "\n";    
             assert(false && "This loop is not in the canonical: simplified form!");
         }
     }

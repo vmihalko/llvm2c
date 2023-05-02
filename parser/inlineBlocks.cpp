@@ -53,10 +53,6 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
                  << "\n----latch----"
                  << *loop->getLoopLatch()    
                  << "\n----latch----\n";
-    if (!loop->isLoopSimplifyForm())
-        llvm::errs() << "simplified\n";
-    if (!loop->isRotatedForm() )
-        llvm::errs() << "roated\n";
 
 
 
@@ -85,28 +81,6 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
 
     } // header and latch are the same thing
     if (header == latch) {
-        
-        for (auto e : latch->expressions) {
-        std::cout << e->getKind() << std::endl;
-        switch (e->getKind())
-        {
-        case Expr::EK_AssignExpr:
-            std::cout << "ass\n";
-            break;
-        case Expr::EK_GotoExpr:
-            // auto* gotoExpr = ;   
-            std::cout << "goto: " << llvm::dyn_cast_or_null<GotoExpr>(e)->target->blockName << std::endl;
-            break;
-        case Expr::EK_DoWhile:
-            std::cout << "dwhile\n";
-            break;
-        case Expr::EK_RetExpr:
-            std::cout << "ret\n";
-            break;
-        default:
-            break;
-        }
-        }
 
         auto it = std::find_if(latch->expressions.begin(), latch->expressions.end(),
             [](Expr *e){return llvm::dyn_cast_or_null<DoWhile>(e);});

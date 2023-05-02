@@ -76,7 +76,6 @@ unsigned UnionType::indexOfType(Type* type) const {
         }
     }
 
-    llvm::errs() << type->toString() << "\n";
     assert(false && "UnionType::indexOfType: type not found in the union");
     abort();
 }
