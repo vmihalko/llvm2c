@@ -118,10 +118,12 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             auto elmnt_rvrsd = llvm::reverse(elmnts);
             const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(*(elmnt_rvrsd.begin())); // last element
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
+            int64_t array_size = 0;
+            if (CI) array_size = CI->getSExtValue();
             auto innermost_array = program.typeHandler.cachedDITypeInserter<ArrayType>(
                                     ditype,
                                     fixType(program, diCompType->getBaseType()),
-                                                                 CI->getSExtValue());
+                                                                 array_size);
 
             return std::accumulate(++elmnt_rvrsd.begin(),
                             elmnt_rvrsd.end(),
@@ -129,7 +131,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                             [&program](auto rght_arr, auto lft_arr){
                                 if (const llvm::DISubrange *SR = llvm::cast<llvm::DISubrange>(lft_arr)) {
                                     auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
-                                    auto ptr = std::make_unique<ArrayType>(rght_arr, CI->getSExtValue());
+                                    int64_t array_size = 0;
+                                    if (CI) array_size = CI->getSExtValue();
+                                    auto ptr = std::make_unique<ArrayType>(rght_arr, array_size);
                                     auto* result = ptr.get();
                                     program.typeHandler.diSubranges.push_back(std::move(ptr));
                                     return result;
@@ -240,7 +244,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         if (auto t = fixType(program, localVar->getType())) {
             if (t->getKind() != variable->getType()->getKind()) {
                 llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in llvmir.\n";
+                             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
             variable->setType(t);
