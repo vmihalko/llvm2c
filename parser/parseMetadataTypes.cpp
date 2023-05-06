@@ -149,8 +149,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                 p("Unable to find struct with name: ", strctName, "\n"), std::terminate();
 
             if (strct->items.size() != diCompType->getElements().size()) {
-                p("Struct and DIStruct has different number of attributes");
-                std::terminate();
+                p("Struct and DIStruct has different number of attributes.");
+                p("Error or struct with bit-fields");
+                return strct;
             }
             program.typeHandler.StructTypeDiCache[diCompType] = strct;
             size_t index = 0;
