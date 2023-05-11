@@ -204,7 +204,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
         if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_member) return fixType(program, diDerivedType->getBaseType());
         if (diDerivedType && (   diDerivedType->getTag() == llvm::dwarf::DW_TAG_const_type
-                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type)) return fixType(program, diDerivedType->getBaseType());
+                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type
+                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type )) return fixType(program, diDerivedType->getBaseType());
             // Commented because:
             // 1. we cannot distinguish between "* const *" and "const **"
             // 2. has no effect on semantics
