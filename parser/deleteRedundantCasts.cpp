@@ -33,9 +33,13 @@ void deleteRedundantCasts(const llvm::Module* module, Program& program) {
 
 Expr* RedundantCastsVisitor::simplify(Expr* expr) {
     if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+        llvm::errs() << "cast here\n";
         Expr* innermost = cast->expr;
 
         while (auto* inner = llvm::dyn_cast_or_null<CastExpr>(innermost)) {
+            // cast with love...
+            if ( inner->isLossy() )
+                break;
             innermost = inner->expr;
         }
 
