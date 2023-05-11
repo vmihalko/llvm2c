@@ -58,7 +58,7 @@ public:
     bool isDeclaration; //function is only being declared
     bool isVarArg = false; //function has variable number of arguments
 
-    Expr* lastArg; //last argument before variable arguments
+    Expr* lastArg = nullptr; //last argument before variable arguments
 
 
 	llvm::PassBuilder passBuilder;

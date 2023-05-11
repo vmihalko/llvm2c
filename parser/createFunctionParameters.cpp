@@ -6,7 +6,7 @@
 #include <iostream>
 
 static void createArgs(Program& program, const llvm::Function* llvmFunc, Func* func) {
-    const llvm::Value* lastValue;
+    const llvm::Value* lastValue = nullptr;
     for (const llvm::Value& arg : llvmFunc->args()) {
         lastValue = &arg;
         auto* argExpr = static_cast<Value*>(func->getExpr(lastValue));
@@ -22,6 +22,7 @@ static void createArgs(Program& program, const llvm::Function* llvmFunc, Func* f
 
     auto lastArg = program.exprMap[lastValue];
     if (lastArg) {
+        func->lastArg = lastArg;
         func->setVarArg(llvmFunc->isVarArg());
     }
 }
