@@ -152,6 +152,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
             std::string strctName = diCompType->getName().data();
             auto strct = program.getStruct( "s_" + strctName );
+            if ( !strct )
+                strct = program.getStruct( strctName );
             if( !strct )
                 p("Unable to find struct with name: ", strctName, "\n"), std::terminate();
 
