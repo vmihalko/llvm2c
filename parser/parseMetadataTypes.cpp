@@ -7,6 +7,7 @@
 #include <llvm/IR/IntrinsicInst.h>
 
 #include <numeric>
+#include <optional>
 
 template <typename T>
 void p(T arg) {
@@ -20,7 +21,7 @@ void p(T t, Args... toPrint) {
     llvm::errs() << "\n";
 }
 
-Type *fixType(Program& program, const llvm::DIType *ditype);
+std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype);
 
 void vectorToString( const std::vector<std::string> &vectorOfStrings, std::string &result) {
     result = "(";
@@ -37,12 +38,16 @@ void vectorToString( const std::vector<std::string> &vectorOfStrings, std::strin
 Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
                                          const llvm::DISubroutineType *diStype) {
 
-        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()))->toString();
+        std::string rtrnType = (*fixType(program, (*diStype->getTypeArray().begin())))->toString();
+        // std::string rtrnType = 
+        // auto r = *fixType(program, (*diStype->getTypeArray().begin()));
+        // if ( !r.has_value() )
+        //     return nullptr;
 
         std::vector<std::string> fnctnTypesOfArgs;
         std::transform(++diStype->getTypeArray().begin(), diStype->getTypeArray().end(),
                        std::back_inserter(fnctnTypesOfArgs),
-                   [&program](auto argType){ return fixType(program, argType)->toString(); });
+                   [&program](auto argType){ return (*fixType(program, argType))->toString(); });
 
         std::string fnctnTypesOfArgsString;
         vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
@@ -53,7 +58,7 @@ Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
         program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
         return program.typeHandler.ditypeCache[diDtype].get();
 }
-Type *fixType(Program& program, const llvm::DIType *ditype) {
+std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype) {
         if (!ditype)
             return program.typeHandler.voidType.get();
         // pointerTypes are cached:
@@ -121,7 +126,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
 
-            auto ptr = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()), array_size);
+            auto ptr = std::make_unique<ArrayType>(*fixType(program, diCompType->getBaseType()), array_size);
             auto* innermost_array = ptr.get();
             program.typeHandler.diSubranges.push_back(std::move(ptr));
 
@@ -165,7 +170,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             while( index < strct->items.size()) {
                 llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
                                                 diCompType->getElements()[index]);
-                strct->items[index].first = fixType(program, di_node);
+                strct->items[index].first = *fixType(program, di_node);
                 strct->items[index].second = di_node->getName().str();
 
                 index++;
@@ -186,8 +191,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             while( index < onion->items.size()) {
                 llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
                                                 diCompType->getElements()[index]);
-                if (onion->items.front().first->getKind() == fixType(program, di_node)->getKind()) {
-                    onion->items.front().first = fixType(program, di_node);
+                if (onion->items.front().first->getKind() == (*fixType(program, di_node))->getKind()) {
+                    // TODO: not effi
+                    onion->items.front().first = *fixType(program, di_node);
                     onion->items.front().second = di_node->getName().str();
                     break;
                 }
@@ -219,7 +225,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
                 return getFnctnPtrType(program, diDerivedType, diStype);
             }
-            auto *innerType = fixType(program, diDerivedType->getBaseType());
+            auto *innerType = *fixType(program, diDerivedType->getBaseType());
 
             auto it = program.typeHandler.ditypeCache.find(ditype);
             if (it != program.typeHandler.ditypeCache.end()) {
@@ -232,8 +238,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
 
 
         p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
-        std::terminate();
-        return nullptr;
+        // std::terminate();
+        return {};
 }
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
@@ -249,7 +255,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
-        if (auto t = fixType(program, localVar->getType())) {
+        if (auto t = *fixType(program, localVar->getType())) {
             if (t->getKind() != variable->getType()->getKind()) {
                 llvm::errs() << "The type of this variable:" << localVar->getName()
                              << " specified by the user differs from the type in DIinfo.\n";
@@ -272,7 +278,7 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             llvm::DIVariable *Var = GVE->getVariable();
             if ( program.getGlobalVar( &gvar ) ) {
                 program.getGlobalVar( &gvar )->expr->setType(
-                    fixType(program, Var->getType()));
+                    *fixType(program, Var->getType()));
             } else
                 llvm::errs() << " Global Var missing, but debuginfo occured\n";
         }
@@ -310,13 +316,13 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
             continue;
         }
-        func->returnType = fixType(program,
+        func->returnType = *fixType(program,
                         *function.getSubprogram()->getType()->getTypeArray().begin()
                                   );
         size_t indx = 0;
         while( indx < func->parameters.size() ){
             func->parameters[indx]->setType(
-                fixType(program,
+                *fixType(program,
                         function.getSubprogram()->getType()->getTypeArray()[++indx]
                        )
                 // ++indx is here because the first element from a TypeArray
