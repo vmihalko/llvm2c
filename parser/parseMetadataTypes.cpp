@@ -232,6 +232,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             return fixType(program, diDerivedType->getBaseType());
         }
 
+        if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( ditype )) {
+            return getFnctnPtrType(program, diDerivedType, diStype);
+        }
 
         p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
         std::terminate();
