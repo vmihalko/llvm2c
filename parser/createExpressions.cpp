@@ -1108,6 +1108,7 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::BitCast:
     case llvm::Instruction::SExt:
     case llvm::Instruction::ZExt:
+        return parseCastInstruction(ins, program);
     case llvm::Instruction::FPToSI:
     case llvm::Instruction::SIToFP:
     case llvm::Instruction::FPTrunc:
@@ -1117,7 +1118,12 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::PtrToInt:
     case llvm::Instruction::IntToPtr:
     case llvm::Instruction::Trunc:
-        return parseCastInstruction(ins, program);
+    {
+        auto *expr = parseCastInstruction(ins, program);
+        if (auto castExpr = llvm::dyn_cast_or_null<CastExpr>( expr ))
+            castExpr->setLossy();
+        return expr;
+    }
     default:
         llvm::outs() << ins << "\n";
         assert(false && "File contains unsupported instruction!");

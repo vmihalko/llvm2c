@@ -55,12 +55,15 @@ public:
  * @brief The CastExpr class represents cast.
  */
 class CastExpr : public UnaryExpr {
+    bool _isLossy = false;
 public:
     CastExpr(Expr*, Type*);
 
     void accept(ExprVisitor& visitor) override;
 
     static bool classof(const Expr* expr);
+    bool isLossy() { return _isLossy; }
+    void setLossy() { _isLossy = true; }
 };
 
 class MinusExpr : public UnaryExpr {
