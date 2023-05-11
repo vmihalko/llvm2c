@@ -120,12 +120,12 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
-            auto innermost_array = program.typeHandler.cachedDITypeInserter<ArrayType>(
-                                    ditype,
-                                    fixType(program, diCompType->getBaseType()),
-                                                                 array_size);
 
-            return std::accumulate(++elmnt_rvrsd.begin(),
+            auto ptr = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()), array_size);
+            auto* innermost_array = ptr.get();
+            program.typeHandler.diSubranges.push_back(std::move(ptr));
+
+            auto *outermost_array = std::accumulate(++elmnt_rvrsd.begin(),
                             elmnt_rvrsd.end(),
                             innermost_array,
                             [&program](auto rght_arr, auto lft_arr){
@@ -142,6 +142,13 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                                 std::terminate();
                             }
                 );
+            // We want to associate the complete array type with ditype
+            // to do so, we move it from diSubranges.back() to diTypeCache
+            program.typeHandler.ditypeCache[ditype] = std::move(program.typeHandler.diSubranges.back());
+            program.typeHandler.diSubranges.pop_back();
+
+            return outermost_array;
+
         } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
             std::string strctName = diCompType->getName().data();
             auto strct = program.getStruct( "s_" + strctName );
