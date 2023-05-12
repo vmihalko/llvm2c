@@ -165,7 +165,8 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
                      ? TypeHandler::getStructName(anonGVName->getStructName().str())
                      : "s_" + diCompType->getName().str();
             auto strct = program.getStruct( strctName );
-
+            if ( !strct && anonGVName)
+                strct = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
             if( !strct )
                 p("Unable to find struct with name: ", strctName, "\n"), std::terminate();
 
