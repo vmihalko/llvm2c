@@ -301,13 +301,17 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
         gvar.getDebugInfo(GVs);
         for (auto *GVE : GVs) {
             llvm::DIVariable *Var = GVE->getVariable();
-            if ( program.getGlobalVar( &gvar ) ) {
-                program.getGlobalVar( &gvar )->expr->setType(
-                    fixType(program, Var->getType()));
-            } else
-                llvm::errs() << " Global Var missing, but debuginfo occured\n";
+            if ( auto gv = program.getGlobalVar( &gvar ) ) {
+                if (auto t = fixType(program, Var->getType(), gvar.getValueType())) {
+                    if (t->getKind() == gv->expr->getType()->getKind()) {
+                        program.getGlobalVar( &gvar )->expr->setType(t);
+                    }
+                } else
+                    llvm::errs() << " Global Var missing, but debuginfo occured\n";
+            }
         }
     }
+
 
     // We need to set the right type also for function arguments!
     for (const auto& function : module->functions()) {
@@ -319,10 +323,8 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 if (ins.getOpcode() == llvm::Instruction::Call) {
                     const llvm::CallInst* CI = llvm::cast<llvm::CallInst>(&ins);
-                    if (CI->getCalledFunction()) {
-                        if (CI->getIntrinsicID() == llvm::Intrinsic::dbg_declare) {
-                            setMetadataInfo(program, CI, myBlock);
-                        }
+                    if (CI->getCalledFunction() && CI->getIntrinsicID() == llvm::Intrinsic::dbg_declare) {
+                        setMetadataInfo(program, CI, myBlock);
                     }
                 }
             }
