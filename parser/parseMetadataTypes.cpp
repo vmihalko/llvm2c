@@ -231,12 +231,15 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             }
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
         } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
+            if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
+                return getFnctnPtrType(program, diDerivedType, diStype);
+            }
             return fixType(program, diDerivedType->getBaseType());
         }
 
-        if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( ditype )) {
-            return getFnctnPtrType(program, diDerivedType, diStype);
-        }
+        // if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( ditype )) {
+        //     return getFnctnPtrType(program, diDerivedType, diStype);
+        // }
 
         p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
         std::terminate();
