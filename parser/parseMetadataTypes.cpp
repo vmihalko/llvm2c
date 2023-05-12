@@ -202,7 +202,6 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
                 p("Unable to find union with name: ", unionName, "\n"), std::terminate();
 
             // ASSUMPTION: union has always single type (in LLVMIR)
-            size_t index = 0;
             auto r = std::max_element(diCompType->getElements().begin(), diCompType->getElements().end(), [](llvm::DINode *a, llvm::DINode *b){
                 return llvm::dyn_cast<llvm::DIType>( a )->getSizeInBits() <
                        llvm::dyn_cast<llvm::DIType>( b )->getSizeInBits();});
