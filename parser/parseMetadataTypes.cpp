@@ -3,6 +3,7 @@
 #include "../core/Block.h"
 #include "../type/Type.h"
 
+#include <optional>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
 
@@ -20,7 +21,9 @@ void p(T t, Args... toPrint) {
     llvm::errs() << "\n";
 }
 
-Type *fixType(Program& program, const llvm::DIType *ditype);
+#define CHAIN(TYPE, MEMBER) ((TYPE) ? (TYPE)->MEMBER : nullptr)
+
+Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type *anonGVName);
 
 void vectorToString( const std::vector<std::string> &vectorOfStrings, std::string &result) {
     result = "(";
@@ -35,25 +38,27 @@ void vectorToString( const std::vector<std::string> &vectorOfStrings, std::strin
 }
 
 Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
-                                         const llvm::DISubroutineType *diStype) {
+                                         const llvm::DISubroutineType *diStype,
+                                         const llvm::FunctionType *anonGVName) {
 
-        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()))->toString();
+        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()), CHAIN(anonGVName, getReturnType()))->toString();
 
         std::vector<std::string> fnctnTypesOfArgs;
-        std::transform(++diStype->getTypeArray().begin(), diStype->getTypeArray().end(),
-                       std::back_inserter(fnctnTypesOfArgs),
-                   [&program](auto argType){ return fixType(program, argType)->toString(); });
+        for (size_t index = 0; index < diStype->getTypeArray().size() - 1; index++) {
+            fnctnTypesOfArgs.push_back(fixType(program, diStype->getTypeArray()[index + 1], CHAIN(anonGVName, getFunctionParamType(index)))->toString());
+        }
 
         std::string fnctnTypesOfArgsString;
         vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
 
         auto nthTypeDef = program.typeHandler.getTypeDefNumber();
+        // p(nthTypeDef, "   " , diDtype);
         program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
                     rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
         program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
         return program.typeHandler.ditypeCache[diDtype].get();
 }
-Type *fixType(Program& program, const llvm::DIType *ditype) {
+Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * anonGVName)  {
         if (!ditype)
             return program.typeHandler.voidType.get();
         // pointerTypes are cached:
@@ -101,7 +106,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         }
         const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);
         if ( diCompType && diCompType->getTag() == llvm::dwarf::DW_TAG_member) // type is a struct member
-            return fixType(program, diCompType->getBaseType());
+            return fixType(program, diCompType->getBaseType(), anonGVName);
         if ( diCompType && llvm::dwarf::DW_TAG_array_type == diCompType->getTag() ) {
 
             std::vector<llvm::DINode *> elmnts(diCompType->getElements().begin(), diCompType->getElements().end());
@@ -120,8 +125,11 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
+            auto arrayBaseType = anonGVName->getArrayElementType();
+            while( arrayBaseType->isArrayTy() )
+                arrayBaseType = arrayBaseType->getArrayElementType();
 
-            auto ptr = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType()), array_size);
+            auto ptr = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType(), arrayBaseType), array_size);
             auto* innermost_array = ptr.get();
             program.typeHandler.diSubranges.push_back(std::move(ptr));
 
@@ -203,11 +211,13 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
         }
         // DIDerivedType is used to represent a type that is derived
         // from another type, such as a pointer, or typedef.
+        // if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_member) return fixType(program, diDerivedType->getBaseType(), anonGVName);
         const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
-        if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_member) return fixType(program, diDerivedType->getBaseType());
         if (diDerivedType && (   diDerivedType->getTag() == llvm::dwarf::DW_TAG_const_type
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type
-                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type )) return fixType(program, diDerivedType->getBaseType());
+                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_member
+                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type ))
+            return fixType(program, diDerivedType->getBaseType(), anonGVName);
             // Commented because:
             // 1. we cannot distinguish between "* const *" and "const **"
             // 2. has no effect on semantics
@@ -221,9 +231,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
                             program.typeHandler.voidType.get());
 
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
-                return getFnctnPtrType(program, diDerivedType, diStype);
+                return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
             }
-            auto *innerType = fixType(program, diDerivedType->getBaseType());
+            auto *innerType = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType()));
 
             auto it = program.typeHandler.ditypeCache.find(ditype);
             if (it != program.typeHandler.ditypeCache.end()) {
@@ -232,9 +242,9 @@ Type *fixType(Program& program, const llvm::DIType *ditype) {
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
         } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
-                return getFnctnPtrType(program, diDerivedType, diStype);
+                return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(anonGVName));
             }
-            return fixType(program, diDerivedType->getBaseType());
+            return fixType(program, diDerivedType->getBaseType(), anonGVName);
         }
 
         // if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( ditype )) {
@@ -256,11 +266,15 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
     }
 
     if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
+        if (llvm::isa<llvm::Argument>(referredVal))
+            // do later
+            return;
+        llvm::Type* AT = llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
-        if (auto t = fixType(program, localVar->getType())) {
-            if (t->getKind() != variable->getType()->getKind()) {
+        if (auto t = fixType(program, localVar->getType(), AT)) {
+            if (t->getKind() != variable->getType()->getKind()) { // TODO UNION != STRUCT
                 llvm::errs() << "The type of this variable:" << localVar->getName()
                              << " specified by the user differs from the type in DIinfo.\n";
                 return;
@@ -321,17 +335,18 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             continue;
         }
         func->returnType = fixType(program,
-                        *function.getSubprogram()->getType()->getTypeArray().begin()
+                        *function.getSubprogram()->getType()->getTypeArray().begin(),
+                        function.getReturnType()
                                   );
         size_t indx = 0;
         while( indx < func->parameters.size() ){
             func->parameters[indx]->setType(
                 fixType(program,
-                        function.getSubprogram()->getType()->getTypeArray()[++indx]
-                       )
+                        function.getSubprogram()->getType()->getTypeArray()[indx + 1],
+                        function.getFunctionType()->getParamType(indx)));
                 // ++indx is here because the first element from a TypeArray
                 // is the function return type.
-            );
+            ++indx;
         }
     }
     program.addPass(PassType::ParseMetadataTypes);
