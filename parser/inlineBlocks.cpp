@@ -76,7 +76,6 @@ void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
         if (headminator->target == latch)
             header->expressions.pop_back();
         auto list = std::make_unique<ExprList>(std::move( header->expressions ));
-        Expr* result = list.get();
         latch->addOwnership(std::move(list));
 
     } // header and latch are the same thing
