@@ -23,7 +23,7 @@ void p(T t, Args... toPrint) {
 
 #define CHAIN(TYPE, MEMBER) ((TYPE) ? (TYPE)->MEMBER : nullptr)
 
-Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type *anonGVName);
+std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, const llvm::Type *anonGVName);
 
 void vectorToString( const std::vector<std::string> &vectorOfStrings, std::string &result) {
     result = "(";
@@ -41,11 +41,11 @@ Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
                                          const llvm::DISubroutineType *diStype,
                                          const llvm::FunctionType *anonGVName) {
 
-        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()), CHAIN(anonGVName, getReturnType()))->toString();
+        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()), CHAIN(anonGVName, getReturnType())).value()->toString();
 
         std::vector<std::string> fnctnTypesOfArgs;
         for (size_t index = 0; index < diStype->getTypeArray().size() - 1; index++) {
-            fnctnTypesOfArgs.push_back(fixType(program, diStype->getTypeArray()[index + 1], CHAIN(anonGVName, getFunctionParamType(index)))->toString());
+            fnctnTypesOfArgs.push_back(fixType(program, diStype->getTypeArray()[index + 1], CHAIN(anonGVName, getFunctionParamType(index))).value()->toString());
         }
 
         std::string fnctnTypesOfArgsString;
@@ -58,7 +58,7 @@ Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
         program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
         return program.typeHandler.ditypeCache[diDtype].get();
 }
-Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * anonGVName)  {
+std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * anonGVName)  {
         if (!ditype)
             return program.typeHandler.voidType.get();
         // pointerTypes are cached:
@@ -128,8 +128,10 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
             auto arrayBaseType = anonGVName->getArrayElementType();
             while( arrayBaseType->isArrayTy() )
                 arrayBaseType = arrayBaseType->getArrayElementType();
-
-            auto ptr = std::make_unique<ArrayType>(fixType(program, diCompType->getBaseType(), arrayBaseType), array_size);
+            auto t = fixType(program, diCompType->getBaseType(), arrayBaseType);
+            if ( !t.has_value() )
+                return {};
+            auto ptr = std::make_unique<ArrayType>(t.value(), array_size);
             auto* innermost_array = ptr.get();
             program.typeHandler.diSubranges.push_back(std::move(ptr));
 
@@ -167,20 +169,27 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
             auto strct = program.getStruct( strctName );
             if ( !strct && anonGVName)
                 strct = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
-            if( !strct )
-                p("Unable to find struct with name: ", strctName, "\n"), std::terminate();
+            if( !strct ) {
+                p("Unable to find struct with name: ", strctName, "\n");
+                return {};
+            }
+                //, std::terminate();
 
             if (strct->items.size() != diCompType->getElements().size()) {
                 p("Struct and DIStruct has different number of attributes.");
                 p("Error or struct with bit-fields");
-                return strct;
+                return {};
             }
             program.typeHandler.StructTypeDiCache[diCompType] = strct;
             size_t index = 0;
             while( index < strct->items.size()) {
                 llvm::DIType *di_node = llvm::dyn_cast_or_null<llvm::DIType>(
                                                 diCompType->getElements()[index]);
-                strct->items[index].first = fixType(program, di_node, CHAIN(anonGVName, getStructElementType(index)));
+                strct->items[index].first = fixType(program,
+                                                        di_node,
+                                                        CHAIN(anonGVName,
+                                                        getStructElementType(index))).value_or(
+                                                                                strct->items[index].first);
 
                 if (!di_node->getName().empty())
                     strct->items[index].second = di_node->getName().str();
@@ -207,10 +216,11 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
                 return llvm::dyn_cast<llvm::DIType>( a )->getSizeInBits() <
                        llvm::dyn_cast<llvm::DIType>( b )->getSizeInBits();});
             if (auto t = fixType(program, llvm::dyn_cast<llvm::DIType>(*r), nullptr)) {
-                if (onion->items.front().first->getKind() == t->getKind())
-                    onion->items.front().first = t;
+                if (t.has_value() && onion->items.front().first->getKind() == t.value()->getKind())
+                    onion->items.front().first = t.value();
+                    return onion;
             }
-            return onion;
+            return {};
         } else if (diCompType && llvm::dwarf::DW_TAG_enumeration_type == diCompType->getTag()) {
             //TODO: llvm2c decompiles enum as a global variable
             // it should be easy to add a support for enum...
@@ -240,7 +250,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
                 return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
             }
-            auto *innerType = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType()));
+            auto *innerType = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType())).value();
 
             auto it = program.typeHandler.ditypeCache.find(ditype);
             if (it != program.typeHandler.ditypeCache.end()) {
@@ -260,7 +270,7 @@ Type *fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * a
 
         p("Unknown type tag:<", ditype->getTag(), "> name<", ditype->getName(), ">\n");
         std::terminate();
-        return nullptr;
+        return {};
 }
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
@@ -281,12 +291,12 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
-            if (t->getKind() != variable->getType()->getKind()) { // TODO UNION != STRUCT
+            if (!t.has_value() || t.value()->getKind() != variable->getType()->getKind()) { // TODO UNION != STRUCT
                 llvm::errs() << "The type of this variable:" << localVar->getName()
                              << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
-            variable->setType(t);
+            variable->setType(t.value());
         }
     }
 }
@@ -303,8 +313,8 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
             llvm::DIVariable *Var = GVE->getVariable();
             if ( auto gv = program.getGlobalVar( &gvar ) ) {
                 if (auto t = fixType(program, Var->getType(), gvar.getValueType())) {
-                    if (t->getKind() == gv->expr->getType()->getKind()) {
-                        program.getGlobalVar( &gvar )->expr->setType(t);
+                    if (t.has_value() && t.value()->getKind() == gv->expr->getType()->getKind()) {
+                        program.getGlobalVar( &gvar )->expr->setType(t.value());
                     }
                 } else
                     llvm::errs() << " Global Var missing, but debuginfo occured\n";
@@ -340,19 +350,19 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                                             (llvm::dyn_cast<llvm::DICompositeType>(argType)->getTag() ==
                                             llvm::dwarf::DW_TAG_union_type));});
         if (isStructInArgs) {
-            p("parseMetadataTypes: looks like struct is passed by value to this function: ", func->name, "\n");
+            p("parseMetadataTypes: looks like struct is passed by value to this function. Nothing to do in: ", func->name, "\n");
             continue;
         }
         func->returnType = fixType(program,
                         *function.getSubprogram()->getType()->getTypeArray().begin(),
                         function.getReturnType()
-                                  );
+                                  ).value_or( func->returnType );
         size_t indx = 0;
         while( indx < func->parameters.size() ){
             func->parameters[indx]->setType(
                 fixType(program,
                         function.getSubprogram()->getType()->getTypeArray()[indx + 1],
-                        function.getFunctionType()->getParamType(indx)));
+                        function.getFunctionType()->getParamType(indx)).value_or( func->parameters[indx]->getType() ));
                 // ++indx is here because the first element from a TypeArray
                 // is the function return type.
             ++indx;
