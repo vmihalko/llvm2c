@@ -259,9 +259,6 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_member
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type )) {
 
-            if (!diDerivedType->getBaseType())
-                return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType,
-                            program.typeHandler.voidType.get());
             return fixType(program, diDerivedType->getBaseType(), anonGVName);
         }
             // Commented because:
