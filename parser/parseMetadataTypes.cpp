@@ -57,13 +57,18 @@ std::optional<Type *> getFnctnPtrType(Program& program, const llvm::DIDerivedTyp
         std::string fnctnTypesOfArgsString;
         vectorToString( fnctnTypesOfArgs, fnctnTypesOfArgsString); // e.g. "(int, doubl, char *)"
 
+        auto it = program.typeHandler.ditypeCache.find(diDtype);
+        if (it != program.typeHandler.ditypeCache.end()) {
+            return it->second.get();
+        }
+
         auto nthTypeDef = program.typeHandler.getTypeDefNumber();
-        // p(nthTypeDef, "   " , diDtype);
         program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
                     rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
         program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
         return program.typeHandler.ditypeCache[diDtype].get();
 }
+
 std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, const llvm::Type * anonGVName)  {
         if (!ditype)
             return program.typeHandler.voidType.get();
