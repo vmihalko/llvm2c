@@ -257,8 +257,10 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
         if (diDerivedType && (   diDerivedType->getTag() == llvm::dwarf::DW_TAG_const_type
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_member
-                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type ))
+                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type )) {
+
             return fixType(program, diDerivedType->getBaseType(), anonGVName);
+        }
             // Commented because:
             // 1. we cannot distinguish between "* const *" and "const **"
             // 2. has no effect on semantics
@@ -291,6 +293,9 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             }
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
         } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
+            if (!diDerivedType->getBaseType())
+                return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType,
+                            program.typeHandler.voidType.get());
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
             if (anonGVName && anonGVName->isFunctionTy())
                 return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(anonGVName));
