@@ -167,10 +167,12 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             return outermost_array;
 
         } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
-            if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
-                return {};
+            if (anonGVName && !anonGVName->isStructTy())
+                anonGVName = nullptr;
+            // if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
+            //     return {};
 
-            if (anonGVName && anonGVName->isStructTy() && anonGVName->getStructName().empty()) // anonymous struct
+            if (anonGVName && anonGVName->getStructName().empty()) // anonymous struct
                 return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
 
             std::string strctName = diCompType->getName().empty() && anonGVName
@@ -178,7 +180,7 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
                      : "s_" + diCompType->getName().str();
 
             auto strct = program.getStruct( strctName );
-            if ( !strct && anonGVName && anonGVName->isStructTy()) // struct with name: diCompType->getName().str() wasn't found
+            if ( !strct && anonGVName) // struct with name: diCompType->getName().str() wasn't found
                 strct = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
             if( !strct ) {
                 p("Unable to find struct with name: ", strctName, "\n");
@@ -209,10 +211,12 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             }
             return strct;
         } else if (diCompType && llvm::dwarf::DW_TAG_union_type == diCompType->getTag()) {
-            if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
-                return {};
+            if (anonGVName && !anonGVName->isStructTy())
+                anonGVName = nullptr;
+            // if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
+            //     return {};
 
-            if (anonGVName && anonGVName->isStructTy() && anonGVName->getStructName().empty()) // anonymous union
+            if (anonGVName && anonGVName->getStructName().empty()) // anonymous union
                 return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
             /* In LLVM there are no unions; there are only structs that can be cast into
             *  whichever type the front-end want to cast the struct into.
@@ -223,7 +227,7 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
                      : "u_" + diCompType->getName().str();
 
             auto onion = program.getStruct( unionName );
-            if ( !onion && anonGVName && anonGVName->isStructTy()) // union with name: diCompType->getName().str() wasn't found
+            if ( !onion && anonGVName) // union with name: diCompType->getName().str() wasn't found
                 onion = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
             if( !onion ) {
                 p("Unable to find union with name: ", unionName, "\n");
@@ -262,13 +266,19 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             // ft->isConst = true;
             // return ft;
         if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
+            if (anonGVName && !anonGVName->isPointerTy())
+                anonGVName = nullptr;
 
             if (!diDerivedType->getBaseType())
                 return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType,
                             program.typeHandler.voidType.get());
 
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
-                return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
+                if (anonGVName && anonGVName->getPointerElementType()->isFunctionTy())
+                    return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
+                if (!anonGVName)
+                    return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
+                return {};
             }
             auto t = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType()));
             if ( !t.has_value() )
@@ -282,7 +292,11 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             return program.typeHandler.cachedDITypeInserter<PointerType>(diDerivedType, innerType);
         } else if (diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_typedef)) {
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
+            if (anonGVName && anonGVName->isFunctionTy())
                 return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(anonGVName));
+            if (!anonGVName)
+                return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(anonGVName));
+            return {};
             }
             return fixType(program, diDerivedType->getBaseType(), anonGVName);
         }
