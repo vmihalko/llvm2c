@@ -131,7 +131,8 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
-            auto arrayBaseType = CHAIN(anonGVName, getArrayElementType());
+
+            auto arrayBaseType = anonGVName && anonGVName->isArrayTy() ? CHAIN(anonGVName, getArrayElementType()) : nullptr;
             while( arrayBaseType && arrayBaseType->isArrayTy() )
                 arrayBaseType = arrayBaseType->getArrayElementType();
             auto t = fixType(program, diCompType->getBaseType(), arrayBaseType);
@@ -166,14 +167,18 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             return outermost_array;
 
         } else if (diCompType && llvm::dwarf::DW_TAG_structure_type == diCompType->getTag() ) {
-            if (anonGVName && anonGVName->getStructName().empty())
+            if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
+                return {};
+
+            if (anonGVName && anonGVName->isStructTy() && anonGVName->getStructName().empty()) // anonymous struct
                 return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
 
             std::string strctName = diCompType->getName().empty() && anonGVName
                      ? TypeHandler::getStructName(anonGVName->getStructName().str())
                      : "s_" + diCompType->getName().str();
+
             auto strct = program.getStruct( strctName );
-            if ( !strct && anonGVName)
+            if ( !strct && anonGVName && anonGVName->isStructTy()) // struct with name: diCompType->getName().str() wasn't found
                 strct = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
             if( !strct ) {
                 p("Unable to find struct with name: ", strctName, "\n");
@@ -204,7 +209,10 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             }
             return strct;
         } else if (diCompType && llvm::dwarf::DW_TAG_union_type == diCompType->getTag()) {
-            if (anonGVName && anonGVName->getStructName().empty())
+            if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
+                return {};
+
+            if (anonGVName && anonGVName->isStructTy() && anonGVName->getStructName().empty()) // anonymous union
                 return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
             /* In LLVM there are no unions; there are only structs that can be cast into
             *  whichever type the front-end want to cast the struct into.
@@ -213,8 +221,9 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             std::string unionName = diCompType->getName().empty() && anonGVName
                      ? TypeHandler::getStructName(anonGVName->getStructName().str())
                      : "u_" + diCompType->getName().str();
+
             auto onion = program.getStruct( unionName );
-            if ( !onion && anonGVName)
+            if ( !onion && anonGVName && anonGVName->isStructTy()) // union with name: diCompType->getName().str() wasn't found
                 onion = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
             if( !onion ) {
                 p("Unable to find union with name: ", unionName, "\n");
