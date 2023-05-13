@@ -131,8 +131,8 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
-            auto arrayBaseType = anonGVName->getArrayElementType();
-            while( arrayBaseType->isArrayTy() )
+            auto arrayBaseType = CHAIN(anonGVName, getArrayElementType());
+            while( arrayBaseType && arrayBaseType->isArrayTy() )
                 arrayBaseType = arrayBaseType->getArrayElementType();
             auto t = fixType(program, diCompType->getBaseType(), arrayBaseType);
             if ( !t.has_value() )
