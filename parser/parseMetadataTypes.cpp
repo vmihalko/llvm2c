@@ -37,15 +37,21 @@ void vectorToString( const std::vector<std::string> &vectorOfStrings, std::strin
     result += ")";
 }
 
-Type * getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
+std::optional<Type *> getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
                                          const llvm::DISubroutineType *diStype,
                                          const llvm::FunctionType *anonGVName) {
 
-        std::string rtrnType = fixType(program, (*diStype->getTypeArray().begin()), CHAIN(anonGVName, getReturnType())).value()->toString();
+        auto t = fixType(program, (*diStype->getTypeArray().begin()), CHAIN(anonGVName, getReturnType()));
+        if (!t.has_value())
+            return {};
+        std::string rtrnType = t.value()->toString();
 
         std::vector<std::string> fnctnTypesOfArgs;
         for (size_t index = 0; index < diStype->getTypeArray().size() - 1; index++) {
-            fnctnTypesOfArgs.push_back(fixType(program, diStype->getTypeArray()[index + 1], CHAIN(anonGVName, getFunctionParamType(index))).value()->toString());
+            auto t = fixType(program, diStype->getTypeArray()[index + 1], CHAIN(anonGVName, getFunctionParamType(index)));
+            if (!t.has_value())
+                return {};
+            fnctnTypesOfArgs.push_back(t.value()->toString());
         }
 
         std::string fnctnTypesOfArgsString;
@@ -208,17 +214,22 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
                      ? TypeHandler::getStructName(anonGVName->getStructName().str())
                      : "u_" + diCompType->getName().str();
             auto onion = program.getStruct( unionName );
-            if( !onion )
-                p("Unable to find union with name: ", unionName, "\n"), std::terminate();
+            if ( !onion && anonGVName)
+                onion = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
+            if( !onion ) {
+                p("Unable to find union with name: ", unionName, "\n");
+                return {};
+            }
 
             // ASSUMPTION: union has always single type (in LLVMIR)
             auto r = std::max_element(diCompType->getElements().begin(), diCompType->getElements().end(), [](llvm::DINode *a, llvm::DINode *b){
                 return llvm::dyn_cast<llvm::DIType>( a )->getSizeInBits() <
                        llvm::dyn_cast<llvm::DIType>( b )->getSizeInBits();});
             if (auto t = fixType(program, llvm::dyn_cast<llvm::DIType>(*r), nullptr)) {
-                if (t.has_value() && onion->items.front().first->getKind() == t.value()->getKind())
+                if (t.has_value() && onion->items.front().first->getKind() == t.value()->getKind()) {
                     onion->items.front().first = t.value();
                     return onion;
+                }
             }
             return {};
         } else if (diCompType && llvm::dwarf::DW_TAG_enumeration_type == diCompType->getTag()) {
@@ -250,7 +261,10 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             if (const llvm::DISubroutineType *diStype = llvm::dyn_cast<llvm::DISubroutineType>( diDerivedType->getBaseType() )) {
                 return getFnctnPtrType(program, diDerivedType, diStype, llvm::cast_or_null<llvm::FunctionType>(CHAIN(anonGVName, getPointerElementType())));
             }
-            auto *innerType = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType())).value();
+            auto t = fixType(program, diDerivedType->getBaseType(), CHAIN(anonGVName, getPointerElementType()));
+            if ( !t.has_value() )
+                return {};
+            auto *innerType = t.value();
 
             auto it = program.typeHandler.ditypeCache.find(ditype);
             if (it != program.typeHandler.ditypeCache.end()) {
