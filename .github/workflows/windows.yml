@@ -3,11 +3,9 @@ name: Windows CI
 on:
   # TODO: rename to main when we remove the binary blobs from the git history
   push:
-    branches:
-      - master
+    branches: [ "master", "main", "vmihalko-devel"]
   pull_request:
-    branches:
-      - master
+    branches: [ "master", "main", "vmihalko-devel"]
 
 jobs:
   build:
