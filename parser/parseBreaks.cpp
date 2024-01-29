@@ -3,6 +3,8 @@
 #include "../core/Block.h"
 #include "cfunc.h"
 #include "constval.h"
+#include "negCmpInst.h"
+#include "compare.h"
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>
@@ -154,11 +156,19 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     // remove `goto loopHeader;`
     loopPreheader->expressions.pop_back();
 
-    // create the condition c from `while( C )`
-    Expr* cmp =  func->getExpr( 
-                        llvm::dyn_cast<llvm::BranchInst>(
-                            loop->getLoopLatch()->getTerminator())->getCondition()
+    auto doWhileTerminatorInst = llvm::dyn_cast<llvm::BranchInst>(
+                            loop->getLoopLatch()->getTerminator());
+
+    auto whileCondIsTrueBlock = llvm::dyn_cast<llvm::BasicBlock>(doWhileTerminatorInst->getOperand(2));
+    Expr* cmp =  func->getExpr(
+                        doWhileTerminatorInst->getCondition()
                             );
+    if ( whileCondIsTrueBlock != loop->getHeader() ) {
+            auto cmpExpr = llvm::dyn_cast<CmpExpr>( cmp );
+            cmpExpr->comparsion = getComparePredicate(negateCmpInst(llvm::dyn_cast<llvm::CmpInst>(doWhileTerminatorInst->getCondition())));
+
+            llvm::errs() << "flipped\n";
+    }
     // do { goto loop.header() } while (c)
 
     // #2 create the doWhile body `do { goto loopHeader; }`
