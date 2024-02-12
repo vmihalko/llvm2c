@@ -217,7 +217,8 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
                                                                  loop->getLoopLatch()->getTerminator()->getOperand(1)))
                                         );
     // add `goto afterDoWhileBlock;` expression right after the doWhile expr
-    loopPreheader->addExpr(createListOfOneGoto(loopPreheader, afterDoWhile));
+    //loopPreheader->addExpr(createListOfOneGoto(loopPreheader, afterDoWhile));
+    loopPreheader->addExpr(createListOfOneGoto(func->getBlock( loop->getLoopLatch() ), afterDoWhile));
 
     // nested loops are already parsed
     // parse yet unparsed blocks
