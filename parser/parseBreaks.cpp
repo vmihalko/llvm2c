@@ -5,6 +5,7 @@
 #include "constval.h"
 #include "negCmpInst.h"
 #include "compare.h"
+#include <algorithm>
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>
@@ -36,11 +37,13 @@ static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* next
     return exprs;
 }
 
-static Expr* createListOfOneGoto(Block* container, Block* gotoTarget) {
+static Expr* createListOfOneGoto(Block* container, Block* gotoTarget, bool isLoop = false) {
     auto gotoExpr = std::make_unique<GotoExpr>(gotoTarget);
 
     std::vector<Expr*> exprs = generatePhiAssignments(container, gotoTarget);
     exprs.push_back(gotoExpr.get());
+    if (isLoop)
+        std::rotate(exprs.rbegin(), exprs.rbegin() + 1, exprs.rend());
     auto list = std::make_unique<ExprList>(std::move(exprs));
 
     container->addOwnership(std::move(gotoExpr));
@@ -176,7 +179,7 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 
     // #3 create doWhileBody expr
     auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
-                                                                    doWhileBody),
+                                                                    doWhileBody, true /*isLoop = true*/),
                                                 cmp);
 
     // #4 it's safe to inline loopheader:
