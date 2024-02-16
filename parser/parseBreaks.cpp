@@ -17,7 +17,7 @@
 /**
  * return phi assignments as ExprList
  */
-static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* nextBlock) {
+static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* nextBlock, bool isLoop = false) {
     std::vector<Expr*> exprs;
 
     Program& program = *blockEnding->func->program;
@@ -29,7 +29,14 @@ static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* next
         for (unsigned i = 0; i < phi.getNumIncomingValues(); ++i) {
             if (phi.getIncomingBlock(i) == blockEnding->block) {
                 Expr* incoming = program.getExpr(phi.getIncomingValue(i));
-                exprs.push_back(program.makeExpr<AssignExpr>(phiVar, incoming));
+
+                exprs.push_back(program.makeExpr<AssignExpr>(phiVar, isLoop ? program.makeExpr<SelectExpr>(
+                                    blockEnding->func->getExpr(
+                                        llvm::dyn_cast<llvm::BranchInst>(blockEnding->block->getTerminator())->getCondition()
+                                                 ),
+                                    incoming,
+                                    phiVar
+                                ) : incoming));
             }
         }
     }
@@ -40,7 +47,7 @@ static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* next
 static Expr* createListOfOneGoto(Block* container, Block* gotoTarget, bool isLoop = false) {
     auto gotoExpr = std::make_unique<GotoExpr>(gotoTarget);
 
-    std::vector<Expr*> exprs = generatePhiAssignments(container, gotoTarget);
+    std::vector<Expr*> exprs = generatePhiAssignments(container, gotoTarget, isLoop);
     exprs.push_back(gotoExpr.get());
     if (isLoop)
         std::rotate(exprs.rbegin(), exprs.rbegin() + 1, exprs.rend());
