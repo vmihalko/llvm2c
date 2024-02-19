@@ -49,8 +49,6 @@ static Expr* createListOfOneGoto(Block* container, Block* gotoTarget, bool isLoo
 
     std::vector<Expr*> exprs = generatePhiAssignments(container, gotoTarget, isLoop);
     exprs.push_back(gotoExpr.get());
-    if (isLoop)
-        std::rotate(exprs.rbegin(), exprs.rbegin() + 1, exprs.rend());
     auto list = std::make_unique<ExprList>(std::move(exprs));
 
     container->addOwnership(std::move(gotoExpr));
@@ -185,9 +183,15 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     Block* doWhileBody = func->createBlockIfNotExist( loop->getHeader() );
 
     // #3 create doWhileBody expr
-    auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
-                                                                    doWhileBody, true /*isLoop = true*/),
-                                                cmp);
+    std::vector<Expr *> doWhileBodyExprs;
+    auto gotoExpr = std::make_unique<GotoExpr>(doWhileBody);
+    doWhileBodyExprs.push_back( gotoExpr.get() );
+
+    auto list = std::make_unique<ExprList>(std::move(doWhileBodyExprs));
+    auto doWhile = std::make_unique<DoWhile>( list.get() ,cmp);
+
+    loopPreheader->addOwnership(std::move( gotoExpr ));
+    loopPreheader->addOwnership(std::move( list ));
 
     // #4 it's safe to inline loopheader:
     // loopHeader.succ_first() == loopLatch, loopHeader.succ_second() = loopPreheader
@@ -207,6 +211,23 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     }
     //##############################################
     func->getBlock( loop->getLoopLatch() )->brHandled = true;
+    if ( (loop->getHeader() != loop->getLoopLatch())  ) {
+	auto loopLatchPhiAsss = std::make_unique<ExprList>(generatePhiAssignments( doWhileBody,
+										   func->getBlock( loop->getLoopLatch() ),
+                                                                                   false, //isLoop
+                                                                                   whileCondIsTrueBlock != loop->getHeader()));
+	llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( loopLatchPhiAsss.get() );
+	std::rotate(llvm::dyn_cast<ExprList>(doWhile->body)->expressions.rbegin(),
+		    llvm::dyn_cast<ExprList>(doWhile->body)->expressions.rbegin() + 1, llvm::dyn_cast<ExprList>(doWhile->body)->expressions.rend());
+	doWhileBody->addOwnership( std::move(loopLatchPhiAsss) );
+    }
+
+    auto loopHeaderPhiAsss = std::make_unique<ExprList>(generatePhiAssignments( func->getBlock( loop->getLoopLatch() ),
+                                                                                          doWhileBody,
+                                                                                          true, //isLoop
+                                                                                          whileCondIsTrueBlock != loop->getHeader()));
+    llvm::dyn_cast<ExprList>(doWhile->body)->expressions.push_back( loopHeaderPhiAsss.get() );
+    doWhileBody->addOwnership( std::move(loopHeaderPhiAsss) );
 
     // "dummy force inlining": add DOWHILE to the preheader block
     // (on the place were the goto doWhileHeader should be)
