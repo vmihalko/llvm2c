@@ -508,6 +508,10 @@ void ExprWriter::visit(DoWhile& expr) {
     indentCount--;
     indent();
     ss << "} while (";
+    if (expr.negateCondition)
+        ss << " !(";
     expr.cond->accept(*this);
+    if (expr.negateCondition)
+        ss << " )";
     ss << ")";
 }
