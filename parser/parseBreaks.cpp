@@ -167,16 +167,9 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     auto doWhileTerminatorInst = llvm::dyn_cast<llvm::BranchInst>(
                             loop->getLoopLatch()->getTerminator());
 
-    auto whileCondIsTrueBlock = llvm::dyn_cast<llvm::BasicBlock>(doWhileTerminatorInst->getOperand(2));
     Expr* cmp =  func->getExpr(
                         doWhileTerminatorInst->getCondition()
                             );
-    if ( whileCondIsTrueBlock != loop->getHeader() ) {
-            auto cmpExpr = llvm::dyn_cast<CmpExpr>( cmp );
-            cmpExpr->comparsion = getComparePredicate(negateCmpInst(llvm::dyn_cast<llvm::CmpInst>(doWhileTerminatorInst->getCondition())));
-
-            llvm::errs() << "flipped\n";
-    }
     // do { goto loop.header() } while (c)
 
     // #2 create the doWhile body `do { goto loopHeader; }`
@@ -192,6 +185,12 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
 
     loopPreheader->addOwnership(std::move( gotoExpr ));
     loopPreheader->addOwnership(std::move( list ));
+
+    auto whileCondIsTrueBlock = llvm::dyn_cast<llvm::BasicBlock>(doWhileTerminatorInst->getOperand(2));
+    auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
+                                                                    doWhileBody, true /*isLoop = true*/),
+                                                cmp,
+                                                whileCondIsTrueBlock != loop->getHeader());
 
     // #4 it's safe to inline loopheader:
     // loopHeader.succ_first() == loopLatch, loopHeader.succ_second() = loopPreheader
