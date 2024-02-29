@@ -419,8 +419,9 @@ class DoWhile : public ExprBase {
 public:
     Expr* body;
     Expr* cond;
+    bool negateCondition;
 
-    DoWhile(Expr* body, Expr* cond);
+    DoWhile(Expr* body, Expr* cond, bool negateCondition);
 
     void accept(ExprVisitor& visitor) override;
 
