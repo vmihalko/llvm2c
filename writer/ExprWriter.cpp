@@ -292,7 +292,11 @@ void ExprWriter::visit(GepExpr& expr) {
 }
 
 void ExprWriter::visit(SelectExpr& expr) {
+    if (expr.negateCondition)
+        ss << "!(";
     parensIfNotSimple(expr.comp);
+    if (expr.negateCondition)
+        ss << ")";
     ss << " ? ";
     parensIfNotSimple(expr.left);
     ss << " : ";
