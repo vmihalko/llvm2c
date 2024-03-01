@@ -204,11 +204,12 @@ bool GepExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GepExpr;
 }
 
-SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
+SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r, bool negateCondition = false) :
     ExprBase(EK_SelectExpr),
     left(l),
     right(r),
-    comp(comp) {
+    comp(comp)
+    negateCondition(negateCondition) {
     setType(l->getType());
 }
 
