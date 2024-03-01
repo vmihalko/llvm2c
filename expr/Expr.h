@@ -345,8 +345,9 @@ public:
     Expr* left;
     Expr* right;
     Expr* comp;
+    bool negateCondition;
 
-    SelectExpr(Expr*, Expr*, Expr*);
+    SelectExpr(Expr*, Expr*, Expr*, bool negateCondition);
 
     void accept(ExprVisitor& visitor) override;
 
