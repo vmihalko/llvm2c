@@ -347,7 +347,7 @@ public:
     Expr* comp;
     bool negateCondition;
 
-    SelectExpr(Expr*, Expr*, Expr*, bool negateCondition);
+    SelectExpr(Expr*, Expr*, Expr*, bool negateCondition = false);
 
     void accept(ExprVisitor& visitor) override;
 
