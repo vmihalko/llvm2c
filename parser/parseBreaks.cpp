@@ -181,16 +181,16 @@ void parseLoop(Func* func, const llvm::Loop *loop) {
     doWhileBodyExprs.push_back( gotoExpr.get() );
 
     auto list = std::make_unique<ExprList>(std::move(doWhileBodyExprs));
-    auto doWhile = std::make_unique<DoWhile>( list.get() ,cmp);
+    auto whileCondIsTrueBlock = llvm::dyn_cast<llvm::BasicBlock>(doWhileTerminatorInst->getOperand(2));
+    auto doWhile = std::make_unique<DoWhile>( list.get() ,cmp, whileCondIsTrueBlock != loop->getHeader());
 
     loopPreheader->addOwnership(std::move( gotoExpr ));
     loopPreheader->addOwnership(std::move( list ));
 
-    auto whileCondIsTrueBlock = llvm::dyn_cast<llvm::BasicBlock>(doWhileTerminatorInst->getOperand(2));
-    auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
-                                                                    doWhileBody, true /*isLoop = true*/),
-                                                cmp,
-                                                whileCondIsTrueBlock != loop->getHeader());
+    // auto doWhile = std::make_unique<DoWhile>(createListOfOneGoto( func->getBlock( loop->getLoopLatch() ),
+                                                                    // doWhileBody, true /*isLoop = true*/),
+                                                // cmp,
+                                                // whileCondIsTrueBlock != loop->getHeader());
 
     // #4 it's safe to inline loopheader:
     // loopHeader.succ_first() == loopLatch, loopHeader.succ_second() = loopPreheader
