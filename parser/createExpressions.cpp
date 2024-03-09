@@ -562,8 +562,17 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
                                          !binOp->hasNoSignedWrap());
 	} break;
     case llvm::Instruction::LShr:
-        expr = std::make_unique<LshrExpr>(val0, val1);
-        break;
+	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
+	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "63") {
+           // create 0
+	   auto zero = std::make_unique<Value>("0", removeCastsFromExpr(val1)->getType());
+	   // create: val0 < 0
+	   expr = std::make_unique<CmpExpr>(val1, zero.get(), "<", false);
+	   program.addOwnership(std::move(zero));
+
+   } else {
+	expr = std::make_unique<LshrExpr>(val0, val1);
+        } break;
     case llvm::Instruction::AShr:
         expr = std::make_unique<AshrExpr>(val0, toUnsigned(val1, program));
         break;
