@@ -517,6 +517,22 @@ static void parseAsmInst(const llvm::Instruction& ins, Func* func, Block* block)
     block->addExpr(func->getExpr(&ins));
 }
 
+static Expr * removeCastsFromExpr(Expr* expr) {
+    if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+        llvm::errs() << "cast removed\n";
+        Expr* innermost = cast->expr;
+
+        while (auto* inner = llvm::dyn_cast_or_null<CastExpr>(innermost)) {
+            llvm::errs() << "cast removed\n";
+            innermost = inner->expr;
+        }
+
+        return innermost;
+    }
+
+    return expr;
+}
+
 static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& program) {
     Expr* val0 = program.getExpr(ins.getOperand(0));
     Expr* val1 = program.getExpr(ins.getOperand(1));
@@ -531,9 +547,20 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
             val0 = toSigned(val0, program);
             val1 = toSigned(val1, program);
         }
+
+		llvm::errs() << removeCastsFromExpr(val1)->getKind() << " end\n";
+	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
+	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "1") {
+		llvm::errs() << removeCastsFromExpr(val1)->getKind() << "WASHER\n";
+		auto two = std::make_unique<Value>("2", removeCastsFromExpr(val1)->getType());
+		expr = std::make_unique<MulExpr>(val0,  two.get(),
+					 !binOp->hasNoSignedWrap());
+		program.addOwnership(std::move(two));
+	    }
+	else {
         expr = std::make_unique<ShlExpr>(val0, toUnsigned(val1, program),
                                          !binOp->hasNoSignedWrap());
-        break;
+	} break;
     case llvm::Instruction::LShr:
         expr = std::make_unique<LshrExpr>(val0, val1);
         break;
