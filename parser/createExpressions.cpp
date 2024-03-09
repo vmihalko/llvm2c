@@ -57,10 +57,6 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program);
 static void parseInlineASM(const llvm::Instruction& ins, Func* func, Block* block);
 
 // FIXME: Remove this when LLVM 8 is the minimal version for LLVM2C!
-static inline llvm::iterator_range<llvm::User::op_iterator> args_wrapper(llvm::CallInst *CI) {
-    return make_range(CI->arg_begin(), CI->arg_end());
-}
-
 static inline llvm::iterator_range<llvm::User::const_op_iterator> args_wrapper(const llvm::CallInst *CI) {
     return make_range(CI->arg_begin(), CI->arg_end());
 }

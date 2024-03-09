@@ -9,7 +9,7 @@ if(N EQUAL 0)
   set(N 1)
 endif()
 
-set(CTEST_OPTS -j${N} --output-on-failure --progress ${CTEST_OPTS})
+set(CTEST_OPTS -j${N} --output-on-failure --progress ${CTEST_OPTS} -C $<CONFIG>)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
                         USES_TERMINAL)
 add_dependencies(check llvm2c)
@@ -34,10 +34,7 @@ endforeach()
 # --------------------------------------------------
 # Tests
 # --------------------------------------------------
-set(LLVM2C $<TARGET_FILE:llvm2c>)
-configure_file(run.in run.imd @ONLY)
-file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/run
-              INPUT  ${CMAKE_CURRENT_BINARY_DIR}/run.imd)
+configure_file(run.in run @ONLY)
 
 set(tests
   asm
@@ -56,4 +53,5 @@ set(tests
 
 foreach(test ${tests})
   add_test(NAME ${test} COMMAND ./run ${test})
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT LLVM2C=$<TARGET_FILE:llvm2c>)
 endforeach()

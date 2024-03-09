@@ -20,7 +20,12 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
 # --------------------------------------------------
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-rtti")
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /W4 /GR-")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-rtti")
+endif()
 
 # --------------------------------------------------
 # Sanitizers
@@ -65,6 +70,11 @@ include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
 option(LLVM_LINK_DYLIB "Link with LLVM dynamically" ON)
+if(MSVC)
+  message(WARNING "It is not possible to link with LLVM dynamically on Windows")
+  set(LLVM_LINK_DYLIB OFF)
+endif()
+
 if(LLVM_LINK_DYLIB)
   message(STATUS "LLVM linking: dynamic")
   set(llvm_libs LLVM)
@@ -72,8 +82,12 @@ else()
   message(STATUS "LLVM linking: static")
   # Find the libraries that correspond to the LLVM components
   # that we wish to use
-  llvm_map_components_to_libnames(llvm_libs bitwriter core irreader linker
-                                            support)
+  llvm_map_components_to_libnames(llvm_libs irreader)
+
+  if(MSVC)
+    add_compile_options($<$<CONFIG:Debug>:/MTd>
+                        $<$<NOT:$<CONFIG:Debug>>:/MT>)
+  endif()
 endif()
 
 # --------------------------------------------------
@@ -83,25 +97,17 @@ set(llvm2c_sources
   main.cpp
 
   core/Block.cpp
-  core/Block.h
   core/Func.cpp
-  core/Func.h
   core/Program.cpp
-  core/Program.h
 
   expr/BinaryExpr.cpp
-  expr/BinaryExpr.h
   expr/Expr.cpp
-  expr/Expr.h
   expr/UnaryExpr.cpp
-  expr/UnaryExpr.h
 
   parser/ProgramParser.cpp
-  parser/ProgramParser.h
   parser/SimplifyingExprVisitor.cpp
   parser/addSignCasts.cpp
   parser/arrowify.cpp
-  parser/cfunc.h
   parser/computeGlobalVarsOrder.cpp
   parser/constval.cpp
   parser/createAllocas.cpp
@@ -127,16 +133,12 @@ set(llvm2c_sources
   parser/parseMetadataTypes.cpp
   parser/parseStructDeclarations.cpp
   parser/parseStructItems.cpp
-  parser/passes.h
   parser/prepareBitcastUnion.cpp
   parser/refDeref.cpp
   parser/toinst.cpp
-  parser/toinst.h
 
   type/Type.cpp
-  type/Type.h
   type/TypeHandler.cpp
-  type/TypeHandler.h
 
   writer/CWriter.cpp
   writer/ExprWriter.cpp

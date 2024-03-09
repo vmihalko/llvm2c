@@ -1,0 +1,86 @@
+---
+name: Windows CI
+on:
+  # TODO: rename to main when we remove the binary blobs from the git history
+  push:
+    branches: [ "master", "main", "vmihalko-devel"]
+  pull_request:
+    branches: [ "master", "main", "vmihalko-devel"]
+
+jobs:
+  build:
+    name: 'Windows (llvm: ${{matrix.llvm}}, build: ${{matrix.build}})'
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm: [13]
+        build: [RelWithDebInfo]
+
+    runs-on: windows-latest
+    steps:
+      - name: Checkout llvm2c
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          # Use LLVM build from the authors of the zig language:
+          # https://github.com/ziglang/zig/wiki/Building-Zig-on-Windows#option-1-use-the-windows-zig-compiler-dev-kit
+          curl -o llvm.tar.xz "https://ziglang.org/deps/llvm%2bclang%2blld-${{matrix.llvm}}.0.1-x86_64-windows-msvc-release-mt.tar.xz"
+
+          # workaround for https://github.com/actions/runner-images/issues/282
+          $env:Path = "C:\\Program Files\\Git\\usr\\bin;" + $env:Path
+
+          # extract twice to deal with dangling symlinks
+          tar xvf .\llvm.tar.xz
+          tar xvf .\llvm.tar.xz
+
+      - name: Set environment
+        run: |
+          # TODO: add sanitizer support to llvm2c's CMakeLists.txt
+
+          # Build with sanitizers (TODO: add UBSAN when MSVC supports it)
+          $CFLAGS   = "/fsanitize=address"
+          $CXXFLAGS = "/fsanitize=address"
+
+          # Make UBSAN print whole stack traces
+          $UBSAN_OPTIONS = "print_stacktrace=1"
+
+          # Fail on any compiler warning
+          $CFLAGS   += " /WX"
+          $CXXFLAGS += " /WX"
+
+          # Save the environment
+          "CFLAGS=$CFLAGS"               >> $env:GITHUB_ENV
+          "CXXFLAGS=$CXXFLAGS"           >> $env:GITHUB_ENV
+          "UBSAN_OPTIONS=$UBSAN_OPTIONS" >> $env:GITHUB_ENV
+
+      # TODO: LLVM cannot be build as a DLL on Windows.  Uncomment when it is
+      # possible.
+      #
+      #- name: '[Dynamic LLVM] Configure CMake project'
+      #  run: |
+      #    $LLVM_CONFIG = Resolve-Path 'llvm*\bin\llvm-config.exe'
+      #    cmake -S.                                              `
+      #          -B_build                                         `
+      #          -DLLVM_DIR:PATH="$(& "$LLVM_CONFIG" --cmakedir)"
+      #
+      #- name: '[Dynamic LLVM] Build'
+      #  run: cmake --build _build --config ${{matrix.build}}
+      #
+      #- name: '[Dynamic LLVM] Run tests'
+      #  run: cmake --build _build --target check
+
+      - name: '[Static LLVM] Re-configure CMake project'
+        run: |
+          $LLVM_CONFIG = Resolve-Path 'llvm*\bin\llvm-config.exe'
+          cmake -S.                                              `
+                -B_build                                         `
+                -DLLVM_LINK_DYLIB:BOOL=OFF                       `
+                -DLLVM_DIR:PATH="$(& "$LLVM_CONFIG" --cmakedir)"
+
+      - name: '[Static LLVM] Build'
+        run: cmake --build _build --config ${{matrix.build}}
+
+      # FIXME: enable tests on Windows
+      #- name: '[Static LLVM] Run tests'
+      #  run: cmake --build _build --target check
