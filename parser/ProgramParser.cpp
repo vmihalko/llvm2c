@@ -4,6 +4,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IRReader/IRReader.h>
 #include <iostream>
+#include <fstream>
 
 
 #include <llvm/Transforms/Utils/SimplifyCFGOptions.h>
@@ -87,7 +88,7 @@ void run_llvm_passes(llvm::Module *m) {
     // addPass(passes, llvm::createLoopSimplifyCFGPass());
 
 
-    addPass(passes, llvm::createLoopRotatePass());
+    addPass(passes, llvm::createLoopRotatePass(65000));
     // addPass(passes,llvm::createLoopSimplifyPass ());
     // addPass(passes, llvm::createLCSSAPass());
     // addPass(passes, llvm::createLICMPass());
@@ -112,12 +113,26 @@ void run_llvm_passes(llvm::Module *m) {
 
 }
 
-void printModule(llvm::Module *m) {
-    std::string Str;
-    llvm::raw_string_ostream OS(Str);
-    OS << *m;
-    OS.flush();
-    std::cout << Str << std::endl;
+void printModule(llvm::Module *m, const std::string &filename) {
+     std::string Str;
+     llvm::raw_string_ostream OS(Str);
+     OS << *m;
+     OS.flush();
+    // std::cout << Str << std::endl;
+    // Open the file for writing
+    std::ofstream outputFile(filename);
+
+    // Check if the file is opened successfully
+    if (!outputFile.is_open()) {
+        llvm::errs() << "Error: Unable to open file " << filename << " for writing.\n";
+        return;
+    }
+
+    // Write the LLVM module content to the file
+    outputFile << Str;
+
+    // Close the file
+    outputFile.close();
 }
 
 Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
@@ -133,7 +148,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // printModule(module.get());
     run_llvm_passes(module.get());
     const auto *mod = module.get();
-    // printModule(module.get());
+    printModule(module.get(), "/var/tmp/vmihalko/input.ll");
 
     RUN_PASS(determineIncludes);
     RUN_PASS(parseStructDeclarations);
