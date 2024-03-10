@@ -998,6 +998,21 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
+    if (CI->getOperand(0)->getType()->isIntegerTy(1) &&
+        CI->getOperand(2)->getType()->isIntegerTy() ) {
+        // create zero
+        auto zero = std::make_unique<Value>("0", program.getType(ins.getOperand(2)->getType()));
+        // create -1
+        auto minusOne = std::make_unique<Value>("-1", program.getType(ins.getOperand(2)->getType()));
+        // create comparison select ? -1 : 0
+        Expr* cond = program.getExpr(ins.getOperand(1));
+
+        auto slctExpr = program.makeExpr<SelectExpr>(cond, minusOne.get(), zero.get());
+        program.addOwnership(std::move(zero));
+        program.addOwnership(std::move(minusOne));
+        return slctExpr;
+    }
+
     if (llvm::isa<llvm::SExtInst>(CI)) {
         // for SExt, we do double cast -- first cast to the original
         // type that is made signed and then to the new type.
