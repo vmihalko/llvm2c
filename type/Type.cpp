@@ -333,7 +333,7 @@ bool ShortType::classof(const Type* type) {
 }
 
 LongType::LongType(bool unsignedType)
-    : IntegerType("long", unsignedType, TK_LongType) { }
+    : IntegerType("long long", unsignedType, TK_LongType) { }
 
 bool LongType::classof(const Type* type) {
     return type->getKind() == TK_LongType;
