@@ -378,6 +378,21 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
             }
             variable->setType(t.value());
         }
+	return;
+    } else if (CallExpr* callVar = llvm::dyn_cast_or_null<CallExpr>(referred)) {
+		llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+		llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+		llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+
+		auto t = fixType(program, localVar->getType(), AT);
+		    if (!t.has_value() || t.value()->getKind() != callVar->getType()->getKind()) { // TODO UNION != STRUCT
+			llvm::errs() << "The type of this variable:" << localVar->getName()
+				     << " specified by the user differs from the type in DIinfo.\n";
+			return;
+		    } else {
+		        callVar->setType(t.value());
+		    }
+	return;
     }
 }
 
