@@ -107,10 +107,17 @@ static bool canInline(const llvm::Value* value) {
 static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* func, Block* block) {
     if (canInline(value)) {
         func->program->addExpr(value, expr);
+	llvm::errs() << "INLINING\n";
+	value->print(llvm::errs());
+	llvm::errs() << "\n";
         return;
     }
+	llvm::errs() << "Createting varibale: \n";
 
     auto var = std::make_unique<Value>(func->getVarName(), expr->getType());
+	llvm::errs() << var->valueName << " from ";
+	value->print(llvm::errs());
+	llvm::errs() << " created! \n";
     auto assign = std::make_unique<AssignExpr>(var.get(), expr);
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
@@ -786,10 +793,14 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
                 block->addOwnership(std::move(cmprsn));
             }
             auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
+		    llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
+		    llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
             if (value->hasNUses(0)) {
+		    llvm::errs() << "zeroUSES\n";
                 block->addExpr(slctExpr.get());
                 func->createExpr(value, std::move(slctExpr));
             } else {
+		    llvm::errs() << "NONzeroUSES\n";
                 inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
             }
             return;
@@ -844,6 +855,10 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         block->addExpr(func->getExpr(value));
     } else {
         auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type);
+        //llvm::errs() << "Var: " << var->valueName << " with type:  " << expr->getType()->toString() <<  " from ";
+	llvm::errs() << "CallExpr created: ";
+	value->print(llvm::errs());
+	        llvm::errs() << "inlining?\n";
 
         // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
         if (value->hasNUses(0)) {

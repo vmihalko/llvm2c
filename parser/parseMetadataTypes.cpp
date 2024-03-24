@@ -325,13 +325,42 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
     if (auto a = llvm::dyn_cast<llvm::DIArgList>(md)){
 	    return;
+    llvm::errs() << "This is myValue: ";
+    referredVal->print(llvm::errs());
+    llvm::errs() << "\n";
+    }
+    //referredVal->print(llvm::errs());
     Expr* referred = block->func->getExpr(referredVal);
-
+    if (false && !referred) {
+	    llvm::errs() << " NULLhere1\n";
+        if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(referredVal)) {
+	    llvm::errs() << "2\n";
+            if (ins->hasNUses(1)) {
+	    llvm::errs() << "3\n";
+                if (const llvm::Value* inlinedIntoValue = llvm::dyn_cast_or_null<llvm::Value>(*ins->user_begin())) {
+	    llvm::errs() << "4\n";
+    inlinedIntoValue->print(llvm::errs());
+	    llvm::errs() << " before 4\n";
+                    Expr* referred = block->func->getExpr(inlinedIntoValue);
+                    if (referred)
+                        llvm::errs() << "Hurray " << inlinedIntoValue << "\n";
+            }
+        }
+    }
+}
+/*
+    if(!referred) {
+	    llvm::errs()<< "NOT IN EXPRS?!";
+    referredVal->print(llvm::errs());
+	    llvm::errs()<< "NULL\n"; return;
+    }
+*/
     if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
         referred = re->expr;
     }
 
     if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
+	referredVal->print(llvm::errs());
         if (llvm::isa<llvm::Argument>(referredVal))
             // do later
             return;

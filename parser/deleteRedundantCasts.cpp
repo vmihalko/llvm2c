@@ -39,11 +39,13 @@ void RedundantCastsVisitor::visit(AssignExpr& expr) {
 
     expr.left = simplify(expr.left);
     expr.right = simplify(expr.right);
+    llvm::errs() << "Set type to; " << expr.right->getType()->toString() << "\n";
     expr.left->setType(expr.right->getType());
 }
 
 Expr* RedundantCastsVisitor::simplify(Expr* expr) {
     if (auto* slctExpr = llvm::dyn_cast_or_null<SelectExpr>(expr)) {
+	llvm::errs() << "slct rcv\n";
         slctExpr->setType(slctExpr->left->getType());
         return slctExpr;
     }
