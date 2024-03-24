@@ -23,6 +23,7 @@ public:
         TK_BoolType, // alias for IntType that we use in logical exprs
         TK_ShortType,
         TK_LongType,
+        TK_LongLongType,
         TK_Int128,
         TK_FloatingPointType,
         TK_FloatType,
@@ -258,6 +259,17 @@ public:
 class LongType : public IntegerType {
 public:
     LongType(bool);
+
+
+    static bool classof(const Type* type);
+};
+
+/**
+ * @brief The LongType class represents long.
+ */
+class LongLongType : public IntegerType {
+public:
+    LongLongType(bool);
 
 
     static bool classof(const Type* type);

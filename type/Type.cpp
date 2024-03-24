@@ -284,6 +284,7 @@ bool IntegerType::classof(const Type* type) {
         || type->getKind() == TK_BoolType
         || type->getKind() == TK_CharType
         || type->getKind() == TK_LongType
+        || type->getKind() == TK_LongLongType
         || type->getKind() == TK_Int128;
 }
 
@@ -333,10 +334,17 @@ bool ShortType::classof(const Type* type) {
 }
 
 LongType::LongType(bool unsignedType)
-    : IntegerType("long long", unsignedType, TK_LongType) { }
+    : IntegerType("long", unsignedType, TK_LongType) { }
 
 bool LongType::classof(const Type* type) {
     return type->getKind() == TK_LongType;
+}
+
+LongLongType::LongLongType(bool unsignedType)
+    : IntegerType("long long", unsignedType, TK_LongType) { }
+
+bool LongLongType::classof(const Type* type) {
+    return type->getKind() == TK_LongLongType;
 }
 
 Int128::Int128()
