@@ -88,6 +88,7 @@ public:
     uptr<CharType> schar = std::make_unique<CharType>(false);
     uptr<ShortType> sshort = std::make_unique<ShortType>(false);
     uptr<LongType> slong = std::make_unique<LongType>(false);
+    uptr<LongLongType> slonglong = std::make_unique<LongLongType>(false);
 
     uptr<Int128> int128 = std::make_unique<Int128>();
     uptr<VoidType> voidType = std::make_unique<VoidType>();
