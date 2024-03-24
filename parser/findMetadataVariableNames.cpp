@@ -7,6 +7,7 @@
 static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
+    if (llvm::isa<llvm::UndefValue>(referredVal)) { return; }
     Expr* referred = block->func->getExpr(referredVal);
 
     if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
