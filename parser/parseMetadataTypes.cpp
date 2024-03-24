@@ -366,7 +366,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
             return;
         if (llvm::isa<llvm::GlobalVariable>(referredVal))
 	    return;
-        llvm::Type* AT = llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
