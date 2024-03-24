@@ -771,19 +771,19 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             if (!funcName.substr(0,9).compare("llvm.smin")) {
                 std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", false);
                 cmprsn_ptr = cmprsn.get();
-                block->addExprAndOwnership(std::move(cmprsn));
+                block->addOwnership(std::move(cmprsn));
             } else if (!funcName.substr(0,9).compare("llvm.smax")) {
                 std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", false);
                 cmprsn_ptr = cmprsn.get();
-                block->addExprAndOwnership(std::move(cmprsn));
+                block->addOwnership(std::move(cmprsn));
             } else if (!funcName.substr(0,9).compare("llvm.umin")) {
                 std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", true);
                 cmprsn_ptr = cmprsn.get();
-                block->addExprAndOwnership(std::move(cmprsn));
+                block->addOwnership(std::move(cmprsn));
             } else if (!funcName.substr(0,9).compare("llvm.umax")) {
                 std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", true);
                 cmprsn_ptr = cmprsn.get();
-                block->addExprAndOwnership(std::move(cmprsn));
+                block->addOwnership(std::move(cmprsn));
             }
             auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
             if (value->hasNUses(0)) {
