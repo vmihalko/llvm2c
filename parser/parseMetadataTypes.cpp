@@ -6,6 +6,7 @@
 #include <optional>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/DIBuilder.h>
 
 #include <numeric>
 
