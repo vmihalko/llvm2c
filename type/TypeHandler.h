@@ -18,14 +18,21 @@ private:
     template<typename T>
     using uptr = std::unique_ptr<T>;
 
+public:
     Program* program;
     llvm::DenseMap<const llvm::Type*, std::unique_ptr<Type>> typeDefs; //map containing typedefs
+    llvm::DenseMap<const llvm::DIType*, std::unique_ptr<Type>> ditypeDefs; //map containing ditypedefs
     std::unordered_map<const llvm::Type*, std::unique_ptr<Type>> typeCache;
+    std::unordered_map<const llvm::DIType*, std::unique_ptr<Type>> ditypeCache;
+    std::unordered_map<const llvm::DISubrange*, std::unique_ptr<Type>> diSubrangeCache;
+    std::unordered_map<const llvm::DIType*, StructType*> StructTypeDiCache;
+    std::vector<std::unique_ptr<Type>> diSubranges;
 
     // key = T, value = Type representing pointer to T
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
 
     unsigned typeDefCount = 0; //variable used for creating new name for typedef
+    unsigned typeDefCountForMetadata = 0;
 
     /**
      * @brief getTypeDefName Creates new name for a typedef.
@@ -36,7 +43,19 @@ private:
         typeDefCount++;
         return ret;
     }
+    /**
+     * @brief getTypeDefNumber returns a unique typedef counter
+     * @return unique typedef counter
+     */
+     unsigned getTypeDefNumber() {
+        return typeDefCountForMetadata++;
+    }
 
+    /**
+     * @brief makeCachedType Is putting together, during recursion,
+     * saved types.
+     * @return Type to which we are pointing
+     */
     template<typename T, typename ...Args>
     Type* makeCachedType(const llvm::Type* ty, Args&&... args) {
         auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -45,7 +64,18 @@ private:
         return result;
     }
 
-public:
+    template<typename T, typename ...Args>
+    Type* cachedDITypeInserter(const llvm::DIType *ditype, Args&&... args) {
+        auto ptr  = std::make_unique<T>(std::forward<Args>(args)...);
+        auto *result = ptr.get();
+        if (ditypeCache[ditype]) {
+            llvm::errs() << "diType already cached! Terminating...\n";
+            std::terminate();
+        }
+        ditypeCache[ditype] = std::move(ptr);
+        return result;
+    }
+
     std::vector<const FunctionPointerType*> sortedTypeDefs; //vector of sorted typedefs, used in output
 
     // basic C types
@@ -70,6 +100,12 @@ public:
     TypeHandler(Program* program)
         : program(program) { 
     }
+    /**
+     * @brief getDIType Transforms llvm::DIType into corresponding Type object
+     * @param type llvm::DIType for transformation
+     * @return unique_ptr to corresponding Type object
+     */
+    Type* getTypeFromDI(const llvm::DIType* type);
 
     /**
      * @brief getType Transforms llvm::Type into corresponding Type object

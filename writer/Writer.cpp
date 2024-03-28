@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Writer.h"
 #include "../parser/cfunc.h"
 
@@ -194,6 +195,10 @@ void Writer::globalVarDefinitions(const Program& program) {
             wr.raw("static ");
         }
 
+        if (gvar->isExtern) {
+            wr.raw("extern ");
+        }
+
         wr.raw(gvar->getType()->toString());
         wr.raw(" ");
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
@@ -221,7 +226,10 @@ void Writer::functionHead(const Func* func, bool isdecl) {
         wr.startFunction(func->returnType->toString(), func->name);
     }
 
-    auto last = func->parameters.cend() - 1;
+    //auto last = func->parameters;
+    auto last = func->parameters.cend();
+    if (func->parameters.size())
+        last--;
     wr.startFunctionParams();
     for (auto it = func->parameters.cbegin(); it != func->parameters.cend(); ++it) {
         const auto& param = *it;
@@ -334,6 +342,7 @@ void Writer::functionDefinitions(const Program& program) {
 
         // start with variables
         for (const auto& var : func->variables) {
+            if( func->parameters.end() != std::find_if(func->parameters.begin(), func->parameters.end(), [&var](Value *v){return var->valueName == v->valueName;})) continue;
             wr.indent(1);
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }

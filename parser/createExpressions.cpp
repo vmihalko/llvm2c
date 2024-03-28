@@ -714,6 +714,51 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+
+        /*
+        https://reviews.llvm.org/D9293?id=&download=true
+        The expression::
+
+            call i8 @llvm.umax.i8(i8 %a, i8 %b)
+
+        is equivalent to::
+
+            %1 = icmp ugt i8 %a, %b
+            %2 = select i1 %1, i8 %a, i8 %b
+        */
+        if (!funcName.substr(0,9).compare("llvm.smax") || !funcName.substr(0,9).compare("llvm.smin") ||
+            !funcName.substr(0,9).compare("llvm.umax") || !funcName.substr(0,9).compare("llvm.umin")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            Expr* b = func->getExpr(ins.getOperand(1));
+            assert(a && b);
+            Expr* cmprsn_ptr = nullptr;
+            if (!funcName.substr(0,9).compare("llvm.smin")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", false);
+                cmprsn_ptr = cmprsn.get();
+                block->addExprAndOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.smax")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", false);
+                cmprsn_ptr = cmprsn.get();
+                block->addExprAndOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.umin")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", true);
+                cmprsn_ptr = cmprsn.get();
+                block->addExprAndOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.umax")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", true);
+                cmprsn_ptr = cmprsn.get();
+                block->addExprAndOwnership(std::move(cmprsn));
+            }
+            auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
+            if (value->hasNUses(0)) {
+                block->addExpr(slctExpr.get());
+                func->createExpr(value, std::move(slctExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
+            }
+            return;
+        }
+
         if (funcName.substr(0,4).compare("llvm") == 0) {
             if (isCFunc(trimPrefix(funcName))) {
                 funcName = trimPrefix(funcName);
@@ -958,10 +1003,25 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
+
     if (llvm::isa<llvm::SExtInst>(CI)) {
         // for SExt, we do double cast -- first cast to the original
         // type that is made signed and then to the new type.
         // We must do that because we store all values as unsigned...
+    if (CI->getOperand(0)->getType()->isIntegerTy(1) &&
+        CI->getDestTy()->isIntegerTy() ) {
+        // create zero
+        auto zero = std::make_unique<Value>("0", program.getType(CI->getDestTy()));
+        // create -1
+        auto minusOne = std::make_unique<Value>("-1", program.getType(CI->getDestTy()));
+        // create comparison select ? -1 : 0
+        Expr* cond = program.getExpr(ins.getOperand(0));
+
+        auto slctExpr = program.makeExpr<SelectExpr>(cond, minusOne.get(), zero.get());
+        program.addOwnership(std::move(zero));
+        program.addOwnership(std::move(minusOne));
+        return slctExpr;
+    }
         auto *recastOrigExpr
             = program.makeExpr<CastExpr>(
                 expr,
@@ -1124,6 +1184,12 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         abort();
     }
 }
+    // {
+    //     auto *expr = parseCastInstruction(ins, program);
+    //     if (auto castExpr = llvm::dyn_cast_or_null<CastExpr>( expr ))
+    //         castExpr->setLossy();
+    //     return expr;
+    // }
 
 void createExpressions(const llvm::Module* module, Program& program, bool bitcastUnions) {
     assert(program.isPassCompleted(PassType::CreateConstants));

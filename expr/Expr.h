@@ -26,6 +26,7 @@ public:
         EK_GlobalValue,
         EK_IfExpr,
         EK_GotoExpr,
+        EK_LatchExpr,
         EK_SwitchExpr,
         EK_AsmExpr,
         EK_CallExpr,
@@ -192,6 +193,7 @@ class GlobalValue : public Value {
 public:
     Expr* value;
     bool isStatic = false;
+    bool isExtern = false;
 
     GlobalValue(const std::string&, Expr*, Type*);
 
@@ -226,6 +228,21 @@ public:
     Block* target; //else goto falseBlock
 
     GotoExpr(Block* target);
+
+    void accept(ExprVisitor& visitor) override;
+
+    static bool classof(const Expr* expr);
+};
+
+/**
+ * @brief The LatchExpr class represents artifical `latch:` label for a DoWhile expr.
+ */
+class LatchExpr : public ExprBase {
+public:
+    Block* target; //else goto falseBlock
+    bool headEdgeLatch;
+
+    LatchExpr(Block* target, bool headEdgeLatch);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -328,8 +345,9 @@ public:
     Expr* left;
     Expr* right;
     Expr* comp;
+    bool negateCondition;
 
-    SelectExpr(Expr*, Expr*, Expr*);
+    SelectExpr(Expr*, Expr*, Expr*, bool negateCondition = false);
 
     void accept(ExprVisitor& visitor) override;
 
@@ -398,12 +416,13 @@ public:
     static bool classof(const Expr* expr);
 };
 
-class DoWhile : public Expr {
+class DoWhile : public ExprBase {
 public:
     Expr* body;
     Expr* cond;
+    bool negateCondition;
 
-    DoWhile(Expr* body, Expr* cond);
+    DoWhile(Expr* body, Expr* cond, bool negateCondition);
 
     void accept(ExprVisitor& visitor) override;
 

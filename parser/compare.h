@@ -1,6 +1,6 @@
 #include <llvm/IR/Instruction.h>
 
-bool isIntegerCompareUnsigned(const llvm::CmpInst* cmp) {
+inline bool isIntegerCompareUnsigned(const llvm::CmpInst* cmp) {
     switch (cmp->getPredicate()) {
     case llvm::CmpInst::ICMP_EQ:
     case llvm::CmpInst::FCMP_OEQ:
@@ -28,7 +28,7 @@ bool isIntegerCompareUnsigned(const llvm::CmpInst* cmp) {
     }
 }
 
-std::string getComparePredicate(const llvm::CmpInst* cmp) {
+inline std::string getComparePredicate(const llvm::CmpInst* cmp) {
     switch(cmp->getPredicate()) {
     case llvm::CmpInst::ICMP_EQ:
     case llvm::CmpInst::FCMP_OEQ:

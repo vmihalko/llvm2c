@@ -204,11 +204,12 @@ bool GepExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GepExpr;
 }
 
-SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r) :
+SelectExpr::SelectExpr(Expr* comp, Expr* l, Expr* r, bool negateCondition) :
     ExprBase(EK_SelectExpr),
     left(l),
     right(r),
-    comp(comp) {
+    comp(comp),
+    negateCondition(negateCondition) {
     setType(l->getType());
 }
 
@@ -297,6 +298,16 @@ bool GotoExpr::classof(const Expr* expr) {
     return expr->getKind() == EK_GotoExpr;
 }
 
+LatchExpr::LatchExpr(Block* target, bool headEdgeLatch ) : ExprBase(EK_LatchExpr), target(target), headEdgeLatch(headEdgeLatch) { }
+
+void LatchExpr::accept(ExprVisitor& visitor) {
+    visitor.visit(*this);
+}
+
+bool LatchExpr::classof(const Expr* expr) {
+    return expr->getKind() == EK_LatchExpr;
+}
+
 ExprList::ExprList(std::vector<Expr*>&& expressions) : ExprBase(EK_ExprList), expressions(std::move(expressions)) {}
 
 void ExprList::accept(ExprVisitor& visitor) {
@@ -307,7 +318,7 @@ bool ExprList::classof(const Expr* expr) {
     return expr->getKind() == EK_ExprList;
 }
 
-DoWhile::DoWhile(Expr* body, Expr* cond): Expr(EK_DoWhile), body(body), cond(cond) { }
+DoWhile::DoWhile(Expr* body, Expr* cond, bool negateCondition = false): ExprBase(EK_DoWhile), body(body), cond(cond), negateCondition(negateCondition) { }
 
 void DoWhile::accept(ExprVisitor& visitor) {
     visitor.visit(*this);

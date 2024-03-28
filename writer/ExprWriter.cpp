@@ -110,6 +110,27 @@ void ExprWriter::visit(GotoExpr& expr) {
     ss << "goto " << expr.target->blockName;
 }
 
+void ExprWriter::visit(LatchExpr& expr) {
+    Block *latchBlock = expr.target;
+    // if (expr.latchIsHeader)
+    //     return;
+    // if (latchBlock->expressions.empty())
+    // auto *latchExprs = llvm::dyn_cast<ExprList>( &latchBlock->expressions );
+    // if( expr.headEdgeLatch ) { // this is necessary to print whenever the path is longer than 1
+    //     return;
+    // }
+    ss << latchBlock->blockName << ":" << (latchBlock->expressions.empty() ? ";\n" : "\n");
+        // if (!latchBlock->expressions.empty())
+        //     ss << "\n";
+    for (const auto& expr : latchBlock->expressions) {
+        indent();
+        expr->accept(*this);
+        ss << ";\n";
+        // if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+    }
+    // latchExprs->accept(*this);
+}
+
 void ExprWriter::visit(SwitchExpr& expr) {
     ss << "switch (";
     expr.cmp->accept(*this);
@@ -271,7 +292,11 @@ void ExprWriter::visit(GepExpr& expr) {
 }
 
 void ExprWriter::visit(SelectExpr& expr) {
+    if (expr.negateCondition)
+        ss << "!(";
     parensIfNotSimple(expr.comp);
+    if (expr.negateCondition)
+        ss << ")";
     ss << " ? ";
     parensIfNotSimple(expr.left);
     ss << " : ";
@@ -424,11 +449,13 @@ void ExprWriter::visit(ArrowExpr& expr) {
 void ExprWriter::visit(ExprList& exprList) {
     bool first = true;
     for (const auto& expr : exprList.expressions) {
+        if(llvm::isa<ExprList>(expr) && llvm::dyn_cast<ExprList>(expr)->expressions.empty())
+            continue;
         if (!first)
             indent();
         first = false;
         expr->accept(*this);
-        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr)) {
+        if (!llvm::isa<IfExpr>(expr) && !llvm::isa<SwitchExpr>(expr) && !llvm::isa<ExprList>(expr) && !llvm::isa<LatchExpr>(expr) ) {
             ss << ";" << std::endl;
         }
     }
@@ -479,8 +506,16 @@ void ExprWriter::visit(LogicalNot& expr) {
 
 void ExprWriter::visit(DoWhile& expr) {
     ss << "do {" << std::endl;
+    indentCount++;
+    indent();
     expr.body->accept(*this);
+    indentCount--;
+    indent();
     ss << "} while (";
+    if (expr.negateCondition)
+        ss << " !(";
     expr.cond->accept(*this);
-    ss << ");" << std::endl;
+    if (expr.negateCondition)
+        ss << " )";
+    ss << ")";
 }
