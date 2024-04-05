@@ -9,7 +9,6 @@
 class RedundantCastsVisitor: public SimplifyingExprVisitor {
 protected:
     Expr* simplify(Expr* expr) override;
-    void visit(AssignExpr& expr) override;
 };
 
 void deleteRedundantCasts(const llvm::Module* module, Program& program) {
@@ -32,23 +31,8 @@ void deleteRedundantCasts(const llvm::Module* module, Program& program) {
     program.addPass(PassType::DeleteRedundantCasts);
 }
 
-void RedundantCastsVisitor::visit(AssignExpr& expr) {
-	llvm::errs() << "assgn rcv\n";
-    expr.left->accept(*this);
-    expr.right->accept(*this);
-
-    expr.left = simplify(expr.left);
-    expr.right = simplify(expr.right);
-    llvm::errs() << "Set type to; " << expr.right->getType()->toString() << "\n";
-    expr.left->setType(expr.right->getType());
-}
 
 Expr* RedundantCastsVisitor::simplify(Expr* expr) {
-    if (auto* slctExpr = llvm::dyn_cast_or_null<SelectExpr>(expr)) {
-	llvm::errs() << "slct rcv\n";
-        slctExpr->setType(slctExpr->left->getType());
-        return slctExpr;
-    }
     if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
         Expr* innermost = cast->expr;
 
@@ -63,23 +47,3 @@ Expr* RedundantCastsVisitor::simplify(Expr* expr) {
     }
     return expr;
 }
-/*
-
-Expr* RedundantCastsVisitor::simplify(Expr* expr) {
-    if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
-        llvm::errs() << "cast here\n";
-        Expr* innermost = cast->expr;
-
-        while (auto* inner = llvm::dyn_cast_or_null<CastExpr>(innermost)) {
-            // cast with love...
-            if ( inner->isLossy() )
-                break;
-            innermost = inner->expr;
-        }
-
-        cast->expr = innermost;
-    }
-
-    return expr;
-}
-*/
