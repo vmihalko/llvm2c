@@ -129,6 +129,7 @@ set(llvm2c_sources
   parser/parseStructItems.cpp
   parser/passes.h
   parser/prepareBitcastUnion.cpp
+  parser/propagateTypes.cpp
   parser/refDeref.cpp
   parser/toinst.cpp
   parser/toinst.h

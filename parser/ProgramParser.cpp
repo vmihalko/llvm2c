@@ -192,6 +192,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // It can do (int)var from (int)(short)var
     // where var is (unsigned short).
     RUN_PASS(deleteRedundantCasts);
+    RUN_PASS(propagateTypes);
     RUN_PASS(extractVars);
     RUN_PASS(identifyInlinableBlocks);
     RUN_PASS(inlineBlocks);
