@@ -45,7 +45,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         }
 
         if (intType->getBitWidth() <= 64) {
-            return ulong.get();
+            return ulonglong.get();
         }
 
         return int128.get();
@@ -191,6 +191,7 @@ IntegerType* TypeHandler::toggleSignedness(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;
@@ -206,6 +207,7 @@ IntegerType* TypeHandler::setSigned(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;
@@ -221,6 +223,7 @@ IntegerType* TypeHandler::setUnsigned(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;
