@@ -5,19 +5,228 @@
 #include "../core/Block.h"
 
 #include "SimplifyingExprVisitor.h"
+/*
+        // EK_AggregateElement,
+        // EK_ArrayElement,
+        // EK_ExtractValueExpr,
+
+        // EK_IfExpr,
+        // EK_DoWhile,
+    
+        EK_CallExpr,
+
+        // EK_PointerShift,
+        // EK_GepExpr,
+        // EK_SelectExpr,
+        // EK_StackAlloc,
+        // EK_ArrowExpr,
+        // EK_LogicalAnd,
+        // EK_LogicalOr,
+
+// unaru
+        // EK_RefExpr,
+        // EK_DerefExpr,
+        // EK_RetExpr,
+                                                EK_CastExpr,
+        // EK_MinusExpr,
+        // EK_LogicalNot,
+
+// binary
+        EK_AssignExpr,
+
+        // EK_AddExpr,
+        // EK_SubExpr,
+        // EK_MulExpr,
+        // EK_DivExpr,
+        // EK_RemExpr,
+
+        // EK_AndExpr,
+        // EK_OrExpr,
+        // EK_XorExpr,
+
+
+        // EK_AshrExpr,
+        // EK_LshrExpr,
+        // EK_ShlExpr,
+
+*/
+
 
 class PropagateTypesVisitor: public SimplifyingExprVisitor {
 public:
 	const llvm::Module* mdl;
 	Program *prgrm;
+    std::set<Expr*> exprsWithChangedType;
     PropagateTypesVisitor(const llvm::Module* mdl, Program* prgrm) : mdl(mdl), prgrm(prgrm) {}
 protected:
+    // void visit(Expr& expr) override;
+    void visit(ExtractValueExpr& expr) override;
+    void visit(AggregateElement& expr) override;
+    void visit(LogicalOr& expr) override;
+    void visit(LogicalAnd& expr) override;
+    void visit(ArrowExpr& expr) override;
+    void visit(ArrayElement& expr) override;
+    void visit(StackAlloc& expr) override;
+    void visit(GepExpr& expr) override;
+    void visit(PointerShift& expr) override;
+    void visit(AndExpr& expr) override;
+    void visit(OrExpr& expr) override;
+    void visit(XorExpr& expr) override;
+    void visit(AshrExpr& expr) override;
+    void visit(LshrExpr& expr) override;
+    void visit(ShlExpr& expr) override;
+    void visit(AddExpr& expr) override;
+    void visit(SubExpr& expr) override;
+    void visit(MulExpr& expr) override;
+    void visit(DivExpr& expr) override;
+    void visit(RemExpr& expr) override;
+    void visit(LogicalNot& expr) override;
+    void visit(MinusExpr& expr) override;
+    void visit(RetExpr& expr) override;
+    void visit(DerefExpr& expr) override;
+    void visit(RefExpr& expr) override;
+    void visit(DoWhile& expr) override;
+    void visit(IfExpr& expr) override;
     void visit(AssignExpr& expr) override;
     void visit(SelectExpr& expr) override;
-    void visit(CallExpr& expr) override;
+    // void visit(CallExpr& expr) override;
     //void visit(Value& expr) override;
     Expr* simplify(Expr* expr) override;
 };
+
+// void PropagateTypesVisitor::visit(Expr& expr) {expr.setType();}
+void PropagateTypesVisitor::visit(ExtractValueExpr& expr) {
+    for (auto& index : expr.indices) {
+        index->accept(*this);
+    }
+    expr.setType(expr.indices.back()->getType());
+}
+
+void PropagateTypesVisitor::visit(AggregateElement& ae) {
+    ae.expr->accept(*this);
+
+    ae.setType(llvm::dyn_cast<AggregateType>(ae.expr->getType())->items[ae.element].first);
+}
+
+
+void PropagateTypesVisitor::visit(ShlExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(ArrowExpr& expr) {
+    
+    expr.expr->accept(*this);
+
+    auto* ty = llvm::dyn_cast<PointerType>(expr.expr->getType());
+    assert(ty);
+    auto* ag = llvm::dyn_cast<StructType>(ty->type);
+    assert(ag);
+
+    expr.setType(ag->items[expr.element].first);
+    } 
+
+
+void PropagateTypesVisitor::visit(ArrayElement& ae) {
+    ae.expr->accept(*this);
+    ae.element->accept(*this);
+
+    ae.setType(static_cast<ArrayType*>(ae.expr->getType())->type);
+}
+
+void PropagateTypesVisitor::visit(StackAlloc& expr) {
+    expr.setType(expr.value->getType());
+}
+
+void PropagateTypesVisitor::visit(GepExpr& expr) {
+    for (auto& index : expr.indices) {
+        index->accept(*this);
+    }
+    expr.setType(expr.indices[expr.indices.size() - 1]->getType());
+}
+
+void PropagateTypesVisitor::visit(PointerShift& expr) {
+    expr.pointer->accept(*this);
+    expr.move->accept(*this);
+    expr.setType(llvm::dyn_cast<PointerType>(expr.pointer->getType())->type);
+}
+
+void PropagateTypesVisitor::visit(LogicalOr& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+    expr.setType(expr.lhs->getType() ? expr.lhs->getType() : expr.rhs->getType());
+}
+
+void PropagateTypesVisitor::visit(LogicalAnd& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+    expr.setType(expr.lhs->getType() ? expr.lhs->getType() : expr.rhs->getType());
+}
+
+void PropagateTypesVisitor::visit(RemExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(AshrExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(LshrExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(AndExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(OrExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(XorExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+void PropagateTypesVisitor::visit(AddExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+void PropagateTypesVisitor::visit(SubExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+void PropagateTypesVisitor::visit(MulExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+void PropagateTypesVisitor::visit(DivExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+}
+
+
+
+void PropagateTypesVisitor::visit(LogicalNot& expr) {
+    expr.expr->accept(*this);
+    expr.setType(expr.expr->getType());
+}
 
 void propagateTypes(const llvm::Module* module, Program& program) {
     assert(program.isPassCompleted(PassType::CreateExpressions));
@@ -32,32 +241,69 @@ void propagateTypes(const llvm::Module* module, Program& program) {
             for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
                 auto expr = *it;
                 expr->accept(rcv);
-
             }
         }
+            // for (const auto& ins : block) {
+            //     if( const llvm::CallInst* CI = llvm::dyn_cast_or_null<llvm::CallInst>(&ins)) {
+            //         if (CI->getCalledFunction() && !CI->getCalledFunction()->isIntrinsic())
+            //             auto callExpr = program.getExpr(CI);
+            //     }
+            // }
     }
     program.addPass(PassType::PropagateTypes);
 }
-void PropagateTypesVisitor::visit(CallExpr& expr) {
-    if (expr.funcValue) {
-        expr.funcValue->accept(*this);
-        expr.funcValue = simplify(expr.funcValue);
-    }
 
-    for (auto it = expr.params.begin(); it != expr.params.end(); ++it) {
-        (*it)->accept(*this);
-        *it = simplify(*it);
+void PropagateTypesVisitor::visit(IfExpr& expr) {
+    if (expr.cmp) {
+        expr.cmp->accept(*this);
     }
-    	
-    
+}
+
+void PropagateTypesVisitor::visit(DoWhile& expr) {
+    if (expr.cond) {
+        expr.cond->accept(*this);
+    }
+    if (expr.body)
+        expr.body->accept(*this);
+}
+
+void PropagateTypesVisitor::visit(DerefExpr& expr) {
+    expr.expr->accept(*this);
+    expr.setType(llvm::dyn_cast_or_null<PointerType>(expr.expr->getType())->type);
+}
+
+void PropagateTypesVisitor::visit(RefExpr& expr) {
+    expr.expr->accept(*this);
+    expr.setType(expr.expr->getType());
+}
+
+void PropagateTypesVisitor::visit(RetExpr& expr) {
+    if (expr.expr) {
+        expr.expr->accept(*this);
+        expr.setType(expr.expr->getType());
+    }
+}
+
+void PropagateTypesVisitor::visit(MinusExpr& expr) {
+    expr.expr->accept(*this);
+    expr.setType(expr.expr->getType());
 }
 
 void PropagateTypesVisitor::visit(AssignExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
 
-    expr.left = simplify(expr.left);
-    expr.right = simplify(expr.right);
+
+    if(!(expr.right->getKind() == Expr::EK_CallExpr)) {
+        if (exprsWithChangedType.count(expr.left)) {
+            llvm::errs() << "Attempt to change already changed type for: "
+                         << expr.left->getType()->toString() << " to "
+                         << expr.right->getType()->toString() << " \n";
+            return;
+        }
+        expr.left->setType(expr.right->getType());
+        exprsWithChangedType.insert(expr.left);
+    }
     //llvm::errs() << "Set type to; " << expr.right->getType()->toString() << "\n";
     //expr.left->setType(expr.right->getType());
 }
