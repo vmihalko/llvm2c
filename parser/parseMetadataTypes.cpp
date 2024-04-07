@@ -114,7 +114,7 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             if (tbasic->getSizeInBits() <= 64) {
                 if (signedness)
 		       return program.typeHandler.slonglong.get();
-	        return program.typeHandler.ulong.get();
+	        return program.typeHandler.ulonglong.get();
             }
         }
         const llvm::DICompositeType* diCompType = llvm::dyn_cast<llvm::DICompositeType>(ditype);

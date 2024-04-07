@@ -83,6 +83,7 @@ public:
     uptr<CharType> uchar = std::make_unique<CharType>(true);
     uptr<ShortType> ushort = std::make_unique<ShortType>(true);
     uptr<LongType> ulong = std::make_unique<LongType>(true);
+    uptr<LongLongType> ulonglong = std::make_unique<LongLongType>(true);
 
     uptr<IntType> sint = std::make_unique<IntType>(false);
     uptr<CharType> schar = std::make_unique<CharType>(false);
