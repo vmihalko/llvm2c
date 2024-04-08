@@ -379,6 +379,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
                 return;
             }
             variable->setType(t.value());
+            program.metadatedVars.insert(variable->valueName);
         }
 	return;
     } else if (CallExpr* callVar = llvm::dyn_cast_or_null<CallExpr>(referred)) {

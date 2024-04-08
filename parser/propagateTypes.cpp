@@ -57,7 +57,12 @@ public:
 	const llvm::Module* mdl;
 	Program *prgrm;
     std::set<Expr*> exprsWithChangedType;
+    std::set<std::string> varsReadyForTypeRefinement;
     PropagateTypesVisitor(const llvm::Module* mdl, Program* prgrm) : mdl(mdl), prgrm(prgrm) {}
+
+    bool isValueInParamOrDebugMetadata(Func* f, Value *v) {
+
+    }
 protected:
     // void visit(Expr& expr) override;
     void visit(ExtractValueExpr& expr) override;
@@ -238,6 +243,16 @@ void propagateTypes(const llvm::Module* module, Program& program) {
         for (const auto& block : func) {
             auto* myBlock = function->getBlock(&block);
 
+        for (auto var : function->variables) {
+            if (std::find_if(function->parameters.begin(),
+                             function->parameters.end(), [&var](Value *param){return var->valueName == param->valueName;} )
+                                 == function->parameters.end()) {
+                if ( !rcv.prgrm->metadatedVars.count(var->valueName)) {
+                    rcv.varsReadyForTypeRefinement.insert(var->valueName);
+                }
+            }
+        }
+        return false;
             for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
                 auto expr = *it;
                 expr->accept(rcv);
@@ -301,8 +316,12 @@ void PropagateTypesVisitor::visit(AssignExpr& expr) {
                          << expr.right->getType()->toString() << " \n";
             return;
         }
-        expr.left->setType(expr.right->getType());
-        exprsWithChangedType.insert(expr.left);
+
+        if (auto v = llvm::dyn_cast_or_null<Value>(expr.left)) {
+            if (this->varsReadyForTypeRefinement.count(v->valueName))
+                expr.left->setType(expr.right->getType());
+                exprsWithChangedType.insert(expr.left);
+        }
     }
     //llvm::errs() << "Set type to; " << expr.right->getType()->toString() << "\n";
     //expr.left->setType(expr.right->getType());
