@@ -50,6 +50,8 @@ public:
     // set of passes applied to the program
     std::unordered_set<PassType> passes;
 
+    std::set<std::string> metadatedVars;
+
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
     unsigned anonStructCount = 0;
