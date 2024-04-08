@@ -761,6 +761,22 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+        if (!funcName.substr(0,9).compare("llvm.abs")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            auto zero = std::make_unique<Value>("0", a->getType());
+            std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, zero.get(), "<", false);
+            auto mnsExpr = std::make_unique<MinusExpr>(a);
+            auto slctExpr = std::make_unique<SelectExpr>(cmprsn.get(), mnsExpr.get() ,a);
+            block->addOwnership(std::move(cmprsn));
+            block->addOwnership(std::move(mnsExpr));
+            if (value->hasNUses(0)) {
+                block->addExpr(slctExpr.get());
+                func->createExpr(value, std::move(slctExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
+            }
+            return;
+        }
 
         /*
         https://reviews.llvm.org/D9293?id=&download=true
