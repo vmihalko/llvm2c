@@ -5,66 +5,16 @@
 #include "../core/Block.h"
 
 #include "SimplifyingExprVisitor.h"
-/*
-        // EK_AggregateElement,
-        // EK_ArrayElement,
-        // EK_ExtractValueExpr,
-
-        // EK_IfExpr,
-        // EK_DoWhile,
-    
-        EK_CallExpr,
-
-        // EK_PointerShift,
-        // EK_GepExpr,
-        // EK_SelectExpr,
-        // EK_StackAlloc,
-        // EK_ArrowExpr,
-        // EK_LogicalAnd,
-        // EK_LogicalOr,
-
-// unaru
-        // EK_RefExpr,
-        // EK_DerefExpr,
-        // EK_RetExpr,
-                                                EK_CastExpr,
-        // EK_MinusExpr,
-        // EK_LogicalNot,
-
-// binary
-        EK_AssignExpr,
-
-        // EK_AddExpr,
-        // EK_SubExpr,
-        // EK_MulExpr,
-        // EK_DivExpr,
-        // EK_RemExpr,
-
-        // EK_AndExpr,
-        // EK_OrExpr,
-        // EK_XorExpr,
-
-
-        // EK_AshrExpr,
-        // EK_LshrExpr,
-        // EK_ShlExpr,
-
-*/
-
 
 class PropagateTypesVisitor: public SimplifyingExprVisitor {
 public:
-	const llvm::Module* mdl;
-	Program *prgrm;
+    const llvm::Module* mdl;
+    Program *prgrm;
     std::set<Expr*> exprsWithChangedType;
     std::set<std::string> varsReadyForTypeRefinement;
     PropagateTypesVisitor(const llvm::Module* mdl, Program* prgrm) : mdl(mdl), prgrm(prgrm) {}
 
-    bool isValueInParamOrDebugMetadata(Func* f, Value *v) {
-
-    }
 protected:
-    // void visit(Expr& expr) override;
     void visit(ExtractValueExpr& expr) override;
     void visit(AggregateElement& expr) override;
     void visit(LogicalOr& expr) override;
@@ -94,12 +44,9 @@ protected:
     void visit(IfExpr& expr) override;
     void visit(AssignExpr& expr) override;
     void visit(SelectExpr& expr) override;
-    // void visit(CallExpr& expr) override;
-    //void visit(Value& expr) override;
     Expr* simplify(Expr* expr) override;
 };
 
-// void PropagateTypesVisitor::visit(Expr& expr) {expr.setType();}
 void PropagateTypesVisitor::visit(ExtractValueExpr& expr) {
     for (auto& index : expr.indices) {
         index->accept(*this);
@@ -252,18 +199,11 @@ void propagateTypes(const llvm::Module* module, Program& program) {
                 }
             }
         }
-        return false;
-            for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
-                auto expr = *it;
-                expr->accept(rcv);
-            }
+        for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
+            auto expr = *it;
+            expr->accept(rcv);
         }
-            // for (const auto& ins : block) {
-            //     if( const llvm::CallInst* CI = llvm::dyn_cast_or_null<llvm::CallInst>(&ins)) {
-            //         if (CI->getCalledFunction() && !CI->getCalledFunction()->isIntrinsic())
-            //             auto callExpr = program.getExpr(CI);
-            //     }
-            // }
+        }
     }
     program.addPass(PassType::PropagateTypes);
 }
@@ -289,7 +229,7 @@ void PropagateTypesVisitor::visit(DerefExpr& expr) {
 
 void PropagateTypesVisitor::visit(RefExpr& expr) {
     expr.expr->accept(*this);
-    expr.setType(expr.expr->getType());
+    expr.setType(this->prgrm->typeHandler.pointerTo(expr.expr->getType()));
 }
 
 void PropagateTypesVisitor::visit(RetExpr& expr) {
@@ -318,13 +258,12 @@ void PropagateTypesVisitor::visit(AssignExpr& expr) {
         }
 
         if (auto v = llvm::dyn_cast_or_null<Value>(expr.left)) {
-            if (this->varsReadyForTypeRefinement.count(v->valueName))
+            if (this->varsReadyForTypeRefinement.count(v->valueName)) {
                 expr.left->setType(expr.right->getType());
                 exprsWithChangedType.insert(expr.left);
+	    }
         }
     }
-    //llvm::errs() << "Set type to; " << expr.right->getType()->toString() << "\n";
-    //expr.left->setType(expr.right->getType());
 }
 
 void PropagateTypesVisitor::visit(SelectExpr& expr) {
@@ -334,6 +273,4 @@ void PropagateTypesVisitor::visit(SelectExpr& expr) {
 
     expr.setType(expr.left->getType());
 }
-//void PropagateTypesVisitor::visit(AssignExpr& expr) {
-
 Expr* PropagateTypesVisitor::simplify(Expr* expr) { return expr;}
