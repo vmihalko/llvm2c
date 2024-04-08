@@ -456,6 +456,10 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                         *function.getSubprogram()->getType()->getTypeArray().begin(),
                         function.getReturnType()
                                   ).value_or( func->returnType );
+	if (func->parameters.size() == (function.getSubprogram()->getType()->getTypeArray().size() - 1)) {
+                p("parseMetadataTypes: looks like metadata params.size() this function: ", func->name, " are different than in llvmiractual", "\n");
+		continue;
+	}
         size_t indx = 0;
         while( indx < func->parameters.size() ){
             func->parameters[indx]->setType(
