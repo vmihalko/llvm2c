@@ -842,7 +842,11 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        type = func->getType(FT->getReturnType());
+        if (funcName.substr(0,21).compare("__VERIFIER_nondet_int")) {
+		type = func->program->typeHandler.sint.get();	
+	} else {
+                type = func->getType(FT->getReturnType());
+	}
 
         if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
