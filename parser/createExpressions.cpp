@@ -761,12 +761,13 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
-        if (!funcName.substr(0,9).compare("llvm.abs")) {
+        if (!funcName.substr(0,8).compare("llvm.abs")) {
             Expr* a = func->getExpr(ins.getOperand(0));
-            auto zero = std::make_unique<Value>("0", a->getType());
+            auto zero = std::make_unique<Value>("0", type);
             std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, zero.get(), "<", false);
             auto mnsExpr = std::make_unique<MinusExpr>(a);
             auto slctExpr = std::make_unique<SelectExpr>(cmprsn.get(), mnsExpr.get() ,a);
+            block->addOwnership(std::move(zero));
             block->addOwnership(std::move(cmprsn));
             block->addOwnership(std::move(mnsExpr));
             if (value->hasNUses(0)) {
