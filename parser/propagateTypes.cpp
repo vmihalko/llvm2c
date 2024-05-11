@@ -120,6 +120,9 @@ void PropagateTypesVisitor::visit(RemExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+	    expr.isUnsigned = IT->unsignedType;
+    }
 }
 
 void PropagateTypesVisitor::visit(AshrExpr& expr) {
@@ -156,21 +159,33 @@ void PropagateTypesVisitor::visit(AddExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+	    expr.isUnsigned = IT->unsignedType;
+    }
 }
 void PropagateTypesVisitor::visit(SubExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+	    expr.isUnsigned = IT->unsignedType;
+    }
 }
 void PropagateTypesVisitor::visit(MulExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+	    expr.isUnsigned = IT->unsignedType;
+    }
 }
 void PropagateTypesVisitor::visit(DivExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+	    expr.isUnsigned = IT->unsignedType;
+    }
 }
 
 
@@ -271,6 +286,12 @@ void PropagateTypesVisitor::visit(SelectExpr& expr) {
     expr.right->accept(*this);
     expr.comp->accept(*this);
 
+    if(auto IntgrType = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
+        if(llvm::dyn_cast_or_null<IntegerType>(expr.left->getType())->unsignedType) {
+            expr.setType(expr.right->getType()); return;
+        }
+    }
     expr.setType(expr.left->getType());
 }
+
 Expr* PropagateTypesVisitor::simplify(Expr* expr) { return expr;}
