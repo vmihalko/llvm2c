@@ -202,22 +202,23 @@ void propagateTypes(const llvm::Module* module, Program& program) {
 
     for (const llvm::Function& func : module->functions()) {
         auto* function = program.getFunction(&func);
+	if(function) {
+                for (auto var : function->variables) {
+                    if (std::find_if(function->parameters.begin(),
+                                     function->parameters.end(), [&var](Value *param){return var->valueName == param->valueName;} )
+                                         == function->parameters.end()) {
+                        if ( !rcv.prgrm->metadatedVars.count(var->valueName)) {
+                            rcv.varsReadyForTypeRefinement.insert(var->valueName);
+                        }
+                    }
+                }
+	}
         for (const auto& block : func) {
             auto* myBlock = function->getBlock(&block);
-
-        for (auto var : function->variables) {
-            if (std::find_if(function->parameters.begin(),
-                             function->parameters.end(), [&var](Value *param){return var->valueName == param->valueName;} )
-                                 == function->parameters.end()) {
-                if ( !rcv.prgrm->metadatedVars.count(var->valueName)) {
-                    rcv.varsReadyForTypeRefinement.insert(var->valueName);
+                for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
+                    auto expr = *it;
+                    expr->accept(rcv);
                 }
-            }
-        }
-        for (auto it = myBlock->expressions.begin(); it != myBlock->expressions.end(); ++it) {
-            auto expr = *it;
-            expr->accept(rcv);
-        }
         }
     }
     program.addPass(PassType::PropagateTypes);
