@@ -233,9 +233,19 @@ void Writer::functionHead(const Func* func, bool isdecl) {
     wr.startFunctionParams();
     for (auto it = func->parameters.cbegin(); it != func->parameters.cend(); ++it) {
         const auto& param = *it;
-        wr.raw(param->getType()->toString());
-        wr.raw(" ");
-        param->accept(ew);
+
+        const auto ppt = llvm::dyn_cast_or_null<PointerType>(param->getType());
+        bool paramArrayPtr = (ppt && ppt->isArrayPointer);
+        if (paramArrayPtr) {
+            wr.startArrayFunction(param->getType()->toString(), ppt->levels, "");
+            param->accept(ew);
+            wr.raw(")");
+            wr.raw(ppt->sizes);
+        } else {
+            wr.raw(param->getType()->toString());
+            wr.raw(" ");
+            param->accept(ew);
+        }
 
         if (it != last)
             wr.nextFunctionParam();
