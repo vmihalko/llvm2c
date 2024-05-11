@@ -391,7 +391,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         if (llvm::isa<llvm::Argument>(referredVal))
             // do later
             return;
-        if (llvm::isa<llvm::GlobalVariable>(referredVal))
+        if (llvm::isa<llvm::GlobalVariable>(referredVal) || variable->getKind() == Expr::EK_GlobalValue)
 	    return;
 	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
