@@ -21,6 +21,14 @@ void p(T t, Args... toPrint) {
     llvm::errs() << "\n";
 }
 
+Expr *getExprFromDeRef(Expr *e, int *howManyDeref) {
+	if (auto r = llvm::dyn_cast_or_null<RefExpr>(e)){
+		return getExprFromDeRef(r->expr, &--*howManyDeref);
+	} else if (auto d = llvm::dyn_cast_or_null<DerefExpr>(e)) {
+		return getExprFromDeRef(d->expr, &++*howManyDeref);
+	}
+	return e;
+}
 #define CHAIN(TYPE, MEMBER) ((TYPE) ? (TYPE)->MEMBER : nullptr)
 
 std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, const llvm::Type *anonGVName);
@@ -339,9 +347,17 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
     llvm::errs() << "This is myValue: ";
     referredVal->print(llvm::errs());
     llvm::errs() << "\n";
-    }
+    
     //referredVal->print(llvm::errs());
-    Expr* referred = block->func->getExpr(referredVal);
+    int howManyDeref = 0;
+    Expr* referred =  block->func->getExpr(referredVal);
+        if(!referred)
+		return;
+    referred = getExprFromDeRef(referred, &howManyDeref);
+    if ( howManyDeref)
+	    return;
+        if(!referred)
+		return;
     if (false && !referred) {
 	    llvm::errs() << " NULLhere1\n";
         if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(referredVal)) {
