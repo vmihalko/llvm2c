@@ -324,9 +324,18 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
+    if (llvm::DIArgList* argList = llvm::dyn_cast<llvm::DIArgList>(md)) return;
+    if (auto* mdNode = llvm::dyn_cast_or_null<llvm::MDNode>(md)) {
+	    if (mdNode->getNumOperands() > 0 && llvm::isa<llvm::MDString>(mdNode->getOperand(0))) {
+		    if (llvm::MDString* tag = llvm::dyn_cast<llvm::MDString>(mdNode->getOperand(0))) {
+			    if (tag->getString() == "poison")
+				return;
+	} 
+	    }
+    } else if (auto* g = llvm::dyn_cast_or_null<llvm::DIArgList>(md)) {
+    	return;
+    }
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
-    if (auto a = llvm::dyn_cast<llvm::DIArgList>(md)){
-	    return;
     llvm::errs() << "This is myValue: ";
     referredVal->print(llvm::errs());
     llvm::errs() << "\n";
