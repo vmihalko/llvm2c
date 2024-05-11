@@ -240,7 +240,9 @@ void PropagateTypesVisitor::visit(DoWhile& expr) {
 
 void PropagateTypesVisitor::visit(DerefExpr& expr) {
     expr.expr->accept(*this);
-    expr.setType(llvm::dyn_cast_or_null<PointerType>(expr.expr->getType())->type);
+
+    if ( auto pt = llvm::dyn_cast_or_null<PointerType>(expr.expr->getType()))
+        expr.setType(pt->type);
 }
 
 void PropagateTypesVisitor::visit(RefExpr& expr) {
