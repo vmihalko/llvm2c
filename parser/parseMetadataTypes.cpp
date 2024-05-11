@@ -421,6 +421,69 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 		        callVar->setType(t.value());
 		    }
 	return;
+    } else if (auto* a = llvm::dyn_cast_or_null<AddExpr>(referred)) {
+	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+
+        if (auto t = fixType(program, localVar->getType(), AT)) {
+            if (!t.has_value() || t.value()->getKind() != a->getType()->getKind()) { // TODO UNION != STRUCT
+                llvm::errs() << "The type of this variable:" << localVar->getName()
+                             << " specified by the user differs from the type in DIinfo.\n";
+                return;
+            }
+	    a->setType(t.value());
+	    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(a->getType()))
+		a->isUnsigned = IT->unsignedType;
+	}
+    } else if (auto* s = llvm::dyn_cast_or_null<SubExpr>(referred)) {
+	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+
+        if (auto t = fixType(program, localVar->getType(), AT)) {
+            if (!t.has_value() || t.value()->getKind() != s->getType()->getKind()) { // TODO UNION != STRUCT
+                llvm::errs() << "The type of this variable:" << localVar->getName()
+                             << " specified by the user differs from the type in DIinfo.\n";
+                return;
+            }
+	    s->setType(t.value());
+	    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(s->getType()))
+		s->isUnsigned = IT->unsignedType;
+	}
+    } else if (auto* m = llvm::dyn_cast_or_null<MulExpr>(referred)) {
+	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+
+        if (auto t = fixType(program, localVar->getType(), AT)) {
+            if (!t.has_value() || t.value()->getKind() != m->getType()->getKind()) { // TODO UNION != STRUCT
+                llvm::errs() << "The type of this variable:" << localVar->getName()
+                             << " specified by the user differs from the type in DIinfo.\n";
+                return;
+            }
+	    m->setType(t.value());
+	    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(m->getType()))
+		m->isUnsigned = IT->unsignedType;
+	}
+    } else if (auto* d = llvm::dyn_cast_or_null<DivExpr>(referred)) {
+	llvm::Type* AT = referredVal->getType(); //llvm::dyn_cast<llvm::AllocaInst>(referredVal)->getAllocatedType();
+        llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
+        llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
+
+        if (auto t = fixType(program, localVar->getType(), AT)) {
+            if (!t.has_value() || t.value()->getKind() != d->getType()->getKind()) { // TODO UNION != STRUCT
+                llvm::errs() << "The type of this variable:" << localVar->getName()
+                             << " specified by the user differs from the type in DIinfo.\n";
+                return;
+            }
+	    d->setType(t.value());
+	    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(d->getType()))
+		d->isUnsigned = IT->unsignedType;
+	}
+    }
+else {
+		ins->print(llvm::errs());
     }
 }
 
