@@ -403,7 +403,9 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
                              << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
-            variable->setType(t.value());
+
+	    p("VSSet type for: ", variable->valueName, " from: ", variable->getType()->toString(), " to ", t.value()->toString() );
+            variable->setType( t.value());
             program.metadatedVars.insert(variable->valueName);
         }
 	return;
