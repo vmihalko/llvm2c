@@ -9,7 +9,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
     }
 
     if (ty->isIntegerTy()) {
-        auto zero = std::make_unique<Value>("0", program.getType(ty));
+        auto zero = std::make_unique<Value>("-1", program.getType(ty));
         return program.addOwnership(std::move(zero));
     }
 
