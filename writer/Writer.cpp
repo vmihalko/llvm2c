@@ -28,6 +28,11 @@ void Writer::writeProgram(const Program& program) {
 }
 
 void Writer::includes(const Program& program) {
+    if (program.hasCMath && !useIncludes) {
+        wr.line("int __isnanf( float x ) { return x != x; }");
+        wr.line("int __isnan( double x ) { return x != x; }");
+    }
+
     if (!useIncludes)
         return;
 
