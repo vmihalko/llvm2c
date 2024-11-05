@@ -377,6 +377,11 @@ static Expr* parseFreezeInstruction(const llvm::Instruction& ins, Program& progr
     return program.getExpr(ins.getOperand(0));
 }
 
+static Expr* parseFnegInstruction(const llvm::Instruction& ins, Program& program) {
+    auto mnsExpr = std::make_unique<MinusExpr>(program.getExpr(ins.getOperand(0)));
+    return program.addOwnership(std::move(mnsExpr));
+}
+
 static Expr *toSigned(Expr *expr, Program& program) {
     auto IT = static_cast<IntegerType*>(expr->getType());
     auto *cast
@@ -1265,6 +1270,8 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         return parseCastInstruction(ins, program);
     case llvm::Instruction::Freeze:
         return parseFreezeInstruction(ins, program);
+    case llvm::Instruction::FNeg:
+        return parseFnegInstruction(ins, program);
     default:
         llvm::outs() << ins << "\n";
         assert(false && "File contains unsupported instruction!");
