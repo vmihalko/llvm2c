@@ -833,11 +833,6 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         }
 
         if (!funcName.substr(0,11).compare("llvm.assume")) {
-            Expr* a = func->getExpr(ins.getOperand(0));
-            auto _true = std::make_unique<Value>("1", a->getType());
-            auto assign = std::make_unique<AssignExpr>(a, _true.get());
-            block->addOwnership(std::move(_true));
-            block->addExprAndOwnership(std::move(assign));
             return;
         }
 
