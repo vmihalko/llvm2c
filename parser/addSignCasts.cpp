@@ -87,8 +87,9 @@ Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
 
 void SignCastsVisitor::visit(CmpExpr& expr) {
     // cast are not necessary in these cases
-    if (expr.comparsion == "==" || expr.comparsion == "!=")
-        return;
+    // if (expr.comparsion == "==" || expr.comparsion == "!=")
+    //     return;
+    // WHY ?
 
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
