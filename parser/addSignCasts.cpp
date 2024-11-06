@@ -90,7 +90,9 @@ void SignCastsVisitor::visit(CmpExpr& expr) {
     // if (expr.comparsion == "==" || expr.comparsion == "!=")
     //     return;
     // WHY ?
-
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
 }
