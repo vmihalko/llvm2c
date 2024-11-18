@@ -835,7 +835,7 @@ bool parseCallInstLLVM(const llvm::Instruction& ins, Func* func, Block* block) {
     return false;
 }
 
-static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
+static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
     const llvm::Value* value = &ins;
     const llvm::CallInst* callInst = llvm::cast<llvm::CallInst>(&ins);
     Expr* funcValue = nullptr;
@@ -845,7 +845,8 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 
     if (callInst->getCalledFunction()) {
         funcName = callInst->getCalledFunction()->getName().str();
-        type = func->getType(callInst->getCalledFunction()->getReturnType());
+        if (!func->returnType)
+            type = func->getType(callInst->getCalledFunction()->getReturnType());
 
         if (parseCallInstLLVM(ins, func, block))
             return;
@@ -865,7 +866,9 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        type = func->getType(FT->getReturnType());
+        if (!program.getFunction(llvm::dyn_cast_or_null<llvm::Function>(callInst->getCalledOperand()))->returnType) {
+            type = func->getType(FT->getReturnType());
+        }
 
         if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
@@ -1319,7 +1322,8 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
                         myBlock->addExpr(expr);
                     break;
                 case llvm::Instruction::Call:
-                    parseCallInstruction(ins, func, myBlock);
+                    parseCallInstruction(ins, func, myBlock, program);
+
                     break;
                 case llvm::Instruction::Unreachable:
                 case llvm::Instruction::Fence:
