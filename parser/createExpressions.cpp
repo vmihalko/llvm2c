@@ -734,6 +734,107 @@ std::vector<std::string> getAsmOutputStrings(llvm::InlineAsm::ConstraintInfoVect
     return ret;
 }
 
+
+
+void parseCallInstLLVM_abs(const llvm::Instruction& ins, Func* func, Block* block) {
+    Expr* a = func->getExpr(ins.getOperand(0));
+    Type* type = func->getType(llvm::cast<llvm::CallInst>(&ins)->getCalledFunction()->getReturnType());
+    auto zero = std::make_unique<Value>("0", type);
+    std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, zero.get(), "<", false);
+    auto mnsExpr = std::make_unique<MinusExpr>(a);
+    auto slctExpr = std::make_unique<SelectExpr>(cmprsn.get(), mnsExpr.get() ,a);
+    block->addOwnership(std::move(zero));
+    block->addOwnership(std::move(cmprsn));
+    block->addOwnership(std::move(mnsExpr));
+    if (ins.hasNUses(0)) {
+        block->addExpr(slctExpr.get());
+        func->createExpr(&ins, std::move(slctExpr));
+    } else {
+        inlineOrCreateVariable(&ins, func->program->addOwnership(std::move(slctExpr)), func, block);
+    }
+}
+
+/*
+https://reviews.llvm.org/D9293?id=&download=true
+The expression::
+
+    call i8 @llvm.umax.i8(i8 %a, i8 %b)
+
+is equivalent to::
+
+    %1 = icmp ugt i8 %a, %b
+    %2 = select i1 %1, i8 %a, i8 %b
+*/
+void parseCallInstLLVM_su_min_max(const llvm::Instruction& ins, Func* func, Block* block) {
+    
+    Expr* a = func->getExpr(ins.getOperand(0));
+    Expr* b = func->getExpr(ins.getOperand(1));
+    std::string funcName = llvm::cast<llvm::CallInst>(&ins)->getName().str();
+    assert(a && b);
+    Expr* cmprsn_ptr = nullptr;
+    if (!funcName.substr(0,9).compare("llvm.smin")) {
+        std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", false);
+        cmprsn_ptr = cmprsn.get();
+        block->addOwnership(std::move(cmprsn));
+    } else if (!funcName.substr(0,9).compare("llvm.smax")) {
+        std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", false);
+        cmprsn_ptr = cmprsn.get();
+        block->addOwnership(std::move(cmprsn));
+    } else if (!funcName.substr(0,9).compare("llvm.umin")) {
+        std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", true);
+        cmprsn_ptr = cmprsn.get();
+        block->addOwnership(std::move(cmprsn));
+    } else if (!funcName.substr(0,9).compare("llvm.umax")) {
+        std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", true);
+        cmprsn_ptr = cmprsn.get();
+        block->addOwnership(std::move(cmprsn));
+    }
+    auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
+    llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
+    llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
+    if (ins.hasNUses(0)) {
+    llvm::errs() << "zeroUSES\n";
+        block->addExpr(slctExpr.get());
+        func->createExpr(&ins, std::move(slctExpr));
+    } else {
+    llvm::errs() << "NONzeroUSES\n";
+        inlineOrCreateVariable(&ins, func->program->addOwnership(std::move(slctExpr)), func, block);
+    }
+}
+
+bool parseCallInstLLVM(const llvm::Instruction& ins, Func* func, Block* block) {
+   std::string funcName = llvm::cast<llvm::CallInst>(&ins)->getCalledFunction()->getName().str();
+    Type *type = func->getType(llvm::cast<llvm::CallInst>(&ins)->getCalledFunction()->getReturnType());
+
+    if (funcName.find("llvm.dbg.") == 0 || funcName.find("llvm.lifetime.") == 0 || funcName == "llvm.assume") {
+        return true;
+    }
+
+    if (funcName == "llvm.trap" || funcName == "llvm.debugtrap") {
+        func->createExpr(&ins, std::make_unique<AsmExpr>("int3", std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
+        block->addExpr(func->getExpr(&ins));
+        return true;
+    }
+
+    if (funcName.compare("llvm.stacksave") == 0 || funcName.compare("llvm.stackrestore") == 0) {
+        func->stackIgnored();
+        return true;
+    }
+
+    if (funcName == "llvm.abs") {
+        parseCallInstLLVM_abs(ins, func, block);
+        return true;
+    }
+
+    if (!funcName.find("llvm.smax") || !funcName.find("llvm.smin") ||
+        !funcName.find("llvm.umax") || !funcName.find("llvm.umin")) {
+        parseCallInstLLVM_su_min_max(ins, func, block);
+        return true;
+    }
+
+    return false;
+}
+
 static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     const llvm::Value* value = &ins;
     const llvm::CallInst* callInst = llvm::cast<llvm::CallInst>(&ins);
@@ -746,95 +847,8 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         funcName = callInst->getCalledFunction()->getName().str();
         type = func->getType(callInst->getCalledFunction()->getReturnType());
 
-        if (funcName == "llvm.dbg.declare" || funcName == "llvm.dbg.value" || funcName == "llvm.dbg.label") {
+        if (parseCallInstLLVM(ins, func, block))
             return;
-        }
-
-        // skip lifetime markers
-        if (funcName.find("llvm.lifetime.") == 0) {
-            return;
-        }
-
-        if (funcName.compare("llvm.trap") == 0 || funcName.compare("llvm.debugtrap") == 0) {
-            func->createExpr(&ins, std::make_unique<AsmExpr>("int3", std::vector<std::pair<std::string, Expr*>>(), std::vector<std::pair<std::string, Expr*>>(), ""));
-            block->addExpr(func->getExpr(&ins));
-            return;
-        }
-
-        if (funcName.compare("llvm.stacksave") == 0 || funcName.compare("llvm.stackrestore") == 0) {
-            func->stackIgnored();
-            return;
-        }
-
-        if (!funcName.substr(0,8).compare("llvm.abs")) {
-            Expr* a = func->getExpr(ins.getOperand(0));
-            auto zero = std::make_unique<Value>("0", type);
-            std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, zero.get(), "<", false);
-            auto mnsExpr = std::make_unique<MinusExpr>(a);
-            auto slctExpr = std::make_unique<SelectExpr>(cmprsn.get(), mnsExpr.get() ,a);
-            block->addOwnership(std::move(zero));
-            block->addOwnership(std::move(cmprsn));
-            block->addOwnership(std::move(mnsExpr));
-            if (value->hasNUses(0)) {
-                block->addExpr(slctExpr.get());
-                func->createExpr(value, std::move(slctExpr));
-            } else {
-                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
-            }
-            return;
-        }
-
-        /*
-        https://reviews.llvm.org/D9293?id=&download=true
-        The expression::
-
-            call i8 @llvm.umax.i8(i8 %a, i8 %b)
-
-        is equivalent to::
-
-            %1 = icmp ugt i8 %a, %b
-            %2 = select i1 %1, i8 %a, i8 %b
-        */
-        if (!funcName.substr(0,9).compare("llvm.smax") || !funcName.substr(0,9).compare("llvm.smin") ||
-            !funcName.substr(0,9).compare("llvm.umax") || !funcName.substr(0,9).compare("llvm.umin")) {
-            Expr* a = func->getExpr(ins.getOperand(0));
-            Expr* b = func->getExpr(ins.getOperand(1));
-            assert(a && b);
-            Expr* cmprsn_ptr = nullptr;
-            if (!funcName.substr(0,9).compare("llvm.smin")) {
-                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", false);
-                cmprsn_ptr = cmprsn.get();
-                block->addOwnership(std::move(cmprsn));
-            } else if (!funcName.substr(0,9).compare("llvm.smax")) {
-                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", false);
-                cmprsn_ptr = cmprsn.get();
-                block->addOwnership(std::move(cmprsn));
-            } else if (!funcName.substr(0,9).compare("llvm.umin")) {
-                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", true);
-                cmprsn_ptr = cmprsn.get();
-                block->addOwnership(std::move(cmprsn));
-            } else if (!funcName.substr(0,9).compare("llvm.umax")) {
-                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", true);
-                cmprsn_ptr = cmprsn.get();
-                block->addOwnership(std::move(cmprsn));
-            }
-            auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
-		    llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
-		    llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
-            if (value->hasNUses(0)) {
-		    llvm::errs() << "zeroUSES\n";
-                block->addExpr(slctExpr.get());
-                func->createExpr(value, std::move(slctExpr));
-            } else {
-		    llvm::errs() << "NONzeroUSES\n";
-                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
-            }
-            return;
-        }
-
-        if (!funcName.substr(0,11).compare("llvm.assume")) {
-            return;
-        }
 
         if (funcName.substr(0,4).compare("llvm") == 0) {
             if (isCFunc(trimPrefix(funcName))) {
@@ -851,11 +865,7 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        if (funcName.substr(0,21).compare("__VERIFIER_nondet_int")) {
-		type = func->program->typeHandler.sint.get();	
-	} else {
-                type = func->getType(FT->getReturnType());
-	}
+        type = func->getType(FT->getReturnType());
 
         if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
@@ -863,6 +873,9 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         }
 
         funcValue = func->getExpr(operand);
+        // if (funcName.substr(0,21).compare("__VERIFIER_nondet_int")) {
+        //     type = func->program->typeHandler.sint.get();	
+        // }
     }
 
     int i = 0;
@@ -883,24 +896,18 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         params.push_back(func->lastArg);
     }
 
+    llvm::errs() << "gonna create a CallExpr: ";
+	value->print(llvm::errs());
+    llvm::errs() << "with funcName: " << funcName;
+    llvm::errs() << " and type: " << type->toString();
+
     //call function if it returns void, otherwise store function return value to a new variable and use this variable instead of function call
-    if (llvm::dyn_cast_or_null<VoidType>(type)) {
+    if (llvm::dyn_cast_or_null<VoidType>(type) || value->hasNUses(0)) {
         func->createExpr(value, std::make_unique<CallExpr>(funcValue, funcName, params, type));
         block->addExpr(func->getExpr(value));
     } else {
         auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type);
-        //llvm::errs() << "Var: " << var->valueName << " with type:  " << expr->getType()->toString() <<  " from ";
-	llvm::errs() << "CallExpr created: ";
-	value->print(llvm::errs());
-	        llvm::errs() << "inlining?\n";
-
-        // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
-        if (value->hasNUses(0)) {
-            block->addExpr(callExpr.get());
-            func->createExpr(value, std::move(callExpr));
-        } else {
-            inlineOrCreateVariable(value, func->program->addOwnership(std::move(callExpr)), func, block);
-        }
+        inlineOrCreateVariable(value, func->program->addOwnership(std::move(callExpr)), func, block);
     }
 }
 
