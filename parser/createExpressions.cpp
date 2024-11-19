@@ -900,6 +900,17 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         params.push_back(func->lastArg);
     }
 
+    auto llvmFunName = callInst->getCalledFunction()->getName();
+    if (llvmFunName.startswith("__VERIFIER_nondet_") &&
+        (llvmFunName.endswith("_int") ||
+         llvmFunName.endswith("_long") ||
+         llvmFunName.endswith("_short") ||
+         llvmFunName.endswith("_char") ||
+         llvmFunName.endswith("_float") ||
+         llvmFunName.endswith("_double"))) {
+        type = program.typeHandler.setSigned(static_cast<IntegerType*>(type));
+    }
+
     llvm::errs() << "gonna create a CallExpr: ";
 	value->print(llvm::errs());
     llvm::errs() << "with funcName: " << funcName;
