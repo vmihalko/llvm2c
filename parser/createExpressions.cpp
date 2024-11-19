@@ -866,7 +866,8 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        if (!program.getFunction(llvm::dyn_cast_or_null<llvm::Function>(callInst->getCalledOperand()))->returnType) {
+        auto fRtnTp = program.getFunction(llvm::dyn_cast_or_null<llvm::Function>(callInst->getCalledOperand()));
+        if (fRtnTp && !fRtnTp->returnType) {
             type = func->getType(FT->getReturnType());
         }
 
