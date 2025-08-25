@@ -743,6 +743,40 @@ std::vector<std::string> getAsmOutputStrings(llvm::InlineAsm::ConstraintInfoVect
     return ret;
 }
 
+static Type *deduceNondetReturnType(const std::string &name,
+    TypeHandler &th) {
+// Fast reject
+if (name.rfind("__VERIFIER_nondet_", 0) != 0)
+return nullptr;
+
+if (name.compare(0, 22, "__VERIFIER_nondet_bool") == 0)
+return th.uchar.get(); // _Bool is typically unsigned char
+if (name.compare(0, 22, "__VERIFIER_nondet_char") == 0)
+return th.schar.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_uchar") == 0)
+return th.uchar.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_short") == 0)
+return th.sshort.get();
+if (name.compare(0, 24, "__VERIFIER_nondet_ushort") == 0)
+return th.ushort.get();
+if (name.compare(0, 21, "__VERIFIER_nondet_int") == 0)
+return th.sint.get();
+if (name.compare(0, 22, "__VERIFIER_nondet_uint") == 0)
+return th.uint.get();
+if (name.compare(0, 22, "__VERIFIER_nondet_long") == 0)
+return th.slong.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_ulong") == 0)
+return th.ulong.get();
+if (name.compare(0, 25, "__VERIFIER_nondet_longlong") == 0)
+return th.slonglong.get();
+if (name.compare(0, 26, "__VERIFIER_nondet_ulonglong") == 0)
+return th.ulonglong.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_uint128") == 0)
+return th.int128.get();
+
+return nullptr; // not found
+}
+
 static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     const llvm::Value* value = &ins;
     const llvm::CallInst* callInst = llvm::cast<llvm::CallInst>(&ins);
@@ -860,11 +894,13 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        if (funcName.substr(0,21).compare("__VERIFIER_nondet_int")) {
-		type = func->program->typeHandler.sint.get();	
-	} else {
-                type = func->getType(FT->getReturnType());
-	}
+        // Try to detect SV-COMP nondet helpers and override the return type
+        // accordingly. Fallback to the LLVM-deduced return type otherwise.
+        if (Type *ndTy = deduceNondetReturnType(funcName, func->program->typeHandler)) {
+            type = ndTy;
+        } else {
+            type = func->getType(FT->getReturnType());
+        }
 
         if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
