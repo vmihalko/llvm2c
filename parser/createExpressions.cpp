@@ -1170,6 +1170,22 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
         return castExpr;
     }
 
+    if (llvm::isa<llvm::ZExtInst>(CI)) {
+        auto *recastOrigExpr
+                    = program.makeExpr<CastExpr>(
+                        expr,
+                        program.getType(ins.getOperand(0)->getType())
+                );
+        auto *IT = static_cast<IntegerType*>(recastOrigExpr->getType());
+        recastOrigExpr->setType(program.typeHandler.setUnsigned(IT));
+        auto *castExpr = program.makeExpr<CastExpr>(
+                recastOrigExpr,
+                program.getType(CI->getDestTy())
+        );
+        IT = static_cast<IntegerType*>(castExpr->getType());
+        castExpr->setType(program.typeHandler.setUnsigned(IT));
+        return castExpr;
+    }
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
     auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
@@ -1178,10 +1194,6 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     if (ins.getOpcode() == llvm::Instruction::FPToSI) {
         castExpr->setType(program.typeHandler.setSigned(IT));
-    }
-
-    if (llvm::isa<llvm::ZExtInst>(CI)) {
-        castExpr->setType(program.typeHandler.setUnsigned(IT));
     }
 
     return castExpr;
