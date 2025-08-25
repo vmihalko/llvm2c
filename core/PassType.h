@@ -1,5 +1,6 @@
 
 enum class PassType {
+    addCastsToConstants,
     InitializeGlobalVars,
     ParseStructDeclarations,
     ParseStructItems,

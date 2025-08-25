@@ -190,10 +190,11 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // remove casts that are needed, e.g.:
     // It can do (int)var from (int)(short)var
     // where var is (unsigned short).
-    //RUN_PASS(deleteRedundantCasts);
     RUN_PASS(extractVars);
     RUN_PASS(propagateTypes);
     RUN_PASS(addSignCasts);
+    //RUN_PASS(addCastsToConstants);
+    RUN_PASS(deleteRedundantCasts);
     RUN_PASS(identifyInlinableBlocks);
     RUN_PASS(inlineBlocks);
     // llvm::errs() << "SECOND REDDEREF CALL" << "\n";

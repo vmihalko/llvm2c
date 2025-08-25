@@ -100,6 +100,7 @@ set(llvm2c_sources
   parser/ProgramParser.h
   parser/SimplifyingExprVisitor.cpp
   parser/addSignCasts.cpp
+  parser/addCastsToConstants.cpp
   parser/arrowify.cpp
   parser/cfunc.h
   parser/computeGlobalVarsOrder.cpp
