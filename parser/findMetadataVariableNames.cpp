@@ -52,7 +52,8 @@ void findMetadataVariableNames(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 if (ins.getOpcode() == llvm::Instruction::Call) {
                     const llvm::CallInst* CI = llvm::cast<llvm::CallInst>(&ins);
-                    if (CI->getCalledFunction() && (CI->getIntrinsicID() == llvm::Intrinsic::dbg_declare)) {
+                    if (CI->getCalledFunction() && (CI->getIntrinsicID() == llvm::Intrinsic::dbg_declare ||
+                                                    CI->getIntrinsicID() == llvm::Intrinsic::dbg_value)) {
 				//	    CI->getIntrinsicID() == llvm::Intrinsic::dbg_value)) {
                             setMetadataInfo(CI, myBlock);
                     }
