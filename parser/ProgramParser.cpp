@@ -165,7 +165,14 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     RUN_PASS(createFunctionParameters);
     RUN_PASS(createBlocks);
     RUN_PASS(createAllocas);
-    RUN_PASS(findMetadataVariableNames);
+
+    // ------------------------------------------------------------------
+    // We must create the IR → C expressions *before* we try to rename
+    // variables from the DWARF metadata.  Otherwise the debug intrinsics
+    // refer to LLVM SSA values for which no Value/Expr has been built yet
+    // and findMetadataVariableNames() silently fails.  Therefore the call
+    // is moved below createExpressions().
+    // ------------------------------------------------------------------
 
     // This pass is buggy. It can do signed type from
     // unsigned type when the original type is unsigned...
@@ -174,8 +181,13 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     if (bitcastUnions) {
         RUN_PASS(prepareBitcastUnion);
     }
-    //RUN_PASS(createExpressions);
+
+    // RUN_PASS(createExpressions);
     createExpressions(mod, result, bitcastUnions);
+
+    // Now that every LLVM value has a corresponding Expr/Value, we can
+    // safely rename them according to the debug information.
+    RUN_PASS(findMetadataVariableNames);
     RUN_PASS(parseMetadataTypes);
 
     RUN_PASS(parseBreaks);
