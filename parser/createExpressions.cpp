@@ -4,6 +4,7 @@
 #include "constval.h"
 #include "cfunc.h"
 #include "compare.h"
+#include <cstring>
 
 #include <llvm/ADT/iterator_range.h>
 #include <llvm/IR/Instruction.h>
@@ -105,6 +106,14 @@ static bool canInline(const llvm::Value* value) {
 }
 
 static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* func, Block* block) {
+    if (auto *valExpr = llvm::dyn_cast_or_null<Value>(expr)) {
+        const std::string &txt = valExpr->valueName;
+        if (!txt.empty() && std::isdigit(txt[0])) {
+            func->program->addExpr(value, expr);   // inline literal
+            return;
+        }
+    }
+
     if (canInline(value)) {
         func->program->addExpr(value, expr);
 	llvm::errs() << "INLINING\n";
