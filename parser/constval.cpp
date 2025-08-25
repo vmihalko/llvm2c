@@ -66,7 +66,12 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             value = std::to_string(CI->getSExtValue());
         }
 
-        return program.makeExpr<Value>(value, program.getType(CI->getType()));
+        auto vtype = llvm::dyn_cast_or_null<IntegerType>(program.getType(CI->getType()));
+        if (value[0] == '-' ) {
+            vtype = program.typeHandler.setSigned(vtype);
+        }
+
+        return program.makeExpr<Value>(value, vtype);
     }
 
     if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
