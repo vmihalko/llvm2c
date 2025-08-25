@@ -14,6 +14,11 @@ static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
         referred = re->expr;
     }
 
+    if (auto *val = llvm::dyn_cast<Value>(referred)) {
+        if (!val->valueName.empty() && std::isdigit(val->valueName[0]))
+            return;                               // don’t rename literals
+    }
+
     if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
