@@ -1,6 +1,7 @@
 #pragma once
 
 #include <llvm/IR/Instruction.h>
+#include <llvm/IR/Constants.h>
 
 #include "../core/Func.h"
 #include "../core/Block.h"

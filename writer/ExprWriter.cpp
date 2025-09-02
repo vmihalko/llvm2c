@@ -277,7 +277,7 @@ void ExprWriter::visit(PointerShift& expr) {
         for (unsigned i = 0; i < PT->levels; i++) {
             ss << "*";
         }
-        ss << ")" << PT->sizes;
+        ss << ")";
     }
 
     ss << ")(";
@@ -329,7 +329,7 @@ void ExprWriter::writeCastType(Type *Ty) {
             for (unsigned i = 0; i < PT->levels; i++) {
                 ss << "*";
             }
-            ss << ")" + PT->sizes;
+            ss << ")";
         }
     }
     ss << ")";

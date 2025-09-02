@@ -64,16 +64,41 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
-option(LLVM_LINK_DYLIB "Link with LLVM dynamically" ON)
+option(LLVM_LINK_DYLIB "Link with LLVM dynamically" OFF)
 if(LLVM_LINK_DYLIB)
   message(STATUS "LLVM linking: dynamic")
   set(llvm_libs LLVM)
 else()
   message(STATUS "LLVM linking: static")
-  # Find the libraries that correspond to the LLVM components
-  # that we wish to use
-  llvm_map_components_to_libnames(llvm_libs bitwriter core irreader linker
-                                            support)
+  # Link the required LLVM components explicitly (LLVM 14)
+  llvm_map_components_to_libnames(llvm_libs
+    AggressiveInstCombine
+    Analysis
+    AsmParser
+    BinaryFormat
+    BitReader
+    BitWriter
+    Core
+    DebugInfoCodeView
+    DebugInfoDWARF
+    Demangle
+    FrontendOpenMP
+    Instrumentation
+    InstCombine
+    IRReader
+    IPO
+    Linker
+    MC
+    MCParser
+    Object
+    Passes
+    ProfileData
+    Remarks
+    ScalarOpts
+    Support
+    TextAPI
+    TransformUtils
+    Vectorize)
 endif()
 
 # --------------------------------------------------

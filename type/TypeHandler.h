@@ -28,6 +28,17 @@ public:
     std::unordered_map<const llvm::DIType*, StructType*> StructTypeDiCache;
     std::vector<std::unique_ptr<Type>> diSubranges;
 
+    // cache for VLAs:  key = (elemTy, sizeExpr)
+    std::map<std::pair<Type*,Expr*>, uptr<Type>> vlaTypes;
+
+    Type* variableLengthArrayOf(Type* elem, Expr* dynSize) {
+        auto key = std::make_pair(elem,dynSize);
+        auto& slot = vlaTypes[key];
+        if (!slot)
+            slot = std::make_unique<ArrayType>(elem,dynSize);
+        return slot.get();
+    }
+
     // key = T, value = Type representing pointer to T
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
 

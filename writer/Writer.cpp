@@ -245,7 +245,6 @@ void Writer::functionHead(const Func* func, bool isdecl) {
             wr.startArrayFunction(param->getType()->toString(), ppt->levels, "");
             param->accept(ew);
             wr.raw(")");
-            wr.raw(ppt->sizes);
         } else {
             wr.raw(param->getType()->toString());
             wr.raw(" ");
@@ -274,7 +273,7 @@ void Writer::functionHead(const Func* func, bool isdecl) {
 
     if (arrayPtr) {
         wr.raw(")");
-        wr.raw(PT->sizes);
+        //wr.raw(PT->sizes);
     }
 }
 

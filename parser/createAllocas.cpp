@@ -18,39 +18,36 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<Value> theVariable;
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
-                    if (false && allocaInst->isArrayAllocation()) {
-                       //llvm::errs() << *allocaInst << "\n";
-                       //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
-                        auto *llsize = allocaInst->getArraySize();
-                        Expr *size = nullptr;
-                        if (llvm::isa<llvm::ConstantInt>(llsize)) {
-                            size = createConstantValue(llsize, program);
-                        } else {
-                            size = program.getExpr(llsize);
+                    if (allocaInst->isArrayAllocation()) {
+                        const llvm::Value* llsizeVal = allocaInst->getArraySize();
+                        Expr *sizeExpr = program.getExpr(llsizeVal);
+                        if (!sizeExpr) {
+                            // see if the operand is just the alloca of MAX itself
+                            if (auto *load = llvm::dyn_cast<llvm::LoadInst>(llsizeVal)) {
+                                sizeExpr = program.getExpr(load->getPointerOperand()); // this is MAX
+                            }
                         }
-                        if (!size) {
-                            llvm::errs() << "Unhandled size: " << *llsize << " which was an first argument of alloca: " << *allocaInst << "\n";
-                            throw std::invalid_argument("Unhandled alloca");
+                        if (!sizeExpr)
+                            sizeExpr = createConstantValue(llsizeVal, program); // fallback
+
+                        if (auto ref = llvm::dyn_cast_or_null<RefExpr>(sizeExpr)) {
+                            // dereference the pointer so the text becomes MAX, not &MAX
+
+                            sizeExpr = ref->expr;
                         }
 
-                       //theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getType()));
-                       //alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        std::vector<Expr*> params;
-                        params.push_back(size);
-                        auto allocacall = std::make_unique<CallExpr>(
-                                nullptr,
-                                "alloca",
-                                params,
-                                func->getType(allocaInst->getType()));
 
-                        // assign the result of the call to the variable
-                        theVariable = std::make_unique<Value>(func->getVarName(), allocacall->getType());
-                        alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        auto assign = std::make_unique<AssignExpr>(theVariable.get(), allocacall.get());
+
+                        Type* elemTy = func->getType(allocaInst->getAllocatedType());
+                        Type *vlaTy = program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr);
+
+                        theVariable = std::make_unique<Value>(func->getVarName(), vlaTy);
+                        alloc       = std::make_unique<StackAlloc>(theVariable.get());
                         myBlock->addExprAndOwnership(std::move(alloc));
-                        myBlock->addOwnership(std::move(allocacall));
-                        myBlock->addExprAndOwnership(std::move(assign));
-                        //func->createExpr(&ins, std::move(allocacall));
+
+                        auto ref = std::make_unique<RefExpr>(theVariable.get(),
+                                program.typeHandler.pointerTo(elemTy));
+                        func->createExpr(&ins,std::move(ref));
                     } else  {
                         // normal alloca on the stack
                         theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
