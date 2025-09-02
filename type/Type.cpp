@@ -1,4 +1,6 @@
 #include "Type.h"
+#include <sstream>
+#include "../writer/ExprWriter.h"
 
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/Support/raw_ostream.h"
@@ -115,9 +117,37 @@ ArrayType::ArrayType(Type* type, unsigned int size)
     }
 }
 
+// VLA constructor
+ArrayType::ArrayType(Type* elem, Expr* runtimeSize): Type(TK_ArrayType) {
+    type = elem;
+    size = 0;
+    dynSize = runtimeSize;
+
+    isStructArray = false;
+    isPointerArray = false;
+
+    if (auto AT = llvm::dyn_cast_or_null<ArrayType>(this->type)) {
+        isStructArray = AT->isStructArray;
+        structName = AT->structName;
+        isPointerArray = AT->isPointerArray;
+        pointer = AT->pointer;
+    }
+
+    if (auto ST = llvm::dyn_cast_or_null<StructType>(this->type)) {
+        isStructArray = true;
+        structName = ST->name;
+    }
+
+    if (auto PT = llvm::dyn_cast_or_null<PointerType>(this->type)) {
+        isPointerArray = true;
+        pointer = PT;
+    }
+}
+
 ArrayType::ArrayType(const ArrayType& other): Type(TK_ArrayType) {
     size = other.size;
     type = other.type;
+    dynSize = other.dynSize;
     isStructArray = other.isStructArray;
     structName = other.structName;
     isPointerArray = other.isPointerArray;
@@ -146,7 +176,17 @@ std::string ArrayType::sizeToString() const {
     std::string ret;
 
     ret += "[";
-    ret += std::to_string(size);
+    if (size)
+        ret += std::to_string(size);
+    else if (dynSize) {
+        // VLA – print dynamic expression
+        std::ostringstream tmp;
+        ExprWriter ew(tmp, /*noFuncCasts=*/false, /*forceBlockLabels=*/false);
+        dynSize->accept(ew);
+        ret += tmp.str();
+    } else {
+        ret += "0"; // fallback if dynSize missing
+    }
     ret += "]";
     if (ArrayType* AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
         ret += AT->sizeToString();
@@ -162,7 +202,7 @@ std::string ArrayType::surroundName(const std::string& name) {
         for (unsigned i = 0; i < pointer->levels; i++) {
             ret += "*";
         }
-        return ret + name + sizeToString() + ")" + pointer->sizes;
+        return ret + name + sizeToString() + ")";
     } else {
         return name + sizeToString();
     }
@@ -192,12 +232,11 @@ PointerType::PointerType(Type* type): Type(TK_PointerType) {
         isStructPointer = PT->isStructPointer;
         structName = PT->structName;
         levels = PT->levels + 1;
-        sizes = PT->sizes;
     }
 
     if (auto AT = llvm::dyn_cast_or_null<ArrayType>(type)) {
         isArrayPointer = true;
-        sizes = AT->sizeToString();
+        //sizes = AT->sizeToString();
 
         isStructPointer = AT->isStructArray;
         structName = AT->structName;
@@ -215,7 +254,6 @@ PointerType::PointerType(const PointerType &other): Type(TK_PointerType) {
     type = other.type;
     isArrayPointer = other.isArrayPointer;
     levels = other.levels;
-    sizes = other.sizes;
 }
 
 void PointerType::print() const {
@@ -248,7 +286,9 @@ std::string PointerType::surroundName(const std::string& name) {
     }
 
     if (isArrayPointer) {
-        ret = ret + sizes;
+        const ArrayType* at = llvm::dyn_cast<ArrayType>(type);
+        ret += at ? at->sizeToString() : "";
+        //ret = ret + sizes;
     }
 
     if (!ret.empty())

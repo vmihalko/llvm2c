@@ -419,7 +419,13 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     Expr* val1 = program.getExpr(ins.getOperand(1));
     assert(val0 && val1);
 
-    if (binOp->hasNoSignedWrap() ||
+    // Check if this is an OverflowingBinaryOperator before calling hasNoSignedWrap()
+    bool hasNSW = false;
+    if (auto* overflowOp = llvm::dyn_cast<const llvm::OverflowingBinaryOperator>(&ins)) {
+        hasNSW = overflowOp->hasNoSignedWrap();
+    }
+
+    if (hasNSW ||
         ins.getOpcode() == Instruction::SDiv ||
         ins.getOpcode() == Instruction::FDiv ||
         ins.getOpcode() == Instruction::SRem ||
@@ -433,15 +439,15 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
     case llvm::Instruction::FAdd:
-        expr = std::make_unique<AddExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<AddExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::Sub:
     case llvm::Instruction::FSub:
-        expr = std::make_unique<SubExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<SubExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::Mul:
     case llvm::Instruction::FMul:
-        expr = std::make_unique<MulExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<MulExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::UDiv:
         expr = std::make_unique<DivExpr>(val0, val1, true);
@@ -564,11 +570,17 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
     assert(val0 && val1);
 
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
+    
+    // Check if this is an OverflowingBinaryOperator before calling hasNoSignedWrap()
+    bool hasNSW = false;
+    if (auto* overflowOp = llvm::dyn_cast<const llvm::OverflowingBinaryOperator>(&ins)) {
+        hasNSW = overflowOp->hasNoSignedWrap();
+    }
 
     std::unique_ptr<Expr> expr;
     switch (ins.getOpcode()) {
     case llvm::Instruction::Shl:
-        if (binOp->hasNoSignedWrap()) {
+        if (hasNSW) {
             val0 = toSigned(val0, program);
             val1 = toSigned(val1, program);
         }

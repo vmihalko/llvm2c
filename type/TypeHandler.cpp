@@ -83,7 +83,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
                             for (unsigned i = 0; i < PT->levels; i++) {
                                 param += "*";
                             }
-                            param += ")" + PT->sizes;
+                            param += ")";
                         }
                     }
 

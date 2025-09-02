@@ -5,6 +5,8 @@
 #include <string>
 #include <memory>
 
+class Expr; // forward declaration for dynamic VLA size
+
 /**
  * @brief The Type class is an abstract class for all types.
  */
@@ -143,7 +145,7 @@ public:
     unsigned levels; //number of pointers (for instance int** is level 2), used for easier printing
 
     bool isArrayPointer; //indicates whether the pointer is pointing to array
-    std::string sizes; //sizes of arrays
+    //std::string sizes; //sizes of arrays
 
     bool isStructPointer; //indicates whether the pointer is pointing to struct
     std::string structName; //name of the struct
@@ -166,6 +168,7 @@ class ArrayType : public Type {
 public:
     Type* type;
     unsigned int size;
+    Expr *dynSize{nullptr};
 
     bool isStructArray; //indicates whether the array contains structs
     std::string structName; //name of the structs
@@ -174,6 +177,7 @@ public:
     PointerType* pointer; //pointers contained in array
 
     ArrayType(Type*, unsigned int);
+    ArrayType(Type*, Expr* runtimeSize); // VLA constructor
     ArrayType(const ArrayType&);
 
     void print() const override;
