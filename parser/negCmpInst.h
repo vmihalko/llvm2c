@@ -74,7 +74,7 @@ llvm::CmpInst* negateCmpInst(llvm::CmpInst* cmpInst) {
         break;
     default:
         // Handle any unsupported predicate
-        llvm::errs() << "Unsupported predicate\n";
+        //llvm::errs() << "Unsupported predicate\n";
         return nullptr;
     }
 

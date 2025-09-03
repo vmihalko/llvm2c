@@ -124,7 +124,7 @@ void printModule(llvm::Module *m, const std::string &filename) {
 
     // Check if the file is opened successfully
     if (!outputFile.is_open()) {
-        llvm::errs() << "Error: Unable to open file " << filename << " for writing.\n";
+        //llvm::errs() << "Error: Unable to open file " << filename << " for writing.\n";
         return;
     }
 

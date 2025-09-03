@@ -25,7 +25,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
             values.push_back(createUndefValue(ST->getElementType(i), program));
         }
     } else {
-        ty->print(llvm::errs(), true);
+        //ty->print(llvm::errs(), true);
         assert(false && "globalVars: unrecognized type of undef value");
     }
 

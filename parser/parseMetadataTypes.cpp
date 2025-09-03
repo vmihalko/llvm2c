@@ -11,14 +11,14 @@
 
 template <typename T>
 void p(T arg) {
-  llvm::errs() << arg << " ";
+  //llvm::errs() << arg << " ";
 }
 
 template<typename T, typename... Args>
 void p(T t, Args... toPrint) {
-    llvm::errs() << t << " ";
+    //llvm::errs() << t << " ";
     p( toPrint... );
-    llvm::errs() << "\n";
+    //llvm::errs() << "\n";
 }
 
 Expr *getExprFromDeRef(Expr *e, int *howManyDeref) {
@@ -343,12 +343,13 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 	} 
 	    }
     } else if (auto* g = llvm::dyn_cast_or_null<llvm::DIArgList>(md)) {
+    	(void)g;
     	return;
     }
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
-    llvm::errs() << "This is myValue: ";
-    referredVal->print(llvm::errs());
-    llvm::errs() << "\n";
+    //llvm::errs() << "This is myValue: ";
+    //referredVal->print(llvm::errs());
+    //llvm::errs() << "\n";
     
     //referredVal->print(llvm::errs());
     int howManyDeref = 0;
@@ -361,27 +362,28 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         if(!referred)
 		return;
     if (false && !referred) {
-	    llvm::errs() << " NULLhere1\n";
+	    //llvm::errs() << " NULLhere1\n";
         if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(referredVal)) {
-	    llvm::errs() << "2\n";
+	    //llvm::errs() << "2\n";
             if (ins->hasNUses(1)) {
-	    llvm::errs() << "3\n";
+	    //llvm::errs() << "3\n";
                 if (const llvm::Value* inlinedIntoValue = llvm::dyn_cast_or_null<llvm::Value>(*ins->user_begin())) {
-	    llvm::errs() << "4\n";
-    inlinedIntoValue->print(llvm::errs());
-	    llvm::errs() << " before 4\n";
+	    //llvm::errs() << "4\n";
+    //inlinedIntoValue->print(llvm::errs());
+	    //llvm::errs() << " before 4\n";
                     Expr* referred = block->func->getExpr(inlinedIntoValue);
-                    if (referred)
-                        llvm::errs() << "Hurray " << inlinedIntoValue << "\n";
+                    if (referred) {
+                        //llvm::errs() << "Hurray " << inlinedIntoValue << "\n";
+                    }
             }
         }
     }
 }
 /*
     if(!referred) {
-	    llvm::errs()<< "NOT IN EXPRS?!";
-    referredVal->print(llvm::errs());
-	    llvm::errs()<< "NULL\n"; return;
+	    //llvm::errs()<< "NOT IN EXPRS?!";
+    //referredVal->print(llvm::errs());
+	    //llvm::errs()<< "NULL\n"; return;
     }
 */
     if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
@@ -389,7 +391,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
     }
 
     if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
-	referredVal->print(llvm::errs());
+	//referredVal->print(llvm::errs());
         if (llvm::isa<llvm::Argument>(referredVal))
             // do later
             return;
@@ -401,8 +403,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != variable->getType()->getKind()) { // TODO UNION != STRUCT
-                llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in DIinfo.\n";
+                //llvm::errs() << "The type of this variable:" << localVar->getName()
+                //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
 
@@ -418,8 +420,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
 		auto t = fixType(program, localVar->getType(), AT);
 		    if (!t.has_value() || t.value()->getKind() != callVar->getType()->getKind()) { // TODO UNION != STRUCT
-			llvm::errs() << "The type of this variable:" << localVar->getName()
-				     << " specified by the user differs from the type in DIinfo.\n";
+			//llvm::errs() << "The type of this variable:" << localVar->getName()
+			//	     << " specified by the user differs from the type in DIinfo.\n";
 			return;
 		    } else {
 		        callVar->setType(t.value());
@@ -432,8 +434,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != a->getType()->getKind()) { // TODO UNION != STRUCT
-                llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in DIinfo.\n";
+                //llvm::errs() << "The type of this variable:" << localVar->getName()
+                //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
 	    a->setType(t.value());
@@ -447,8 +449,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != s->getType()->getKind()) { // TODO UNION != STRUCT
-                llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in DIinfo.\n";
+                //llvm::errs() << "The type of this variable:" << localVar->getName()
+                //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
 	    s->setType(t.value());
@@ -462,8 +464,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != m->getType()->getKind()) { // TODO UNION != STRUCT
-                llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in DIinfo.\n";
+                //llvm::errs() << "The type of this variable:" << localVar->getName()
+                //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
 	    m->setType(t.value());
@@ -477,8 +479,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != d->getType()->getKind()) { // TODO UNION != STRUCT
-                llvm::errs() << "The type of this variable:" << localVar->getName()
-                             << " specified by the user differs from the type in DIinfo.\n";
+                //llvm::errs() << "The type of this variable:" << localVar->getName()
+                //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
 	    d->setType(t.value());
@@ -487,7 +489,7 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
 	}
     }
 else {
-		ins->print(llvm::errs());
+		//ins->print(llvm::errs());
     }
 }
 
@@ -506,8 +508,9 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
                     if (t.has_value() && t.value()->getKind() == gv->expr->getType()->getKind()) {
                         program.getGlobalVar( &gvar )->expr->setType(t.value());
                     }
-                } else
-                    llvm::errs() << " Global Var missing, but debuginfo occured\n";
+                } else {
+                    //llvm::errs() << " Global Var missing, but debuginfo occured\n";
+                }
             }
         }
     }

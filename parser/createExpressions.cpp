@@ -116,17 +116,17 @@ static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* f
 
     if (canInline(value)) {
         func->program->addExpr(value, expr);
-	llvm::errs() << "INLINING\n";
-	value->print(llvm::errs());
-	llvm::errs() << "\n";
+	//llvm::errs() << "INLINING\n";
+	//value->print(llvm::errs());
+	//llvm::errs() << "\n";
         return;
     }
-	llvm::errs() << "Createting varibale: \n";
+	//llvm::errs() << "Createting varibale: \n";
 
     auto var = std::make_unique<Value>(func->getVarName(), expr->getType());
-	llvm::errs() << var->valueName << " from ";
-	value->print(llvm::errs());
-	llvm::errs() << " created! \n";
+	//llvm::errs() << var->valueName << " from ";
+	//value->print(llvm::errs());
+	//llvm::errs() << " created! \n";
     auto assign = std::make_unique<AssignExpr>(var.get(), expr);
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
@@ -256,7 +256,7 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return program.makeExpr<LogicalOr>(isUnordered, cmpExpr);
     }
 
-    cmpInst->print(llvm::errs(), true);
+    //cmpInst->print(llvm::errs(), true);
     assert(false && "parseFCmpInstruction: unknown compare predicate");
     abort(); // for release builds
 }
@@ -550,11 +550,11 @@ static void parseAsmInst(const llvm::Instruction& ins, Func* func, Block* block)
 
 static Expr * removeCastsFromExpr(Expr* expr) {
     if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
-        llvm::errs() << "cast removed\n";
+        //llvm::errs() << "cast removed\n";
         Expr* innermost = cast->expr;
 
         while (auto* inner = llvm::dyn_cast_or_null<CastExpr>(innermost)) {
-            llvm::errs() << "cast removed\n";
+            //llvm::errs() << "cast removed\n";
             innermost = inner->expr;
         }
 
@@ -585,10 +585,10 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
             val1 = toSigned(val1, program);
         }
 
-		llvm::errs() << removeCastsFromExpr(val1)->getKind() << " end\n";
+		//llvm::errs() << removeCastsFromExpr(val1)->getKind() << " end\n";
 	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
 	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "1") {
-		llvm::errs() << removeCastsFromExpr(val1)->getKind() << "WASHER\n";
+		//llvm::errs() << removeCastsFromExpr(val1)->getKind() << "WASHER\n";
 		auto two = std::make_unique<Value>("2", removeCastsFromExpr(val1)->getType());
 		expr = std::make_unique<MulExpr>(val0,  two.get(),
 					 !binOp->hasNoSignedWrap());
@@ -874,14 +874,14 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
                 block->addOwnership(std::move(cmprsn));
             }
             auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
-		    llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
-		    llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
+		    //llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
+		    //llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
             if (value->hasNUses(0)) {
-		    llvm::errs() << "zeroUSES\n";
+		    //llvm::errs() << "zeroUSES\n";
                 block->addExpr(slctExpr.get());
                 func->createExpr(value, std::move(slctExpr));
             } else {
-		    llvm::errs() << "NONzeroUSES\n";
+		    //llvm::errs() << "NONzeroUSES\n";
                 inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
             }
             return;
@@ -947,9 +947,9 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
     } else {
         auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type);
         //llvm::errs() << "Var: " << var->valueName << " with type:  " << expr->getType()->toString() <<  " from ";
-	llvm::errs() << "CallExpr created: ";
-	value->print(llvm::errs());
-	        llvm::errs() << "inlining?\n";
+	//llvm::errs() << "CallExpr created: ";
+	//value->print(llvm::errs());
+	        //llvm::errs() << "inlining?\n";
 
         // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
         if (value->hasNUses(0)) {
