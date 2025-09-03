@@ -283,10 +283,10 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
         return llvm::dyn_cast<llvm::BranchInst>(l->getLoopLatch()->getTerminator())->getCondition() == ins.getCondition();});
 
     if (  LI.end() != it && (*it)->contains(block->block) ) {
-        llvm::errs() << "doWhile created\n";
+        //llvm::errs() << "doWhile created\n";
 
         if ((*it)->getHeader() == (*it)->getLoopLatch()) { // #1 HEADER and LATCH are same
-            llvm::errs() << "LATCH is HEADER\n";
+            //llvm::errs() << "LATCH is HEADER\n";
             // move all exprs into the body of doWhile!
             Block* loopNodes = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(2));
             auto doWhileBody = std::make_unique<ExprList>(std::move( loopNodes->expressions ));
@@ -307,7 +307,7 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
 
         }
         if ((*it)->getHeader()->getTerminator()->getSuccessor(0) == (*it)->getLoopLatch()) {// #2 latch --SINGLE-EDGE--> header
-            llvm::errs() << "HOIST LATCH TO HEADER\n";
+            //llvm::errs() << "HOIST LATCH TO HEADER\n";
 
             Expr* cmp = func->getExpr(ins.getCondition());
             Block* HeaderBlock = func->getBlock((*it)->getHeader());
@@ -351,7 +351,7 @@ static void parseCondBranch(const llvm::BranchInst& ins, Func* func, Block* bloc
         // std::terminate();
         assert(false && "Something unloopected happend!");
     } else {
-        llvm::errs() << "Ifcond created\n";
+        //llvm::errs() << "Ifcond created\n";
         Expr* cmp = func->getExpr(ins.getCondition());
 
         Block* falseBlock = func->createBlockIfNotExist((llvm::BasicBlock*)ins.getOperand(1));

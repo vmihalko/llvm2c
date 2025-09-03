@@ -46,13 +46,13 @@ Expr* InliningVisitor::simplify(Expr* expr) {
 #include <iostream>
 // (HEADER --inline-> LATCH) --inline--> PREHEADER
 void inlineLoopBlocks(llvm::Loop *loop, Func *fun) {
-    llvm::errs() << "----preeader----"
-                 << *loop->getLoopPreheader()
-                 << "\n----header----"
-                 << *loop->getHeader()
-                 << "\n----latch----"
-                 << *loop->getLoopLatch()    
-                 << "\n----latch----\n";
+    //llvm::errs() << "----preeader----"
+    //             << *loop->getLoopPreheader()
+    //             << "\n----header----"
+    //             << *loop->getHeader()
+    //             << "\n----latch----"
+    //             << *loop->getLoopLatch()    
+    //             << "\n----latch----\n";
 
 
 

@@ -269,9 +269,9 @@ void PropagateTypesVisitor::visit(AssignExpr& expr) {
 
     if(!(expr.right->getKind() == Expr::EK_CallExpr)) {
         if (exprsWithChangedType.count(expr.left)) {
-            llvm::errs() << "Attempt to change already changed type for: "
-                         << expr.left->getType()->toString() << " to "
-                         << expr.right->getType()->toString() << " \n";
+            //llvm::errs() << "Attempt to change already changed type for: "
+            //             << expr.left->getType()->toString() << " to "
+            //             << expr.right->getType()->toString() << " \n";
             return;
         }
 

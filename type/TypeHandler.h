@@ -80,7 +80,7 @@ public:
         auto ptr  = std::make_unique<T>(std::forward<Args>(args)...);
         auto *result = ptr.get();
         if (ditypeCache[ditype]) {
-            llvm::errs() << "diType already cached! Terminating...\n";
+            //llvm::errs() << "diType already cached! Terminating...\n";
             std::terminate();
         }
         ditypeCache[ditype] = std::move(ptr);
