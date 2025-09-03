@@ -187,16 +187,17 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             // if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
             //     return {};
 
-            if (anonGVName && anonGVName->getStructName().empty()) // anonymous struct
-                return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
+            const llvm::StructType* anonStructType = anonGVName ? llvm::cast<llvm::StructType>(anonGVName) : nullptr;
+            if (anonStructType && (anonStructType->isLiteral() || anonStructType->getStructName().empty())) // anonymous struct
+                return program.unnamedStructs[anonStructType].get();
 
-            std::string strctName = diCompType->getName().empty() && anonGVName
-                     ? TypeHandler::getStructName(anonGVName->getStructName().str())
+            std::string strctName = diCompType->getName().empty() && anonStructType
+                     ? TypeHandler::getStructName(anonStructType->isLiteral() ? "" : anonStructType->getStructName().str())
                      : "s_" + diCompType->getName().str();
 
             auto strct = program.getStruct( strctName );
-            if ( !strct && anonGVName) // struct with name: diCompType->getName().str() wasn't found
-                strct = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
+            if ( !strct && anonStructType) // struct with name: diCompType->getName().str() wasn't found
+                strct = program.getStruct( TypeHandler::getStructName(anonStructType->isLiteral() ? "" : anonStructType->getStructName().str()) );
             if( !strct ) {
                 p("Unable to find struct with name: ", strctName, "\n");
                 return {};
@@ -231,19 +232,20 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             // if (diCompType->getName().empty() && (!anonGVName || !anonGVName->isStructTy()))
             //     return {};
 
-            if (anonGVName && anonGVName->getStructName().empty()) // anonymous union
-                return program.unnamedStructs[llvm::cast<llvm::StructType>(anonGVName)].get();
+            const llvm::StructType* anonUnionType = anonGVName ? llvm::cast<llvm::StructType>(anonGVName) : nullptr;
+            if (anonUnionType && (anonUnionType->isLiteral() || anonUnionType->getStructName().empty())) // anonymous union
+                return program.unnamedStructs[anonUnionType].get();
             /* In LLVM there are no unions; there are only structs that can be cast into
             *  whichever type the front-end want to cast the struct into.
             *  from: https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/basic-constructs/unions.html
             */
-            std::string unionName = diCompType->getName().empty() && anonGVName
-                     ? TypeHandler::getStructName(anonGVName->getStructName().str())
+            std::string unionName = diCompType->getName().empty() && anonUnionType
+                     ? TypeHandler::getStructName(anonUnionType->isLiteral() ? "" : anonUnionType->getStructName().str())
                      : "u_" + diCompType->getName().str();
 
             auto onion = program.getStruct( unionName );
-            if ( !onion && anonGVName) // union with name: diCompType->getName().str() wasn't found
-                onion = program.getStruct( TypeHandler::getStructName(anonGVName->getStructName().str()) );
+            if ( !onion && anonUnionType) // union with name: diCompType->getName().str() wasn't found
+                onion = program.getStruct( TypeHandler::getStructName(anonUnionType->isLiteral() ? "" : anonUnionType->getStructName().str()) );
             if( !onion ) {
                 p("Unable to find union with name: ", unionName, "\n");
                 return {};
@@ -332,7 +334,7 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
 
 static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
-    if (llvm::DIArgList* argList = llvm::dyn_cast<llvm::DIArgList>(md)) return;
+    if (llvm::DIArgList* argList = llvm::dyn_cast<llvm::DIArgList>(md)) { (void)argList; return; }
     if (auto* mdNode = llvm::dyn_cast_or_null<llvm::MDNode>(md)) {
 	    if (mdNode->getNumOperands() > 0 && llvm::isa<llvm::MDString>(mdNode->getOperand(0))) {
 		    if (llvm::MDString* tag = llvm::dyn_cast<llvm::MDString>(mdNode->getOperand(0))) {

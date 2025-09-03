@@ -126,7 +126,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         auto* strct = program->getStruct(structType);
 
         if (!strct) {
-            if (structType->getStructName() == "") {
+            if (structType->isLiteral() || structType->getStructName() == "") {
                 program->createNewUnnamedStruct(structType);
                 strct = program->getStruct(structType);
             }

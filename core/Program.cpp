@@ -23,7 +23,7 @@ std::string Program::getAnonStructName() {
 }
 
 StructType* Program::getStruct(const llvm::StructType* strct) const {
-	std::string structName = TypeHandler::getStructName(strct->getName().str());
+	std::string structName = TypeHandler::getStructName(strct->isLiteral() ? "" : strct->getName().str());
 
 	for (const auto& structElem : structs) {
 		if (structElem->name.compare(structName) == 0) {
