@@ -16,7 +16,7 @@ static void initVarargStruct(StructType& varargStruct, Program& program) {
 void parseStructDeclarations(const llvm::Module* module, Program& program) {
 
     for (llvm::StructType* structType : module->getIdentifiedStructTypes()) {
-        std::string structName = TypeHandler::getStructName(structType->getName().str());
+        std::string structName = TypeHandler::getStructName(structType->isLiteral() ? "" : structType->getName().str());
 
         if (!program.hasVarArg && structName.compare("__va_list_tag") == 0) {
             auto varargStruct = std::make_unique<StructType>(structName);
