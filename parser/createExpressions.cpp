@@ -1136,6 +1136,24 @@ static void parseBitcastInstruction(const llvm::Instruction& ins, Func* func, Bl
 
 static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
     Expr* expr = program.getExpr(ins.getOperand(0));
+    
+    // If the operand expression doesn't exist yet, try to create it
+    if (!expr) {
+        const llvm::Value* operand = ins.getOperand(0);
+        
+        // If the operand is an instruction, try to process it first
+        if (const llvm::Instruction* operandInst = llvm::dyn_cast<llvm::Instruction>(operand)) {
+            expr = parseLLVMInstruction(*operandInst, program);
+        } 
+        // If it's a constant, try to create a constant value
+        else if (llvm::isa<llvm::Constant>(operand)) {
+            expr = createConstantValue(operand, program);
+            if (expr) {
+                program.addExpr(operand, expr);
+            }
+        }
+    }
+    
     assert(expr);
 
     //operand is used for initializing output in inline asm

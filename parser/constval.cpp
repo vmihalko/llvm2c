@@ -35,6 +35,11 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
 }
 
 Expr* createConstantValue(const llvm::Value* val, Program& program) {
+    // First check if we already have an expression for this value
+    if (Expr* existing = program.getExpr(val)) {
+        return existing;
+    }
+
     if (llvm::isa<llvm::UndefValue>(val)) {
         return createUndefValue(val->getType(), program);
     }
@@ -172,7 +177,14 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         return parseLLVMInstruction(*inst.get(), program);
     }
 
-
+    // Check if this is an instruction that somehow ended up here
+    if (llvm::isa<llvm::Instruction>(val)) {
+        // This should not happen in normal cases, but if it does, we can try to handle it
+        // by treating it as an instruction
+        if (auto *inst = llvm::dyn_cast<llvm::Instruction>(val)) {
+            return parseLLVMInstruction(*inst, program);
+        }
+    }
 
     if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
         // Check if it's a ConstantExpr that wasn't caught
@@ -181,12 +193,13 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             return parseLLVMInstruction(*inst.get(), program);
         }
 
-        // If it's not a constant but has an opcode, try to treat it as an instruction
-        if (val->getValueID() >= 66 && val->getValueID() <= 100) { // Rough range for instruction-like values
-            // This might be a value that represents an instruction result
-            // For now, let's try to create a simple cast expression
-            // We'll create a placeholder that can be replaced later when the actual instruction is processed
-            return program.makeExpr<Value>("0", program.getType(val->getType()));
+        // If this is an instruction-like value, try to handle it appropriately
+        if (val->getValueID() >= 32 && val->getValueID() <= 100) { // Range for instruction-like values
+            // For instruction-like values that ended up here, create a placeholder
+            // This might happen with certain LLVM transformations
+            auto placeholder = program.makeExpr<Value>("0", program.getType(val->getType()));
+            program.addExpr(val, placeholder);  // Add to expression map
+            return placeholder;
         }
 
         assert(false && "constval: unknown type of constant value");
