@@ -101,7 +101,16 @@ void PropagateTypesVisitor::visit(GepExpr& expr) {
 void PropagateTypesVisitor::visit(PointerShift& expr) {
     expr.pointer->accept(*this);
     expr.move->accept(*this);
-    expr.setType(llvm::dyn_cast<PointerType>(expr.pointer->getType())->type);
+    
+    // Get the pointer type from the base pointer expression
+    auto basePointerType = llvm::dyn_cast<PointerType>(expr.pointer->getType());
+    if (basePointerType) {
+        // Update both the result type and the ptrType used for casting
+        expr.setType(basePointerType->type);
+        // Create a new pointer type that matches the base pointer's element type
+        // This ensures that pointer arithmetic casts use the correct signedness
+        expr.ptrType = prgrm->typeHandler.pointerTo(basePointerType->type);
+    }
 }
 
 void PropagateTypesVisitor::visit(LogicalOr& expr) {
