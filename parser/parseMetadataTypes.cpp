@@ -146,13 +146,20 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
             auto *CI = SR->getCount().dyn_cast<llvm::ConstantInt *>();
             int64_t array_size = 0;
             if (CI) array_size = CI->getSExtValue();
-
             auto arrayBaseType = anonGVName && anonGVName->isArrayTy() ? CHAIN(anonGVName, getArrayElementType()) : nullptr;
             while( arrayBaseType && arrayBaseType->isArrayTy() )
                 arrayBaseType = arrayBaseType->getArrayElementType();
             auto t = fixType(program, diCompType->getBaseType(), arrayBaseType);
             if ( !t.has_value() )
                 return {};
+            
+            // Check if this might be a VLA (array_size == 0 or negative)
+            if (array_size <= 0) {
+                // Don't create a regular ArrayType for VLAs - this would override the VLA created in createAllocas
+                // Return empty to indicate that the existing type should be preserved
+                return {};
+            }
+            
             auto ptr = std::make_unique<ArrayType>(t.value(), array_size);
             auto* innermost_array = ptr.get();
             program.typeHandler.diSubranges.push_back(std::move(ptr));

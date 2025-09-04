@@ -31,11 +31,15 @@ void createAllocas(const llvm::Module* module, Program& program) {
                             sizeExpr = createConstantValue(llsizeVal, program); // fallback
 
                         if (auto ref = llvm::dyn_cast_or_null<RefExpr>(sizeExpr)) {
-                            // dereference the pointer so the text becomes MAX, not &MAX
-
-                            sizeExpr = ref->expr;
+                            // For VLAs, we want the variable name, not the address
+                            // Create a stable Value expression for the VLA size
+                            if (auto innerVal = llvm::dyn_cast_or_null<Value>(ref->expr)) {
+                                // Create a new Value expression that will be owned by the program
+                                auto stableSize = std::make_unique<Value>(innerVal->valueName, innerVal->getType());
+                                sizeExpr = stableSize.get();
+                                program.addOwnership(std::move(stableSize));
+                            }
                         }
-
 
 
                         Type* elemTy = func->getType(allocaInst->getAllocatedType());
