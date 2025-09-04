@@ -408,6 +408,30 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
+        // Special handling for VLAs: check if current variable is a VLA
+        if (auto currentArrayType = llvm::dyn_cast_or_null<ArrayType>(variable->getType())) {
+            if (currentArrayType->dynSize) {
+                // This is a VLA - handle element type correction directly from debug metadata
+                if (auto diArrayType = llvm::dyn_cast_or_null<llvm::DICompositeType>(localVar->getType())) {
+                    if (diArrayType->getTag() == llvm::dwarf::DW_TAG_array_type) {
+                        // Extract the base element type from debug metadata
+                        if (auto elemType = fixType(program, diArrayType->getBaseType(), AT->getPointerElementType())) {
+                            if (elemType.has_value() && elemType.value()->getKind() == currentArrayType->type->getKind()) {
+                                // Update VLA element type while preserving dynSize
+                                Type* correctElemType = elemType.value(); // Correct signedness from debug metadata
+                                Type* newVlaType = program.typeHandler.variableLengthArrayOf(correctElemType, currentArrayType->dynSize);
+                                p("VSSet VLA element type for: ", variable->valueName, " from: ", currentArrayType->type->toString(), " to: ", correctElemType->toString());
+                                variable->setType(newVlaType);
+                                program.metadatedVars.insert(variable->valueName);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Regular variable handling
         if (auto t = fixType(program, localVar->getType(), AT)) {
             if (!t.has_value() || t.value()->getKind() != variable->getType()->getKind()) { // TODO UNION != STRUCT
                 //llvm::errs() << "The type of this variable:" << localVar->getName()
