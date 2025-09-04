@@ -347,20 +347,19 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
     	return;
     }
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
-    //llvm::errs() << "This is myValue: ";
     //referredVal->print(llvm::errs());
     //llvm::errs() << "\n";
     
     //referredVal->print(llvm::errs());
     int howManyDeref = 0;
     Expr* referred =  block->func->getExpr(referredVal);
-        if(!referred)
-		return;
+    if(!referred)
+        return;
     referred = getExprFromDeRef(referred, &howManyDeref);
-    if ( howManyDeref)
-	    return;
-        if(!referred)
-		return;
+    if ( howManyDeref > 0)
+        return;
+    if(!referred)
+        return;
     if (false && !referred) {
 	    //llvm::errs() << " NULLhere1\n";
         if (const auto* ins = llvm::dyn_cast_or_null<llvm::Instruction>(referredVal)) {
