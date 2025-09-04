@@ -1265,7 +1265,19 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
             if (index->isZero()) {
                 indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
+                // Use the element type from the base expression rather than LLVM type conversion
+                // This preserves signedness information from debug metadata
+                Type* elementType = nullptr;
+                if (auto refExpr = llvm::dyn_cast_or_null<RefExpr>(prevExpr)) {
+                    if (auto ptrType = llvm::dyn_cast_or_null<PointerType>(refExpr->getType())) {
+                        elementType = ptrType->type;
+                    }
+                }
+                if (!elementType) {
+                    elementType = program.getType(prevType->getPointerElementType());
+                }
+                Type* ptrTypeToUse = program.typeHandler.pointerTo(elementType);
+                indices.push_back(program.makeExpr<PointerShift>(ptrTypeToUse, prevExpr, index));
             }
         }
 
