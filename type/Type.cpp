@@ -180,9 +180,17 @@ std::string ArrayType::sizeToString() const {
         ret += std::to_string(size);
     else if (dynSize) {
         // VLA – print dynamic expression
+        // VLA – print dynamic expression
         std::ostringstream tmp;
         ExprWriter ew(tmp, /*noFuncCasts=*/false, /*forceBlockLabels=*/false);
-        dynSize->accept(ew);
+        
+        // Handle RefExpr specially for VLAs - we want the variable name, not &variable
+        if (auto refExpr = llvm::dyn_cast_or_null<RefExpr>(dynSize)) {
+            refExpr->expr->accept(ew);
+        } else {
+            dynSize->accept(ew);
+        }
+        
         ret += tmp.str();
     } else {
         ret += "0"; // fallback if dynSize missing
