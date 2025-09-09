@@ -41,13 +41,19 @@ void createAllocas(const llvm::Module* module, Program& program) {
                             }
                         }
 
-
                         Type* elemTy = func->getType(allocaInst->getAllocatedType());
                         Type *vlaTy = program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr);
 
                         theVariable = std::make_unique<Value>(func->getVarName(), vlaTy);
                         alloc       = std::make_unique<StackAlloc>(theVariable.get());
-                        myBlock->addExprAndOwnership(std::move(alloc));
+                        
+                        // For VLAs, just add ownership (no expression yet - will be inserted by InsertVLADecls pass)
+                        if (!llvm::isa<llvm::ConstantInt>(allocaInst->getArraySize())) {
+                            myBlock->addOwnership(std::move(alloc));
+                        } else {
+                            // Fixed-size array, add as expression immediately
+                            myBlock->addExprAndOwnership(std::move(alloc));
+                        }
 
                         auto ref = std::make_unique<RefExpr>(theVariable.get(),
                                 program.typeHandler.pointerTo(elemTy));
