@@ -1,5 +1,6 @@
 #include "ProgramParser.h"
 #include "passes.h"
+#include "InsertVLADecls.h"
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IRReader/IRReader.h>
@@ -184,6 +185,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
 
     // RUN_PASS(createExpressions);
     createExpressions(mod, result, bitcastUnions);
+    insertVLADecls(result);  
 
     // Now that every LLVM value has a corresponding Expr/Value, we can
     // safely rename them according to the debug information.
