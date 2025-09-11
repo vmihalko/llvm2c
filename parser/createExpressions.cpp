@@ -182,6 +182,71 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
     return program.makeExpr<ExtractValueExpr>(std::move(indices));
 }
 
+static void parseInsertValueInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    const llvm::InsertValueInst* IVI = llvm::cast<const llvm::InsertValueInst>(&ins);
+
+    // Result aggregate type
+    Type* aggregateType = program.getType(IVI->getType());
+
+    // Create a new temporary aggregate variable to hold the updated value
+    auto* tempVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), aggregateType));
+    auto* alloca = program.makeExpr<StackAlloc>(tempVar);
+    block->addExpr(alloca);
+
+    // Initialize from the source aggregate if it is not 'undef'
+    Expr* srcAgg = program.getExpr(IVI->getAggregateOperand());
+    if (!srcAgg && llvm::isa<llvm::Constant>(IVI->getAggregateOperand())) {
+        srcAgg = createConstantValue(IVI->getAggregateOperand(), program);
+        if (srcAgg) {
+            program.addExpr(IVI->getAggregateOperand(), srcAgg);
+        }
+    }
+
+    if (srcAgg && !llvm::isa<llvm::UndefValue>(IVI->getAggregateOperand())) {
+        auto* initAssign = program.makeExpr<AssignExpr>(tempVar, srcAgg);
+        block->addExpr(initAssign);
+    }
+
+    // Build an lvalue expression referencing the target field within the temp aggregate
+    Expr* lhs = tempVar;
+    Type* prevType = aggregateType;
+    for (unsigned idx : IVI->getIndices()) {
+        if (llvm::isa<StructType>(prevType)) {
+            lhs = program.makeExpr<AggregateElement>(lhs, idx);
+            prevType = lhs->getType();
+            continue;
+        }
+
+        if (auto* arrTy = llvm::dyn_cast_or_null<ArrayType>(prevType)) {
+            auto* indexVal = program.makeExpr<Value>(std::to_string(idx), program.typeHandler.uint.get());
+            lhs = program.makeExpr<ArrayElement>(lhs, indexVal, arrTy->type);
+            prevType = lhs->getType();
+            continue;
+        }
+
+        // Unsupported aggregate kind in index path; bail out
+        assert(false && "insertvalue: unsupported aggregate index kind");
+        abort();
+    }
+
+    // Right-hand side value to insert
+    Expr* rhs = program.getExpr(IVI->getInsertedValueOperand());
+    if (!rhs && llvm::isa<llvm::Constant>(IVI->getInsertedValueOperand())) {
+        rhs = createConstantValue(IVI->getInsertedValueOperand(), program);
+        if (rhs) {
+            program.addExpr(IVI->getInsertedValueOperand(), rhs);
+        }
+    }
+    assert(rhs && "insertvalue: missing inserted value expression");
+
+    // Perform the field assignment on the temporary aggregate
+    auto* fieldAssign = program.makeExpr<AssignExpr>(lhs, rhs);
+    block->addExpr(fieldAssign);
+
+    // The result of insertvalue is the (updated) aggregate value
+    program.addExpr(&ins, tempVar);
+}
+
 static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
     if (val->getType() == program.typeHandler.floatType.get())
         return std::make_unique<CallExpr>(nullptr, "__isnanf", std::vector<Expr*>{val}, program.typeHandler.sint.get());
@@ -1265,19 +1330,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
             if (index->isZero()) {
                 indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                // Use the element type from the base expression rather than LLVM type conversion
-                // This preserves signedness information from debug metadata
-                Type* elementType = nullptr;
-                if (auto refExpr = llvm::dyn_cast_or_null<RefExpr>(prevExpr)) {
-                    if (auto ptrType = llvm::dyn_cast_or_null<PointerType>(refExpr->getType())) {
-                        elementType = ptrType->type;
-                    }
-                }
-                if (!elementType) {
-                    elementType = program.getType(prevType->getPointerElementType());
-                }
-                Type* ptrTypeToUse = program.typeHandler.pointerTo(elementType);
-                indices.push_back(program.makeExpr<PointerShift>(ptrTypeToUse, prevExpr, index));
+                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
             }
         }
 
@@ -1349,6 +1402,10 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         return parseGepInstruction(ins, program);
     case llvm::Instruction::ExtractValue:
         return parseExtractValueInstruction(ins, program);
+    case llvm::Instruction::InsertValue:
+        // insertvalue is handled in the top-level creator where we have Block/Func.
+        // Here, just return the expression if it was already created.
+        return program.getExpr(&ins);
     case llvm::Instruction::BitCast:
     case llvm::Instruction::SExt:
     case llvm::Instruction::ZExt:
@@ -1367,7 +1424,10 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::FNeg:
         return parseFnegInstruction(ins, program);
     default:
-        llvm::outs() << ins << "\n";
+        llvm::errs() << "Unsupported instruction encountered by llvm2c: ";
+        ins.print(llvm::errs());
+        llvm::errs() << "\n";
+        llvm::errs().flush();
         assert(false && "File contains unsupported instruction!");
         abort();
     }
@@ -1409,6 +1469,9 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
                     expr = parseStoreInstruction(ins, program);
                     if (expr)
                         myBlock->addExpr(expr);
+                    break;
+                case llvm::Instruction::InsertValue:
+                    parseInsertValueInstruction(ins, func, myBlock, program);
                     break;
                 case llvm::Instruction::Call:
                     parseCallInstruction(ins, func, myBlock);
