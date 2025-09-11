@@ -1,6 +1,7 @@
 #include "../core/Program.h"
 #include "../core/Block.h"
 #include "../expr/Expr.h"
+#include "../type/Type.h"
 
 #include <llvm/IR/Instruction.h>
 
@@ -32,6 +33,15 @@ void extractVars(const llvm::Module* module, Program& program) {
             }
 
             for (auto* alloc : allocs) {
+                // If this is a VLA (array with dynamic size), keep the StackAlloc
+                // in-place (InsertVLADecls decides the correct location) and
+                // do NOT move it to the function prologue.
+                if (auto *arrTy = llvm::dyn_cast_or_null<ArrayType>(alloc->value->getType())) {
+                    if (arrTy->dynSize) {
+                        continue;
+                    }
+                }
+
                 // 2. remove them from block->expressions (ownership can stay in principle)
                 deleteExprFromBlock(myBlock, alloc);
 

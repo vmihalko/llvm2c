@@ -159,6 +159,7 @@ set(llvm2c_sources
   parser/refDeref.cpp
   parser/toinst.cpp
   parser/toinst.h
+  parser/InsertVLADecls.cpp
 
   type/Type.cpp
   type/Type.h
