@@ -55,9 +55,7 @@ void createAllocas(const llvm::Module* module, Program& program) {
                             myBlock->addExprAndOwnership(std::move(alloc));
                         }
 
-                        auto ref = std::make_unique<RefExpr>(theVariable.get(),
-                                program.typeHandler.pointerTo(elemTy));
-                        func->createExpr(&ins,std::move(ref));
+                        // The createExpr for &ins is performed unconditionally below; no need to duplicate here
                     } else  {
                         // normal alloca on the stack
                         theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
