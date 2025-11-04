@@ -982,6 +982,33 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+        // Handle llvm.fmuladd.* intrinsics: a * b + c
+        if (!funcName.substr(0,12).compare("llvm.fmuladd")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            Expr* b = func->getExpr(ins.getOperand(1));
+            Expr* c = func->getExpr(ins.getOperand(2));
+            assert(a && b && c);
+            
+            // Create a * b
+            auto mulExpr = std::make_unique<MulExpr>(a, b, true);
+            // Create (a * b) + c
+            std::unique_ptr<Expr> addExpr = std::make_unique<AddExpr>(mulExpr.get(), c, true);
+            block->addOwnership(std::move(mulExpr));
+                // For float result, wrap in explicit (float) cast to preserve float semantics
+            if (ins.getType()->isFloatTy()) {
+                auto* ownedAdd = func->program->addOwnership(std::move(addExpr));
+                addExpr = std::make_unique<CastExpr>(ownedAdd, func->program->typeHandler.floatType.get());
+            }
+            
+            if (value->hasNUses(0)) {
+                block->addExpr(addExpr.get());
+                func->createExpr(value, std::move(addExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(addExpr)), func, block);
+            }
+            return;
+        }
+
         if (funcName.substr(0,4).compare("llvm") == 0) {
             if (isCFunc(trimPrefix(funcName))) {
                 funcName = trimPrefix(funcName);
