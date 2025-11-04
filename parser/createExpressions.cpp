@@ -1375,6 +1375,31 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
         program.addOwnership(std::move(newCast));
     }
 
+    // Normalize pointer index for robust signed pointer arithmetic
+    auto normalizeIndexForPointerShift = [&](Expr* idx) -> Expr* {
+        Expr* result = idx;
+        // Detect pattern: (0 - X) => -(X)
+        if (auto sub = llvm::dyn_cast_or_null<SubExpr>(idx)) {
+            if (sub->left && sub->left->isZero() && sub->right) {
+                Expr* inner = sub->right;
+                // Unwrap ALL casts to get to the core expression
+                // This handles: (int)(unsigned int)(ptrtoint(...))
+                while (auto cast = llvm::dyn_cast_or_null<CastExpr>(inner)) {
+                    inner = cast->expr;
+                }
+                // FIX: Cast to long FIRST, then negate (not the other way around)
+                // This generates: -(long)expr instead of (long)(-expr)
+                // The latter is invalid when expr is a pointer like &(...)
+                Expr* innerAsLong = program.makeExpr<CastExpr>(inner, program.typeHandler.slong.get());
+                result = program.makeExpr<MinusExpr>(innerAsLong);
+                return result;  // Already cast, don't cast again below
+            }
+        }
+        // Cast index (possibly negated) to signed long to model ptrdiff_t
+        result = program.makeExpr<CastExpr>(result, program.typeHandler.slong.get());
+        return result;
+    };
+
     for (auto it = llvm::gep_type_begin(gepInst); it != llvm::gep_type_end(gepInst); it++) {
         Expr* index = program.getExpr(it.getOperand());
         assert(index);
@@ -1383,7 +1408,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
             if (index->isZero()) {
                 indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
+                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, normalizeIndexForPointerShift(index)));
             }
         }
 
