@@ -194,6 +194,7 @@ public:
     Expr* value;
     bool isStatic = false;
     bool isExtern = false;
+    bool isConst = false;
 
     GlobalValue(const std::string&, Expr*, Type*);
 

@@ -199,13 +199,14 @@ void Writer::globalVarDefinitions(const Program& program) {
         if (gvar->isStatic) {
             wr.raw("static ");
         }
-/*
-        if (gvar->isExtern) {
+        if (gvar->isExtern && !gvar->value) {  // Only extern if no initializer
             wr.raw("extern ");
         }
-*/
         wr.raw(gvar->getType()->toString());
         wr.raw(" ");
+        if (gvar->isConst) {
+            wr.raw("const ");
+        }
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
 
         if (gvar->value) {
