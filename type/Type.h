@@ -296,6 +296,8 @@ public:
 class BoolType : public IntType {
 public:
     BoolType();
+    void print() const override { llvm::outs() << toString(); }
+    std::string toString() const override;
 
     static bool classof(const Type* type);
 };
