@@ -119,6 +119,15 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 }
             }
 
+            // Ensure float constants are emitted with 'f' suffix to preserve float semantics in C
+            if (CFP->getType()->isFloatTy()) {
+                // Avoid appending 'f' to special builtins handled above; here CFPvalue is a numeric string
+                // Append 'f' if not already present
+                if (CFPvalue.empty() || CFPvalue.back() != 'f') {
+                    CFPvalue += "f";
+                }
+            }
+
             return program.makeExpr<Value>(CFPvalue, program.getType(CFP->getType()));
         }
     }
