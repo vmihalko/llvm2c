@@ -247,6 +247,25 @@ static void parseInsertValueInstruction(const llvm::Instruction& ins, Func* func
     program.addExpr(&ins, tempVar);
 }
 
+static void parseLandingPadInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    // Create a local temporary of the landingpad result type and bind it to this instruction.
+    Type* lpType = program.getType(ins.getType());
+    auto* tempVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), lpType));
+    auto* alloca = program.makeExpr<StackAlloc>(tempVar);
+    block->addExpr(alloca);
+    program.addExpr(&ins, tempVar);
+}
+
+static void parseResumeInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    // Translate resume as terminating abort(), which is a conservative replacement under panic=abort.
+    auto* call = program.makeExpr<CallExpr>(nullptr, "abort", std::vector<Expr*>{}, program.typeHandler.voidType.get());
+    block->addExpr(call);
+}
+
+// Helper function to build isnan checks for floating point comparisons
+// Implementation note: __isnan and __isnanf should be defined as:
+//   int __isnan( double x ) { return x != x; }
+//   int __isnanf( float x ) { return x != x; }
 static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
     if (val->getType() == program.typeHandler.floatType.get())
         return std::make_unique<CallExpr>(nullptr, "__isnanf", std::vector<Expr*>{val}, program.typeHandler.sint.get());
@@ -1472,6 +1491,12 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
                     break;
                 case llvm::Instruction::InsertValue:
                     parseInsertValueInstruction(ins, func, myBlock, program);
+                    break;
+                case llvm::Instruction::LandingPad:
+                    parseLandingPadInstruction(ins, func, myBlock, program);
+                    break;
+                case llvm::Instruction::Resume:
+                    parseResumeInstruction(ins, func, myBlock, program);
                     break;
                 case llvm::Instruction::Call:
                     parseCallInstruction(ins, func, myBlock);
