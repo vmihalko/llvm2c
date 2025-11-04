@@ -374,6 +374,11 @@ bool BoolType::classof(const Type* type) {
     return type->getKind() == TK_BoolType;
 }
 
+std::string BoolType::toString() const {
+    std::string ret = getConstStaticString();
+    return ret + "_Bool";
+}
+
 ShortType::ShortType(bool unsignedType)
     : IntegerType("short", unsignedType, TK_ShortType) { }
 

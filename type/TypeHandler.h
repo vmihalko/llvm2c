@@ -109,6 +109,9 @@ public:
     uptr<DoubleType> doubleType = std::make_unique<DoubleType>();
     uptr<LongDoubleType> longDoubleType = std::make_unique<LongDoubleType>();
 
+    // C boolean type
+    uptr<BoolType> boolType = std::make_unique<BoolType>();
+
 
     TypeHandler(Program* program)
         : program(program) { 

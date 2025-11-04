@@ -29,7 +29,8 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         std::unique_ptr<Type> ty;
         const auto intType = static_cast<const llvm::IntegerType*>(type);
         if (intType->getBitWidth() == 1) {
-            return uint.get();
+            // Proper C boolean type for LLVM i1
+            return boolType.get();
         }
 
         if (intType->getBitWidth() <= 8) {

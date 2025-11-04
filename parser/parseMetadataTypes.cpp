@@ -45,6 +45,35 @@ void vectorToString( const std::vector<std::string> &vectorOfStrings, std::strin
     result += ")";
 }
 
+static bool isTopLevelConst(const llvm::DIType* type) {
+    const llvm::DIType* current = type;
+    bool seenPointerLike = false;
+
+    while (auto* derived = llvm::dyn_cast_or_null<llvm::DIDerivedType>(current)) {
+        switch (derived->getTag()) {
+        case llvm::dwarf::DW_TAG_const_type:
+            if (!seenPointerLike) {
+                return true;
+            }
+            break;
+        case llvm::dwarf::DW_TAG_pointer_type:
+        case llvm::dwarf::DW_TAG_reference_type:
+        case llvm::dwarf::DW_TAG_rvalue_reference_type:
+            seenPointerLike = true;
+            break;
+        default:
+            break;
+        }
+
+        current = derived->getBaseType();
+        if (!current) {
+            break;
+        }
+    }
+
+    return false;
+}
+
 std::optional<Type *> getFnctnPtrType(Program& program, const llvm::DIDerivedType *diDtype,
                                          const llvm::DISubroutineType *diStype,
                                          const llvm::FunctionType *anonGVName) {
@@ -103,12 +132,12 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
                     return program.typeHandler.longDoubleType.get();
                 }
                 if(tbasic->getEncoding() == llvm::dwarf::DW_ATE_boolean)
-                    return program.typeHandler.uint.get();
+                    return program.typeHandler.boolType.get();
             }
 
             bool signedness = llvm::DIBasicType::Signedness::Signed == *tbasic->getSignedness();
             if (tbasic->getSizeInBits() == 1) {
-                return (signedness ? program.typeHandler.sint.get() : program.typeHandler.uint.get());
+                return program.typeHandler.boolType.get();
             }
             if (tbasic->getSizeInBits() <= 8) {
                 return (signedness ? program.typeHandler.schar.get() : program.typeHandler.uchar.get());
@@ -278,19 +307,16 @@ std::optional<Type *> fixType(Program& program, const llvm::DIType *ditype, cons
         // from another type, such as a pointer, or typedef.
         // if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_member) return fixType(program, diDerivedType->getBaseType(), anonGVName);
         const llvm::DIDerivedType* diDerivedType = llvm::dyn_cast<llvm::DIDerivedType>(ditype);
-        if (diDerivedType && (   diDerivedType->getTag() == llvm::dwarf::DW_TAG_const_type
-                              || diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type
+        if (diDerivedType && diDerivedType->getTag() == llvm::dwarf::DW_TAG_const_type) {
+            return fixType(program, diDerivedType->getBaseType(), anonGVName);
+        }
+
+        if (diDerivedType && (   diDerivedType->getTag() == llvm::dwarf::DW_TAG_restrict_type
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_member
                               || diDerivedType->getTag() == llvm::dwarf::DW_TAG_volatile_type )) {
 
             return fixType(program, diDerivedType->getBaseType(), anonGVName);
         }
-            // Commented because:
-            // 1. we cannot distinguish between "* const *" and "const **"
-            // 2. has no effect on semantics
-            // auto ft = fixType(program, diDerivedType->getBaseType());
-            // ft->isConst = true;
-            // return ft;
         if( diDerivedType && (diDerivedType->getTag() == llvm::dwarf::DW_TAG_pointer_type)) {
             if (anonGVName && !anonGVName->isPointerTy())
                 anonGVName = nullptr;
@@ -533,10 +559,14 @@ void parseMetadataTypes(const llvm::Module* module, Program& program) {
         gvar.getDebugInfo(GVs);
         for (auto *GVE : GVs) {
             llvm::DIVariable *Var = GVE->getVariable();
-            if ( auto gv = program.getGlobalVar( &gvar ) ) {
+            if (auto gv = program.getGlobalVar(&gvar)) {
+                if (auto* globalVal = llvm::dyn_cast_or_null<GlobalValue>(gv->expr)) {
+                    globalVal->isConst = isTopLevelConst(Var->getType());
+                }
+
                 if (auto t = fixType(program, Var->getType(), gvar.getValueType())) {
                     if (t.has_value() && t.value()->getKind() == gv->expr->getType()->getKind()) {
-                        program.getGlobalVar( &gvar )->expr->setType(t.value());
+                        program.getGlobalVar(&gvar)->expr->setType(t.value());
                     }
                 } else {
                     //llvm::errs() << " Global Var missing, but debuginfo occured\n";
