@@ -578,6 +578,13 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
         throw std::invalid_argument("Unsupported binary instruction encountered!");
     }
 
+    // If this is a floating point operation with float-typed result, wrap the expression in an
+    // explicit (float) cast so comparisons match LLVM IR float semantics (no implicit double).
+    if (ins.getType()->isFloatTy()) {
+        auto* inner = program.addOwnership(std::move(expr));
+        expr = std::make_unique<CastExpr>(inner, program.typeHandler.floatType.get());
+    }
+
     return program.addOwnership(std::move(expr));
 }
 
