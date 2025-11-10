@@ -23,6 +23,7 @@ void Writer::writeProgram(const Program& program) {
     structDefinitions(program);
     unionDefinitions(program);
     functionDeclarations(program);
+    writeIntrinsicDefinitions(program);
     globalVarDefinitions(program);
     functionDefinitions(program);
 }
@@ -287,6 +288,15 @@ void Writer::functionDeclarations(const Program& program) {
             continue;
         }
 
+        // Skip intrinsics that will have definitions generated
+        std::string funcName = func->name;
+        std::string originalName = funcName;
+        std::replace(originalName.begin(), originalName.end(), '_', '.');
+        if (program.intrinsicsNeedingDefinitions.find(originalName) != 
+            program.intrinsicsNeedingDefinitions.end()) {
+            continue;  // Skip - will be defined later
+        }
+
         declarations.push_back(func.get());
     }
 
@@ -298,6 +308,160 @@ void Writer::functionDeclarations(const Program& program) {
         wr.endFunctionDecl();
     }
 
+    SECTION_END;
+}
+
+void Writer::writeIntrinsicDefinitions(const Program& program) {
+    if (program.intrinsicsNeedingDefinitions.empty()) {
+        return;
+    }
+    
+    SECTION_START("LLVM intrinsic definitions", true);
+    
+    for (const auto& intrinsicName : program.intrinsicsNeedingDefinitions) {
+        std::string cName = intrinsicName;
+        std::replace(cName.begin(), cName.end(), '.', '_');
+        
+        // Determine types from intrinsic name
+        bool is32bit = cName.find("i32") != std::string::npos;
+        bool isUnsigned = cName.find("uadd") != std::string::npos || 
+                         cName.find("usub") != std::string::npos ||
+                         cName.find("umul") != std::string::npos;
+        
+        std::string argType = is32bit ? "unsigned int" : "unsigned long long";
+        std::string structName;
+        std::string structVar1;
+        std::string structVar2;
+        
+        // Find the actual struct type by searching for calls to this intrinsic in the program
+        // The intrinsic name in CallExpr may already have dots replaced with underscores,
+        // so we need to check both the original and transformed names
+        StructType* structType = nullptr;
+        std::string intrinsicNameWithDots = intrinsicName;  // Original name with dots
+        std::string intrinsicNameWithUnderscores = cName;   // Transformed name with underscores
+        
+        for (const auto& funcPair : program.functions) {
+            const Func* func = funcPair.second.get();
+            for (const auto& blockPair : func->blockMap) {
+                const Block* block = blockPair.second.get();
+                for (Expr* expr : block->expressions) {
+                    // Check if this is a direct CallExpr
+                    if (auto* call = llvm::dyn_cast_or_null<CallExpr>(expr)) {
+                        std::string callName = call->funcName;
+                        std::string callNameNormalized = callName;
+                        std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                        
+                        if (callName == intrinsicNameWithDots || 
+                            callName == intrinsicNameWithUnderscores ||
+                            callNameNormalized == intrinsicNameWithUnderscores) {
+                            Type* returnType = call->getType();
+                            if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                structType = st;
+                                break;
+                            }
+                        }
+                    }
+                    // Also check AssignExpr->right, as CallExpr may be wrapped in an assignment
+                    if (auto* assign = llvm::dyn_cast_or_null<AssignExpr>(expr)) {
+                        if (auto* call = llvm::dyn_cast_or_null<CallExpr>(assign->right)) {
+                            std::string callName = call->funcName;
+                            std::string callNameNormalized = callName;
+                            std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                            
+                            if (callName == intrinsicNameWithDots || 
+                                callName == intrinsicNameWithUnderscores ||
+                                callNameNormalized == intrinsicNameWithUnderscores) {
+                                Type* returnType = call->getType();
+                                if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                    structType = st;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (structType) break;
+            }
+            if (structType) break;
+        }
+        
+        if (!structType) {
+            // If no call found, skip generating this definition
+            // The intrinsic might not be used in this program, or the search failed
+            continue;
+        }
+        
+        if (structType->items.size() < 2) {
+            // Invalid struct for overflow intrinsic - skip
+            continue;
+        }
+        
+        structName = "struct " + structType->name;
+        // First member is the result value, second is the overflow flag
+        structVar1 = structType->items[0].second;
+        structVar2 = structType->items[1].second;
+        
+        // Determine operation and overflow check
+        std::string op = "+";
+        std::string overflowCheck;
+        if (cName.find("sub") != std::string::npos) {
+            op = "-";
+            // For subtraction: overflow (underflow) occurs when a < b
+            overflowCheck = "(a < b)";
+        } else if (cName.find("mul") != std::string::npos) {
+            op = "*";
+            // For multiplication: overflow occurs when result wraps
+            overflowCheck = "(sum < a || sum < b)";
+        } else {
+            // For addition: overflow occurs when result wraps
+            overflowCheck = "(sum < a || sum < b)";
+        }
+        
+        // Generate function definition
+        wr.raw(structName);
+        wr.raw(" ");
+        wr.raw(cName);
+        wr.raw("(");
+        wr.raw(argType);
+        wr.raw(" a, ");
+        wr.raw(argType);
+        wr.raw(" b) {");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw(structName);
+        wr.raw(" result;");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw(argType);
+        wr.raw(" sum = a ");
+        wr.raw(op);
+        wr.raw(" b;");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("result.");
+        wr.raw(structVar1);
+        wr.raw(" = sum;  // Wrapped result");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("result.");
+        wr.raw(structVar2);
+        wr.raw(" = ");
+        wr.raw(overflowCheck);
+        wr.raw(";  // Overflow flag");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("return result;");
+        wr.line("");
+        
+        wr.raw("}");
+        wr.line("");
+    }
+    
     SECTION_END;
 }
 
