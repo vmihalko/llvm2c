@@ -120,7 +120,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                         }
                     }
                 }
-                }
             }
         }
     }
