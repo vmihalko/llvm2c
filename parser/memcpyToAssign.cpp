@@ -46,80 +46,80 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                     }
                     
                     if (baseFuncName == "memcpy") {
-                            auto* dstVal = callInst->getArgOperand(0);
-                            auto* srcVal = callInst->getArgOperand(1);
-                            auto* size = callInst->getArgOperand(2);
+                        auto* dstVal = callInst->getArgOperand(0);
+                        auto* srcVal = callInst->getArgOperand(1);
+                        auto* size = callInst->getArgOperand(2);
 
-                            // 1. Try to get the actual pointer types (with or without bitcast)
-                            const llvm::Value* dst = stripCast(dstVal);
-                            const llvm::Value* src = stripCast(srcVal);
-                            
-                            // If stripCast didn't find a bitcast, use the original values
-                            if (!dst) dst = dstVal;
-                            if (!src) src = srcVal;
+                        // 1. Try to get the actual pointer types (with or without bitcast)
+                        const llvm::Value* dst = stripCast(dstVal);
+                        const llvm::Value* src = stripCast(srcVal);
+                        
+                        // If stripCast didn't find a bitcast, use the original values
+                        if (!dst) dst = dstVal;
+                        if (!src) src = srcVal;
 
-                            // 2. Get the types
-                            auto* dstTy = dst->getType();
-                            auto* srcTy = src->getType();
+                        // 2. Get the types
+                        auto* dstTy = dst->getType();
+                        auto* srcTy = src->getType();
 
-                            // check if both are pointers to the same type
-                            if (dstTy != srcTy || !dstTy->isPointerTy()) {
-                                // stop processing this call
-                                continue;
-                            }
+                        // check if both are pointers to the same type
+                        if (dstTy != srcTy || !dstTy->isPointerTy()) {
+                            // stop processing this call
+                            continue;
+                        }
 
-                            auto *PT = dstTy->getPointerElementType();
+                        auto *PT = dstTy->getPointerElementType();
 
-                            // 3. check if the memcpy size is a constant
-                            if (auto* constSize = llvm::dyn_cast_or_null<llvm::ConstantInt>(size)) {
-                                size_t expectedSize = module->getDataLayout().getTypeAllocSize(PT);
+                        // 3. check if the memcpy size is a constant
+                        if (auto* constSize = llvm::dyn_cast_or_null<llvm::ConstantInt>(size)) {
+                            size_t expectedSize = module->getDataLayout().getTypeAllocSize(PT);
 
-                                // 4. check if the memcpy size is size of the whole type
-                                if (expectedSize == constSize->getValue().getLimitedValue()) {
-                                    auto* exprToReplace = func->getExpr(callInst);
-                                    auto* srcExpr = func->getExpr(src);
-                                    auto* dstExpr = func->getExpr(dst);
+                            // 4. check if the memcpy size is size of the whole type
+                            if (expectedSize == constSize->getValue().getLimitedValue()) {
+                                auto* exprToReplace = func->getExpr(callInst);
+                                auto* srcExpr = func->getExpr(src);
+                                auto* dstExpr = func->getExpr(dst);
 
-                                    // Handle different expression types to extract the actual variable
-                                    // Unwrap casts to get to the underlying expression
-                                    auto unwrapExpr = [](Expr* expr) -> Expr* {
-                                        while (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
-                                            expr = cast->expr;
-                                        }
-                                        return expr;
-                                    };
-                                    
-                                    Expr* srcUnwrapped = unwrapExpr(srcExpr);
-                                    Expr* dstUnwrapped = unwrapExpr(dstExpr);
-                                    
-                                    Expr* srcVar = nullptr;
-                                    Expr* dstVar = nullptr;
-                                    
-                                    // Handle RefExpr (e.g., &var)
-                                    if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
-                                        srcVar = srcRef->expr;
-                                    } else if (auto* srcVal = llvm::dyn_cast_or_null<Value>(srcUnwrapped)) {
-                                        // Direct Value (variable name)
-                                        srcVar = srcVal;
+                                // Handle different expression types to extract the actual variable
+                                // Unwrap casts to get to the underlying expression
+                                auto unwrapExpr = [](Expr* expr) -> Expr* {
+                                    while (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+                                        expr = cast->expr;
                                     }
-                                    
-                                    if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
-                                        dstVar = dstRef->expr;
-                                    } else if (auto* dstVal = llvm::dyn_cast_or_null<Value>(dstUnwrapped)) {
-                                        // Direct Value (variable name)
-                                        dstVar = dstVal;
-                                    }
-                                    
-                                    if (srcVar && dstVar) {
-                                        auto assignment = std::make_unique<AssignExpr>(dstVar, srcVar);
-                                        Expr* newExpr = assignment.get();
-                                        myBlock->addOwnership(std::move(assignment));
-                                        std::replace(myBlock->expressions.begin(), myBlock->expressions.end(), exprToReplace, newExpr);
-                                    }
+                                    return expr;
+                                };
+                                
+                                Expr* srcUnwrapped = unwrapExpr(srcExpr);
+                                Expr* dstUnwrapped = unwrapExpr(dstExpr);
+                                
+                                Expr* srcVar = nullptr;
+                                Expr* dstVar = nullptr;
+                                
+                                // Handle RefExpr (e.g., &var)
+                                if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
+                                    srcVar = srcRef->expr;
+                                } else if (auto* srcVal = llvm::dyn_cast_or_null<Value>(srcUnwrapped)) {
+                                    // Direct Value (variable name)
+                                    srcVar = srcVal;
+                                }
+                                
+                                if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
+                                    dstVar = dstRef->expr;
+                                } else if (auto* dstVal = llvm::dyn_cast_or_null<Value>(dstUnwrapped)) {
+                                    // Direct Value (variable name)
+                                    dstVar = dstVal;
+                                }
+                                
+                                if (srcVar && dstVar) {
+                                    auto assignment = std::make_unique<AssignExpr>(dstVar, srcVar);
+                                    Expr* newExpr = assignment.get();
+                                    myBlock->addOwnership(std::move(assignment));
+                                    std::replace(myBlock->expressions.begin(), myBlock->expressions.end(), exprToReplace, newExpr);
                                 }
                             }
                         }
                     }
+                }
                 }
             }
         }
