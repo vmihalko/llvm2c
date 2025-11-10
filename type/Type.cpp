@@ -279,6 +279,11 @@ std::string PointerType::toString() const {
         return ret + type->toString();
     }
 
+    // If pointing to a function pointer type, don't add extra * since function pointer types already represent pointers
+    if (llvm::dyn_cast_or_null<FunctionPointerType>(type)) {
+        return ret + type->toString();
+    }
+
     return ret + type->toString() + "*";
 }
 
