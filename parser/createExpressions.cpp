@@ -1010,6 +1010,17 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         }
 
         if (funcName.substr(0,4).compare("llvm") == 0) {
+            // Check for overflow intrinsics that need definitions
+            if (funcName.find("uadd.with.overflow") != std::string::npos ||
+                funcName.find("usub.with.overflow") != std::string::npos ||
+                funcName.find("umul.with.overflow") != std::string::npos ||
+                funcName.find("sadd.with.overflow") != std::string::npos ||
+                funcName.find("ssub.with.overflow") != std::string::npos ||
+                funcName.find("smul.with.overflow") != std::string::npos) {
+                // Mark for definition generation (use original name before transformation)
+                func->program->markIntrinsicForDefinition(funcName);
+            }
+            
             if (isCFunc(trimPrefix(funcName))) {
                 funcName = trimPrefix(funcName);
             } else {

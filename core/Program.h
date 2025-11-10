@@ -57,6 +57,9 @@ public:
     unsigned anonStructCount = 0;
     unsigned unionCounter = 0;
 
+    // Track LLVM intrinsics that need C definitions (not just extern declarations)
+    std::unordered_set<std::string> intrinsicsNeedingDefinitions;
+
     /**
      * @brief getAnonStructName Creates new name for anonymous struct.
      * @return New name for anonymous struct
@@ -183,4 +186,8 @@ public:
     std::string getUnionName();
 
     UnionType* addUnion(const std::vector<Type*>& subtypes);
+
+    void markIntrinsicForDefinition(const std::string& name) {
+        intrinsicsNeedingDefinitions.insert(name);
+    }
 };
