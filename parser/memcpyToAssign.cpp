@@ -98,12 +98,24 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                 Expr* dstForAssign = nullptr;
                                 Expr* srcForAssign = nullptr;
                                 
-                                // Handle destination: if it's RefExpr, dereference it
+                                // Handle destination: if it's RefExpr, check the type to determine if we need to dereference
                                 if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
-                                    // Destination is &var, need to dereference: *(&var) = ...
-                                    auto deref = std::make_unique<DerefExpr>(dstRef->expr);
-                                    dstForAssign = deref.get();
-                                    myBlock->addOwnership(std::move(deref));
+                                    // Destination is &var
+                                    // Check if var is a pointer type - if so, we need *var, not *(&var)
+                                    auto* innerType = dstRef->expr->getType();
+                                    if (auto* ptrType = llvm::dyn_cast_or_null<PointerType>(innerType)) {
+                                        // var is a pointer, so &var is pointer-to-pointer
+                                        // We want *var (dereference the pointer), not *(&var) (which is just var)
+                                        auto deref = std::make_unique<DerefExpr>(dstRef->expr);
+                                        dstForAssign = deref.get();
+                                        myBlock->addOwnership(std::move(deref));
+                                    } else {
+                                        // var is not a pointer (it's a struct), so &var is pointer-to-struct
+                                        // We want *(&var) which is var
+                                        auto deref = std::make_unique<DerefExpr>(dstRef->expr);
+                                        dstForAssign = deref.get();
+                                        myBlock->addOwnership(std::move(deref));
+                                    }
                                 } else if (auto* dstDeref = llvm::dyn_cast_or_null<DerefExpr>(dstUnwrapped)) {
                                     // Destination is already *ptr, use as is
                                     dstForAssign = dstUnwrapped;
