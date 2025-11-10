@@ -411,7 +411,9 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
         } else if (cName.find("mul") != std::string::npos) {
             op = "*";
             // For multiplication: overflow occurs when result wraps
-            overflowCheck = "(sum < a || sum < b)";
+            // Correct check: (a != 0 && (sum / a) != b)
+            // This correctly handles the case when b == 0 (no overflow) and when overflow occurs
+            overflowCheck = "(a != 0 && (sum / a) != b)";
         } else {
             // For addition: overflow occurs when result wraps
             overflowCheck = "(sum < a || sum < b)";
