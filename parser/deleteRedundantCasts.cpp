@@ -74,23 +74,53 @@ Expr* RedundantCastsVisitor::simplify(Expr* expr) {
             }
         }
     }
-    // Simplify equality/inequality with symmetric identical integer casts:
+    // Simplify comparisons with symmetric identical integer casts:
     // (uint8)A == (uint8)B  => A == B    (when both casts only normalize width/sign)
-    // Likewise for !=. Do not change ordered comparisons (<, >, <=, >=).
+    // For unsigned comparisons, also simplify ordered comparisons:
+    // (T_large)((T_small)X) op (T_large)(expr) => (T_small)X op (expr without outer cast)
+    // where op is >, >=, <, <= and both casts are zero-extensions (unsigned to unsigned)
     if (auto* cmp = llvm::dyn_cast_or_null<CmpExpr>(expr)) {
-        if (cmp->comparsion == "==" || cmp->comparsion == "!=") {
-            auto* leftCast  = llvm::dyn_cast_or_null<CastExpr>(cmp->left);
-            auto* rightCast = llvm::dyn_cast_or_null<CastExpr>(cmp->right);
-            if (leftCast && rightCast) {
-                // Both sides are casts; if target types are equal integer types, and casts are non-lossy
-                // (i.e., just width/sign normalization from smaller integer types), drop both.
-                auto* leftTy  = leftCast->getType();
-                auto* rightTy = rightCast->getType();
-                if (leftTy == rightTy && llvm::isa<IntegerType>(leftTy)) {
-                    // Only drop when the source operands are integer-typed too
-                    if (llvm::isa<IntegerType>(leftCast->expr->getType()) &&
-                        llvm::isa<IntegerType>(rightCast->expr->getType())) {
+        auto* leftCast  = llvm::dyn_cast_or_null<CastExpr>(cmp->left);
+        auto* rightCast = llvm::dyn_cast_or_null<CastExpr>(cmp->right);
+        
+        if (leftCast && rightCast) {
+            // Both sides are casts; check if target types are equal integer types
+            auto* leftTy  = leftCast->getType();
+            auto* rightTy = rightCast->getType();
+            
+            if (leftTy == rightTy && llvm::isa<IntegerType>(leftTy)) {
+                auto* leftIntTy = llvm::dyn_cast<IntegerType>(leftTy);
+                auto* leftSrcTy = llvm::dyn_cast_or_null<IntegerType>(leftCast->expr->getType());
+                
+                // For equality/inequality, simplify if both sides are direct casts from integer types
+                if (cmp->comparsion == "==" || cmp->comparsion == "!=") {
+                    auto* rightSrcTy = llvm::dyn_cast_or_null<IntegerType>(rightCast->expr->getType());
+                    if (leftSrcTy && rightSrcTy) {
                         cmp->left  = leftCast->expr;
+                        cmp->right = rightCast->expr;
+                        return expr;
+                    }
+                }
+                
+                // For ordered comparisons, simplify if:
+                // 1. The comparison is unsigned (zero-extension semantics)
+                // 2. Both sides are casts from the same source type
+                // 3. Both outer casts are unsigned (zero-extensions)
+                // 4. Both source types are unsigned integer types
+                // For unsigned comparisons, removing the outer casts is safe because
+                // zero-extension preserves the ordering relationship, but only if
+                // both sides have the same source type to maintain type compatibility
+                if (cmp->isUnsigned && 
+                    leftSrcTy && 
+                    leftSrcTy->unsignedType && 
+                    leftIntTy->unsignedType) {
+                    auto* rightSrcTy = llvm::dyn_cast_or_null<IntegerType>(rightCast->expr->getType());
+                    
+                    // Only simplify if both source types are the same unsigned integer type
+                    // This ensures type compatibility after removing the casts
+                    if (rightSrcTy && rightSrcTy->unsignedType && leftSrcTy == rightSrcTy) {
+                        // Remove the outer casts from both sides
+                        cmp->left = leftCast->expr;
                         cmp->right = rightCast->expr;
                         return expr;
                     }
