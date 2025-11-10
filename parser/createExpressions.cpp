@@ -1432,8 +1432,16 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
                 return result;  // Already cast, don't cast again below
             }
         }
-        // Cast index (possibly negated) to signed long to model ptrdiff_t
-        result = program.makeExpr<CastExpr>(result, program.typeHandler.slong.get());
+        // Cast index (possibly negated) to appropriate type for pointer arithmetic
+        // Use unsigned long long for unsigned indices (like size_t), signed long for signed indices
+        auto* intType = llvm::dyn_cast_or_null<IntegerType>(result->getType());
+        if (intType && intType->unsignedType) {
+            // For unsigned indices, use unsigned long long to preserve the value
+            result = program.makeExpr<CastExpr>(result, program.typeHandler.ulonglong.get());
+        } else {
+            // For signed indices, use signed long to model ptrdiff_t
+            result = program.makeExpr<CastExpr>(result, program.typeHandler.slong.get());
+        }
         return result;
     };
 
