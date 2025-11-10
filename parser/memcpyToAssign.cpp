@@ -77,14 +77,27 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                             // 4. check if the memcpy size is size of the whole type
                             if (expectedSize == constSize->getValue().getLimitedValue()) {
                                 auto* exprToReplace = func->getExpr(callInst);
-                                auto* srcExpr = func->getExpr(src);
-                                auto* dstExpr = func->getExpr(dst);
+                                // Use the original values (dstVal, srcVal) to get expressions, not the stripped ones
+                                // This ensures we get the correct expression structure including any casts
+                                auto* srcExpr = func->getExpr(srcVal);
+                                auto* dstExpr = func->getExpr(dstVal);
 
                                 // Handle different expression types to extract the actual variable
-                                // Unwrap casts to get to the underlying expression
+                                // Unwrap casts and nested RefExpr/DerefExpr to get to the underlying expression
                                 auto unwrapExpr = [](Expr* expr) -> Expr* {
-                                    while (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
-                                        expr = cast->expr;
+                                    while (true) {
+                                        if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+                                            expr = cast->expr;
+                                        } else if (auto* ref = llvm::dyn_cast_or_null<RefExpr>(expr)) {
+                                            // Unwrap &(&expr) -> &expr, but keep the outer RefExpr
+                                            if (auto* innerRef = llvm::dyn_cast_or_null<RefExpr>(ref->expr)) {
+                                                expr = innerRef;
+                                            } else {
+                                                break;
+                                            }
+                                        } else {
+                                            break;
+                                        }
                                     }
                                     return expr;
                                 };
@@ -98,23 +111,71 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                 Expr* dstForAssign = nullptr;
                                 Expr* srcForAssign = nullptr;
                                 
+                                // Helper to get the actual variable from a RefExpr, unwrapping nested RefExpr and DerefExpr
+                                auto getInnerExpr = [](RefExpr* ref) -> Expr* {
+                                    Expr* inner = ref->expr;
+                                    // Unwrap nested RefExpr: &(&var) -> &var -> var
+                                    // Also unwrap DerefExpr: &(*var) -> var
+                                    while (true) {
+                                        if (auto* innerRef = llvm::dyn_cast_or_null<RefExpr>(inner)) {
+                                            inner = innerRef->expr;
+                                        } else if (auto* innerDeref = llvm::dyn_cast_or_null<DerefExpr>(inner)) {
+                                            inner = innerDeref->expr;
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                    return inner;
+                                };
+                                
                                 // Handle destination: if it's RefExpr, check the type to determine if we need to dereference
                                 if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
-                                    // Destination is &var
-                                    // Check if var is a pointer type - if so, we need *var, not *(&var)
-                                    auto* innerType = dstRef->expr->getType();
-                                    if (auto* ptrType = llvm::dyn_cast_or_null<PointerType>(innerType)) {
-                                        // var is a pointer, so &var is pointer-to-pointer
-                                        // We want *var (dereference the pointer), not *(&var) (which is just var)
-                                        auto deref = std::make_unique<DerefExpr>(dstRef->expr);
-                                        dstForAssign = deref.get();
-                                        myBlock->addOwnership(std::move(deref));
+                                    // Destination is &var (possibly nested)
+                                    Expr* innerExpr = getInnerExpr(dstRef);
+                                    // Ensure innerExpr is not a RefExpr or DerefExpr (should be a Value or AggregateElement)
+                                    while (auto* innerRef = llvm::dyn_cast_or_null<RefExpr>(innerExpr)) {
+                                        innerExpr = getInnerExpr(innerRef);
+                                    }
+                                    while (auto* innerDeref = llvm::dyn_cast_or_null<DerefExpr>(innerExpr)) {
+                                        innerExpr = innerDeref->expr;
+                                    }
+                                    
+                                    // Check the type of &var (dstRef) to see if it's a pointer-to-pointer
+                                    // If &var is pointer-to-pointer, then var is a pointer, and we need *var
+                                    // If &var is pointer-to-struct, then var is a struct, and we need *(&var) = var
+                                    auto* refType = dstRef->getType();  // Type of &var
+                                    if (auto* refPtrType = llvm::dyn_cast_or_null<PointerType>(refType)) {
+                                        // &var is a pointer, check what it points to
+                                        auto* pointedType = refPtrType->type;  // What &var points to
+                                        if (auto* pointedPtrType = llvm::dyn_cast_or_null<PointerType>(pointedType)) {
+                                            // &var points to a pointer, so var is a pointer
+                                            // For memcpy(&ptr, &struct, size), we want *ptr = struct
+                                            // So we need to dereference var directly: *var
+                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
+                                            dstForAssign = deref.get();
+                                            myBlock->addOwnership(std::move(deref));
+                                        } else {
+                                            // &var points to a struct, so var is a struct
+                                            // For memcpy(&struct, &other_struct, size), we want struct = other_struct
+                                            // So we need *(&var) which is var
+                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
+                                            dstForAssign = deref.get();
+                                            myBlock->addOwnership(std::move(deref));
+                                        }
                                     } else {
-                                        // var is not a pointer (it's a struct), so &var is pointer-to-struct
-                                        // We want *(&var) which is var
-                                        auto deref = std::make_unique<DerefExpr>(dstRef->expr);
-                                        dstForAssign = deref.get();
-                                        myBlock->addOwnership(std::move(deref));
+                                        // Fallback: check innerExpr's type
+                                        auto* innerType = innerExpr->getType();
+                                        if (auto* ptrType = llvm::dyn_cast_or_null<PointerType>(innerType)) {
+                                            // var is a pointer
+                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
+                                            dstForAssign = deref.get();
+                                            myBlock->addOwnership(std::move(deref));
+                                        } else {
+                                            // var is a struct
+                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
+                                            dstForAssign = deref.get();
+                                            myBlock->addOwnership(std::move(deref));
+                                        }
                                     }
                                 } else if (auto* dstDeref = llvm::dyn_cast_or_null<DerefExpr>(dstUnwrapped)) {
                                     // Destination is already *ptr, use as is
@@ -124,20 +185,21 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                     dstForAssign = dstUnwrapped;
                                 }
                                 
-                                // Handle source: if it's RefExpr, dereference it
-                                // But if it's AggregateElement or other non-pointer expression, use directly
+                                // Handle source: if it's RefExpr, check what's inside
                                 if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
-                                    // Check if the inner expression is a pointer type
-                                    // If it's a Value that's a pointer, we need to dereference
-                                    // If it's an AggregateElement (struct member), we use it directly
-                                    if (auto* innerVal = llvm::dyn_cast_or_null<Value>(srcRef->expr)) {
-                                        // Source is &var where var is a pointer, dereference: *(&var)
-                                        auto deref = std::make_unique<DerefExpr>(srcRef->expr);
+                                    // Source is &something (possibly nested)
+                                    Expr* innerExpr = getInnerExpr(srcRef);
+                                    auto* innerType = innerExpr->getType();
+                                    if (auto* ptrType = llvm::dyn_cast_or_null<PointerType>(innerType)) {
+                                        // inner is a pointer, so &inner is pointer-to-pointer
+                                        // We want *inner (dereference the pointer)
+                                        auto deref = std::make_unique<DerefExpr>(innerExpr);
                                         srcForAssign = deref.get();
                                         myBlock->addOwnership(std::move(deref));
                                     } else {
-                                        // Source is &(struct.member), use the member directly (no dereference)
-                                        srcForAssign = srcRef->expr;
+                                        // inner is not a pointer (it's a struct or struct member)
+                                        // We want inner directly (no dereference needed)
+                                        srcForAssign = innerExpr;
                                     }
                                 } else if (auto* srcDeref = llvm::dyn_cast_or_null<DerefExpr>(srcUnwrapped)) {
                                     // Source is already *ptr, use as is
