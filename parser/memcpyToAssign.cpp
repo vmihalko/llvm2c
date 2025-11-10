@@ -76,20 +76,32 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                     auto* srcExpr = func->getExpr(src);
                                     auto* dstExpr = func->getExpr(dst);
 
-                                    // Handle RefExpr (e.g., &var)
+                                    // Handle different expression types to extract the actual variable
+                                    // Unwrap casts to get to the underlying expression
+                                    auto unwrapExpr = [](Expr* expr) -> Expr* {
+                                        while (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+                                            expr = cast->expr;
+                                        }
+                                        return expr;
+                                    };
+                                    
+                                    Expr* srcUnwrapped = unwrapExpr(srcExpr);
+                                    Expr* dstUnwrapped = unwrapExpr(dstExpr);
+                                    
                                     Expr* srcVar = nullptr;
                                     Expr* dstVar = nullptr;
                                     
-                                    if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcExpr)) {
+                                    // Handle RefExpr (e.g., &var)
+                                    if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
                                         srcVar = srcRef->expr;
-                                    } else if (auto* srcVal = llvm::dyn_cast_or_null<Value>(srcExpr)) {
+                                    } else if (auto* srcVal = llvm::dyn_cast_or_null<Value>(srcUnwrapped)) {
                                         // Direct Value (variable name)
                                         srcVar = srcVal;
                                     }
                                     
-                                    if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstExpr)) {
+                                    if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
                                         dstVar = dstRef->expr;
-                                    } else if (auto* dstVal = llvm::dyn_cast_or_null<Value>(dstExpr)) {
+                                    } else if (auto* dstVal = llvm::dyn_cast_or_null<Value>(dstUnwrapped)) {
                                         // Direct Value (variable name)
                                         dstVar = dstVal;
                                     }
