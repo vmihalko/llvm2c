@@ -978,6 +978,32 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+        // Handle llvm.ctpop.* intrinsics: convert to __builtin_popcount/__builtin_popcountl
+        if (!funcName.substr(0,10).compare("llvm.ctpop")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            assert(a);
+            
+            // Determine which builtin to use based on bit width
+            std::string builtinName;
+            if (funcName.find("i64") != std::string::npos || funcName.find("i128") != std::string::npos) {
+                builtinName = "__builtin_popcountl";
+            } else {
+                builtinName = "__builtin_popcount";
+            }
+            
+            // Create a CallExpr with the builtin name (nullptr for funcValue since it's a direct call)
+            std::vector<Expr*> params = {a};
+            auto callExpr = std::make_unique<CallExpr>(nullptr, builtinName, params, type);
+            
+            if (value->hasNUses(0)) {
+                block->addExpr(callExpr.get());
+                func->createExpr(value, std::move(callExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(callExpr)), func, block);
+            }
+            return;
+        }
+
         if (!funcName.substr(0,11).compare("llvm.assume")) {
             return;
         }
