@@ -142,7 +142,7 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                     
                                     // Check the type of &var (dstRef) to see if it's a pointer-to-pointer or pointer-to-struct
                                     // If &var is pointer-to-pointer, then var is a pointer, and we want *var (dereference)
-                                    // If &var is pointer-to-struct, then var is a struct, and we want *(&var) = var (dereference)
+                                    // If &var is pointer-to-struct, then var is a struct, and we want var (no dereference)
                                     auto* refType = dstRef->getType();  // Type of &var
                                     if (auto* refPtrType = llvm::dyn_cast_or_null<PointerType>(refType)) {
                                         // &var is a pointer, check what it points to
@@ -157,10 +157,8 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                         } else {
                                             // &var points to a struct, so var is a struct
                                             // For memcpy(&struct, &other_struct, size), we want struct = other_struct
-                                            // So we need *(&var) which is var
-                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
-                                            dstForAssign = deref.get();
-                                            myBlock->addOwnership(std::move(deref));
+                                            // So we use var directly (no dereference)
+                                            dstForAssign = innerExpr;
                                         }
                                     } else {
                                         // Fallback: check innerExpr's type
@@ -171,10 +169,8 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                             dstForAssign = deref.get();
                                             myBlock->addOwnership(std::move(deref));
                                         } else {
-                                            // var is a struct - dereference to get the struct value
-                                            auto deref = std::make_unique<DerefExpr>(innerExpr);
-                                            dstForAssign = deref.get();
-                                            myBlock->addOwnership(std::move(deref));
+                                            // var is a struct - use directly (no dereference)
+                                            dstForAssign = innerExpr;
                                         }
                                     }
                                 } else if (auto* dstDeref = llvm::dyn_cast_or_null<DerefExpr>(dstUnwrapped)) {
