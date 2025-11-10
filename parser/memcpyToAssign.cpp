@@ -38,10 +38,14 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                     }
 
                     std::string funcName = callInst->getCalledFunction()->getName().str();
+                    std::string baseFuncName = funcName;
 
+                    // Handle both llvm.memcpy and memcpy
                     if (funcName.substr(0,4) == "llvm") {
-                        funcName = trimPrefix(funcName);
-                        if (funcName == "memcpy") {
+                        baseFuncName = trimPrefix(funcName);
+                    }
+                    
+                    if (baseFuncName == "memcpy") {
                             auto* dstVal = callInst->getArgOperand(0);
                             auto* srcVal = callInst->getArgOperand(1);
                             auto* size = callInst->getArgOperand(2);
