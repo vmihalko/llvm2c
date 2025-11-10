@@ -92,26 +92,51 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                 Expr* srcUnwrapped = unwrapExpr(srcExpr);
                                 Expr* dstUnwrapped = unwrapExpr(dstExpr);
                                 
-                                Expr* srcVar = nullptr;
-                                Expr* dstVar = nullptr;
+                                // Handle different expression types
+                                // For memcpy(&dst, &src, size), we want to generate *dst = *src or dst = src
+                                // depending on whether dst/src are pointers or structs
+                                Expr* dstForAssign = nullptr;
+                                Expr* srcForAssign = nullptr;
                                 
-                                // Handle RefExpr (e.g., &var)
-                                if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
-                                    srcVar = srcRef->expr;
-                                } else if (auto* srcVal = llvm::dyn_cast_or_null<Value>(srcUnwrapped)) {
-                                    // Direct Value (variable name)
-                                    srcVar = srcVal;
-                                }
-                                
+                                // Handle destination: if it's RefExpr, dereference it
                                 if (auto* dstRef = llvm::dyn_cast_or_null<RefExpr>(dstUnwrapped)) {
-                                    dstVar = dstRef->expr;
-                                } else if (auto* dstVal = llvm::dyn_cast_or_null<Value>(dstUnwrapped)) {
-                                    // Direct Value (variable name)
-                                    dstVar = dstVal;
+                                    // Destination is &var, need to dereference: *(&var) = ...
+                                    auto deref = std::make_unique<DerefExpr>(dstRef->expr);
+                                    dstForAssign = deref.get();
+                                    myBlock->addOwnership(std::move(deref));
+                                } else if (auto* dstDeref = llvm::dyn_cast_or_null<DerefExpr>(dstUnwrapped)) {
+                                    // Destination is already *ptr, use as is
+                                    dstForAssign = dstUnwrapped;
+                                } else {
+                                    // Destination is a Value or other expression, use as is
+                                    dstForAssign = dstUnwrapped;
                                 }
                                 
-                                if (srcVar && dstVar) {
-                                    auto assignment = std::make_unique<AssignExpr>(dstVar, srcVar);
+                                // Handle source: if it's RefExpr, dereference it
+                                // But if it's AggregateElement or other non-pointer expression, use directly
+                                if (auto* srcRef = llvm::dyn_cast_or_null<RefExpr>(srcUnwrapped)) {
+                                    // Check if the inner expression is a pointer type
+                                    // If it's a Value that's a pointer, we need to dereference
+                                    // If it's an AggregateElement (struct member), we use it directly
+                                    if (auto* innerVal = llvm::dyn_cast_or_null<Value>(srcRef->expr)) {
+                                        // Source is &var where var is a pointer, dereference: *(&var)
+                                        auto deref = std::make_unique<DerefExpr>(srcRef->expr);
+                                        srcForAssign = deref.get();
+                                        myBlock->addOwnership(std::move(deref));
+                                    } else {
+                                        // Source is &(struct.member), use the member directly (no dereference)
+                                        srcForAssign = srcRef->expr;
+                                    }
+                                } else if (auto* srcDeref = llvm::dyn_cast_or_null<DerefExpr>(srcUnwrapped)) {
+                                    // Source is already *ptr, use as is
+                                    srcForAssign = srcUnwrapped;
+                                } else {
+                                    // Source is a Value, AggregateElement, or other expression, use as is
+                                    srcForAssign = srcUnwrapped;
+                                }
+                                
+                                if (dstForAssign && srcForAssign) {
+                                    auto assignment = std::make_unique<AssignExpr>(dstForAssign, srcForAssign);
                                     Expr* newExpr = assignment.get();
                                     myBlock->addOwnership(std::move(assignment));
                                     std::replace(myBlock->expressions.begin(), myBlock->expressions.end(), exprToReplace, newExpr);
