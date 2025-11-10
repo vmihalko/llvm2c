@@ -379,6 +379,88 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
                             }
                         }
                     }
+                    // Also check ExtractValueExpr, as the intrinsic call may be wrapped in extractvalue
+                    if (auto* extract = llvm::dyn_cast_or_null<ExtractValueExpr>(expr)) {
+                        if (!extract->indices.empty()) {
+                            // Get the first index which should contain the CallExpr
+                            Expr* firstExpr = extract->indices[0].get();
+                            // Unwrap AggregateElement to get to the CallExpr
+                            Expr* unwrappedExpr = firstExpr;
+                            while (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(unwrappedExpr)) {
+                                unwrappedExpr = agg->expr;
+                            }
+                            if (auto* call = llvm::dyn_cast_or_null<CallExpr>(unwrappedExpr)) {
+                                std::string callName = call->funcName;
+                                std::string callNameNormalized = callName;
+                                std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                
+                                if (callName == intrinsicNameWithDots || 
+                                    callName == intrinsicNameWithUnderscores ||
+                                    callNameNormalized == intrinsicNameWithUnderscores) {
+                                    Type* returnType = call->getType();
+                                    if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                        structType = st;
+                                        break;
+                                    }
+                                }
+                            }
+                            // Also check if the first AggregateElement has a struct type
+                            // The AggregateElement's expr should be the CallExpr, and its type should be the struct type
+                            if (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(firstExpr)) {
+                                // The type of AggregateElement's expr is the struct type
+                                Type* aggExprType = agg->expr->getType();
+                                if (auto* st = llvm::dyn_cast_or_null<StructType>(aggExprType)) {
+                                    // This is accessing a struct member, so the struct type is the type of the expression
+                                    structType = st;
+                                    break;
+                                }
+                                // Also check if the expr itself is a CallExpr with the intrinsic name
+                                if (auto* call = llvm::dyn_cast_or_null<CallExpr>(agg->expr)) {
+                                    std::string callName = call->funcName;
+                                    std::string callNameNormalized = callName;
+                                    std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                    
+                                    if (callName == intrinsicNameWithDots || 
+                                        callName == intrinsicNameWithUnderscores ||
+                                        callNameNormalized == intrinsicNameWithUnderscores) {
+                                        Type* returnType = call->getType();
+                                        if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                            structType = st;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Also check RetExpr, as the return might contain ExtractValueExpr
+                    if (auto* ret = llvm::dyn_cast_or_null<RetExpr>(expr)) {
+                        if (ret->expr) {
+                            if (auto* extract = llvm::dyn_cast_or_null<ExtractValueExpr>(ret->expr)) {
+                                if (!extract->indices.empty()) {
+                                    Expr* firstExpr = extract->indices[0].get();
+                                    if (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(firstExpr)) {
+                                        Type* aggExprType = agg->expr->getType();
+                                        if (auto* st = llvm::dyn_cast_or_null<StructType>(aggExprType)) {
+                                            // Check if the expr is a CallExpr with the intrinsic name
+                                            if (auto* call = llvm::dyn_cast_or_null<CallExpr>(agg->expr)) {
+                                                std::string callName = call->funcName;
+                                                std::string callNameNormalized = callName;
+                                                std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                                
+                                                if (callName == intrinsicNameWithDots || 
+                                                    callName == intrinsicNameWithUnderscores ||
+                                                    callNameNormalized == intrinsicNameWithUnderscores) {
+                                                    structType = st;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 if (structType) break;
             }
@@ -386,7 +468,32 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
         }
         
         if (!structType) {
-            // If no call found, skip generating this definition
+            // If no call found, try to find the struct type from the program's structs
+            // Look for anonymous structs that match the expected pattern (2 members, one is the result type, one is _Bool)
+            for (const auto& st : program.structs) {
+                if (st->items.size() == 2) {
+                    // Check if this looks like an overflow struct:
+                    // - Has exactly 2 members
+                    // - Second member is _Bool (the overflow flag)
+                    Type* secondType = st->items[1].first;
+                    if (auto* boolType = llvm::dyn_cast_or_null<BoolType>(secondType)) {
+                        // This looks like an overflow struct - prefer anonymous structs
+                        if (st->name.find("anonymous") != std::string::npos || 
+                            st->name.find("structVar") != std::string::npos) {
+                            structType = st.get();
+                            break;
+                        }
+                        // If no anonymous struct found yet, remember this one
+                        if (!structType) {
+                            structType = st.get();
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!structType) {
+            // If still no struct found, skip generating this definition
             // The intrinsic might not be used in this program, or the search failed
             continue;
         }
