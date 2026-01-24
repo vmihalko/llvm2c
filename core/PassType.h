@@ -1,5 +1,6 @@
 
 enum class PassType {
+    addCastsToConstants,
     InitializeGlobalVars,
     ParseStructDeclarations,
     ParseStructItems,
@@ -29,4 +30,5 @@ enum class PassType {
     ComputeGlobalVarsOrder,
     CreateConstants,
     PrepareBitcastUnion,
+    PropagateTypes,
 };

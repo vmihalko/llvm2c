@@ -7,10 +7,16 @@
 static void setMetadataInfo(const llvm::CallInst* ins, Block* block) {
     llvm::Metadata* md = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(0))->getMetadata();
     llvm::Value* referredVal = llvm::cast<llvm::ValueAsMetadata>(md)->getValue();
+    if (llvm::isa<llvm::UndefValue>(referredVal)) { return; }
     Expr* referred = block->func->getExpr(referredVal);
 
     if (auto* re = llvm::dyn_cast_or_null<RefExpr>(referred)) {
         referred = re->expr;
+    }
+
+    if (auto *val = llvm::dyn_cast<Value>(referred)) {
+        if (!val->valueName.empty() && std::isdigit(val->valueName[0]))
+            return;                               // don’t rename literals
     }
 
     if (Value* variable = llvm::dyn_cast_or_null<Value>(referred)) {
@@ -46,10 +52,10 @@ void findMetadataVariableNames(const llvm::Module* module, Program& program) {
             for (const auto& ins : block) {
                 if (ins.getOpcode() == llvm::Instruction::Call) {
                     const llvm::CallInst* CI = llvm::cast<llvm::CallInst>(&ins);
-                    if (CI->getCalledFunction()) {
-                        if (CI->getCalledFunction()->getName().str().compare("llvm.dbg.declare") == 0) {
+                    if (CI->getCalledFunction() && (CI->getIntrinsicID() == llvm::Intrinsic::dbg_declare ||
+                                                    CI->getIntrinsicID() == llvm::Intrinsic::dbg_value)) {
+				//	    CI->getIntrinsicID() == llvm::Intrinsic::dbg_value)) {
                             setMetadataInfo(CI, myBlock);
-                        }
                     }
                 }
             }

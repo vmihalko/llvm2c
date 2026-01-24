@@ -37,6 +37,7 @@ private:
     void writeBlock(const Block* block);
     void unionDefinition(const Program& program, const UnionType* unn);
     void unionDefinitions(const Program& program);
+    void writeIntrinsicDefinitions(const Program& program);
 
 
 public:

@@ -36,6 +36,7 @@ class LogicalAnd;
 class LogicalOr;
 class LogicalNot;
 class GotoExpr;
+class LatchExpr;
 class ExprList;
 class MinusExpr;
 class DoWhile;
@@ -77,6 +78,7 @@ public:
     virtual void visit(LogicalAnd& ) {}
     virtual void visit(LogicalOr& ) {}
     virtual void visit(GotoExpr& ) {}
+    virtual void visit(LatchExpr& ) {}
     virtual void visit(ExprList& ) {}
     virtual void visit(MinusExpr& ) {}
     virtual void visit(LogicalNot& ) {}

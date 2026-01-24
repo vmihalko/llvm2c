@@ -15,6 +15,12 @@ class Program;
 #include "Block.h"
 #include "Program.h"
 
+#include <llvm/IR/Instruction.h>
+#include <llvm/Analysis/LoopAnalysisManager.h>
+#include <llvm/Analysis/FunctionPropertiesAnalysis.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Analysis/LoopInfo.h>
+
 /**
  * @brief The Func class represents one of the functions of the LLVM program.
  */
@@ -52,8 +58,14 @@ public:
     bool isDeclaration; //function is only being declared
     bool isVarArg = false; //function has variable number of arguments
 
-    Expr* lastArg; //last argument before variable arguments
+    Expr* lastArg = nullptr; //last argument before variable arguments
 
+
+	llvm::PassBuilder passBuilder;
+	llvm::FunctionAnalysisManager FAM;
+	llvm::LoopAnalysisManager LAM;
+	llvm::CGSCCAnalysisManager CGAM;
+	llvm::ModuleAnalysisManager MAM;
 
     /**
      * @brief createNewUnnamedStruct

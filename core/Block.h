@@ -34,6 +34,8 @@ public:
     // is this first block of a function?
     bool isFirst;
 
+    bool brHandled = false;
+
     /**
      * @brief createConstantValue Creates Value for given ConstantInt or ConstantFP and inserts it into exprMap.
      * @param val constant value

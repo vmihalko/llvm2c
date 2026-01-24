@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Writer.h"
 #include "../parser/cfunc.h"
 
@@ -22,11 +23,17 @@ void Writer::writeProgram(const Program& program) {
     structDefinitions(program);
     unionDefinitions(program);
     functionDeclarations(program);
+    writeIntrinsicDefinitions(program);
     globalVarDefinitions(program);
     functionDefinitions(program);
 }
 
 void Writer::includes(const Program& program) {
+    if (program.hasCMath && !useIncludes) {
+        wr.line("int __isnanf( float x ) { return x != x; }");
+        wr.line("int __isnan( double x ) { return x != x; }");
+    }
+
     if (!useIncludes)
         return;
 
@@ -193,9 +200,14 @@ void Writer::globalVarDefinitions(const Program& program) {
         if (gvar->isStatic) {
             wr.raw("static ");
         }
-
+        if (gvar->isExtern && !gvar->value) {  // Only extern if no initializer
+            wr.raw("extern ");
+        }
         wr.raw(gvar->getType()->toString());
         wr.raw(" ");
+        if (gvar->isConst) {
+            wr.raw("const ");
+        }
         wr.raw(gvar->getType()->surroundName(gvar->valueName));
 
         if (gvar->value) {
@@ -221,13 +233,25 @@ void Writer::functionHead(const Func* func, bool isdecl) {
         wr.startFunction(func->returnType->toString(), func->name);
     }
 
-    auto last = func->parameters.cend() - 1;
+    //auto last = func->parameters;
+    auto last = func->parameters.cend();
+    if (func->parameters.size())
+        last--;
     wr.startFunctionParams();
     for (auto it = func->parameters.cbegin(); it != func->parameters.cend(); ++it) {
         const auto& param = *it;
-        wr.raw(param->getType()->toString());
-        wr.raw(" ");
-        param->accept(ew);
+
+        const auto ppt = llvm::dyn_cast_or_null<PointerType>(param->getType());
+        bool paramArrayPtr = (ppt && ppt->isArrayPointer);
+        if (paramArrayPtr) {
+            wr.startArrayFunction(param->getType()->toString(), ppt->levels, "");
+            param->accept(ew);
+            wr.raw(")");
+        } else {
+            wr.raw(param->getType()->toString());
+            wr.raw(" ");
+            param->accept(ew);
+        }
 
         if (it != last)
             wr.nextFunctionParam();
@@ -251,7 +275,7 @@ void Writer::functionHead(const Func* func, bool isdecl) {
 
     if (arrayPtr) {
         wr.raw(")");
-        wr.raw(PT->sizes);
+        //wr.raw(PT->sizes);
     }
 }
 
@@ -262,6 +286,15 @@ void Writer::functionDeclarations(const Program& program) {
         auto& func = decl.second;
         if (!isFunctionPrinted(func.get())) {
             continue;
+        }
+
+        // Skip intrinsics that will have definitions generated
+        std::string funcName = func->name;
+        std::string originalName = funcName;
+        std::replace(originalName.begin(), originalName.end(), '_', '.');
+        if (program.intrinsicsNeedingDefinitions.find(originalName) != 
+            program.intrinsicsNeedingDefinitions.end()) {
+            continue;  // Skip - will be defined later
         }
 
         declarations.push_back(func.get());
@@ -275,6 +308,269 @@ void Writer::functionDeclarations(const Program& program) {
         wr.endFunctionDecl();
     }
 
+    SECTION_END;
+}
+
+void Writer::writeIntrinsicDefinitions(const Program& program) {
+    if (program.intrinsicsNeedingDefinitions.empty()) {
+        return;
+    }
+    
+    SECTION_START("LLVM intrinsic definitions", true);
+    
+    for (const auto& intrinsicName : program.intrinsicsNeedingDefinitions) {
+        std::string cName = intrinsicName;
+        std::replace(cName.begin(), cName.end(), '.', '_');
+        
+        // Determine types from intrinsic name
+        bool is32bit = cName.find("i32") != std::string::npos;
+        bool isUnsigned = cName.find("uadd") != std::string::npos || 
+                         cName.find("usub") != std::string::npos ||
+                         cName.find("umul") != std::string::npos;
+        
+        std::string argType = is32bit ? "unsigned int" : "unsigned long long";
+        std::string structName;
+        std::string structVar1;
+        std::string structVar2;
+        
+        // Find the actual struct type by searching for calls to this intrinsic in the program
+        // The intrinsic name in CallExpr may already have dots replaced with underscores,
+        // so we need to check both the original and transformed names
+        StructType* structType = nullptr;
+        std::string intrinsicNameWithDots = intrinsicName;  // Original name with dots
+        std::string intrinsicNameWithUnderscores = cName;   // Transformed name with underscores
+        
+        for (const auto& funcPair : program.functions) {
+            const Func* func = funcPair.second.get();
+            for (const auto& blockPair : func->blockMap) {
+                const Block* block = blockPair.second.get();
+                for (Expr* expr : block->expressions) {
+                    // Check if this is a direct CallExpr
+                    if (auto* call = llvm::dyn_cast_or_null<CallExpr>(expr)) {
+                        std::string callName = call->funcName;
+                        std::string callNameNormalized = callName;
+                        std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                        
+                        if (callName == intrinsicNameWithDots || 
+                            callName == intrinsicNameWithUnderscores ||
+                            callNameNormalized == intrinsicNameWithUnderscores) {
+                            Type* returnType = call->getType();
+                            if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                structType = st;
+                                break;
+                            }
+                        }
+                    }
+                    // Also check AssignExpr->right, as CallExpr may be wrapped in an assignment
+                    if (auto* assign = llvm::dyn_cast_or_null<AssignExpr>(expr)) {
+                        if (auto* call = llvm::dyn_cast_or_null<CallExpr>(assign->right)) {
+                            std::string callName = call->funcName;
+                            std::string callNameNormalized = callName;
+                            std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                            
+                            if (callName == intrinsicNameWithDots || 
+                                callName == intrinsicNameWithUnderscores ||
+                                callNameNormalized == intrinsicNameWithUnderscores) {
+                                Type* returnType = call->getType();
+                                if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                    structType = st;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Also check ExtractValueExpr, as the intrinsic call may be wrapped in extractvalue
+                    if (auto* extract = llvm::dyn_cast_or_null<ExtractValueExpr>(expr)) {
+                        if (!extract->indices.empty()) {
+                            // Get the first index which should contain the CallExpr
+                            Expr* firstExpr = extract->indices[0].get();
+                            // Unwrap AggregateElement to get to the CallExpr
+                            Expr* unwrappedExpr = firstExpr;
+                            while (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(unwrappedExpr)) {
+                                unwrappedExpr = agg->expr;
+                            }
+                            if (auto* call = llvm::dyn_cast_or_null<CallExpr>(unwrappedExpr)) {
+                                std::string callName = call->funcName;
+                                std::string callNameNormalized = callName;
+                                std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                
+                                if (callName == intrinsicNameWithDots || 
+                                    callName == intrinsicNameWithUnderscores ||
+                                    callNameNormalized == intrinsicNameWithUnderscores) {
+                                    Type* returnType = call->getType();
+                                    if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                        structType = st;
+                                        break;
+                                    }
+                                }
+                            }
+                            // Also check if the first AggregateElement has a struct type
+                            // The AggregateElement's expr should be the CallExpr, and its type should be the struct type
+                            if (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(firstExpr)) {
+                                // The type of AggregateElement's expr is the struct type
+                                Type* aggExprType = agg->expr->getType();
+                                if (auto* st = llvm::dyn_cast_or_null<StructType>(aggExprType)) {
+                                    // This is accessing a struct member, so the struct type is the type of the expression
+                                    structType = st;
+                                    break;
+                                }
+                                // Also check if the expr itself is a CallExpr with the intrinsic name
+                                if (auto* call = llvm::dyn_cast_or_null<CallExpr>(agg->expr)) {
+                                    std::string callName = call->funcName;
+                                    std::string callNameNormalized = callName;
+                                    std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                    
+                                    if (callName == intrinsicNameWithDots || 
+                                        callName == intrinsicNameWithUnderscores ||
+                                        callNameNormalized == intrinsicNameWithUnderscores) {
+                                        Type* returnType = call->getType();
+                                        if (auto* st = llvm::dyn_cast_or_null<StructType>(returnType)) {
+                                            structType = st;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Also check RetExpr, as the return might contain ExtractValueExpr
+                    if (auto* ret = llvm::dyn_cast_or_null<RetExpr>(expr)) {
+                        if (ret->expr) {
+                            if (auto* extract = llvm::dyn_cast_or_null<ExtractValueExpr>(ret->expr)) {
+                                if (!extract->indices.empty()) {
+                                    Expr* firstExpr = extract->indices[0].get();
+                                    if (auto* agg = llvm::dyn_cast_or_null<AggregateElement>(firstExpr)) {
+                                        Type* aggExprType = agg->expr->getType();
+                                        if (auto* st = llvm::dyn_cast_or_null<StructType>(aggExprType)) {
+                                            // Check if the expr is a CallExpr with the intrinsic name
+                                            if (auto* call = llvm::dyn_cast_or_null<CallExpr>(agg->expr)) {
+                                                std::string callName = call->funcName;
+                                                std::string callNameNormalized = callName;
+                                                std::replace(callNameNormalized.begin(), callNameNormalized.end(), '.', '_');
+                                                
+                                                if (callName == intrinsicNameWithDots || 
+                                                    callName == intrinsicNameWithUnderscores ||
+                                                    callNameNormalized == intrinsicNameWithUnderscores) {
+                                                    structType = st;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (structType) break;
+            }
+            if (structType) break;
+        }
+        
+        if (!structType) {
+            // If no call found, try to find the struct type from the program's structs
+            // Look for anonymous structs that match the expected pattern (2 members, one is the result type, one is _Bool)
+            for (const auto& st : program.structs) {
+                if (st->items.size() == 2) {
+                    // Check if this looks like an overflow struct:
+                    // - Has exactly 2 members
+                    // - Second member is _Bool (the overflow flag)
+                    Type* secondType = st->items[1].first;
+                    if (auto* boolType = llvm::dyn_cast_or_null<BoolType>(secondType)) {
+                        // This looks like an overflow struct - prefer anonymous structs
+                        if (st->name.find("anonymous") != std::string::npos || 
+                            st->name.find("structVar") != std::string::npos) {
+                            structType = st.get();
+                            break;
+                        }
+                        // If no anonymous struct found yet, remember this one
+                        if (!structType) {
+                            structType = st.get();
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!structType) {
+            // If still no struct found, skip generating this definition
+            // The intrinsic might not be used in this program, or the search failed
+            continue;
+        }
+        
+        if (structType->items.size() < 2) {
+            // Invalid struct for overflow intrinsic - skip
+            continue;
+        }
+        
+        structName = "struct " + structType->name;
+        // First member is the result value, second is the overflow flag
+        structVar1 = structType->items[0].second;
+        structVar2 = structType->items[1].second;
+        
+        // Determine operation and overflow check
+        std::string op = "+";
+        std::string overflowCheck;
+        if (cName.find("sub") != std::string::npos) {
+            op = "-";
+            // For subtraction: overflow (underflow) occurs when a < b
+            overflowCheck = "(a < b)";
+        } else if (cName.find("mul") != std::string::npos) {
+            op = "*";
+            // For multiplication: overflow occurs when result wraps
+            // Correct check: (a != 0 && (sum / a) != b)
+            // This correctly handles the case when b == 0 (no overflow) and when overflow occurs
+            overflowCheck = "(a != 0 && (sum / a) != b)";
+        } else {
+            // For addition: overflow occurs when result wraps
+            overflowCheck = "(sum < a || sum < b)";
+        }
+        
+        // Generate function definition
+        wr.raw(structName);
+        wr.raw(" ");
+        wr.raw(cName);
+        wr.raw("(");
+        wr.raw(argType);
+        wr.raw(" a, ");
+        wr.raw(argType);
+        wr.raw(" b) {");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw(structName);
+        wr.raw(" result;");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw(argType);
+        wr.raw(" sum = a ");
+        wr.raw(op);
+        wr.raw(" b;");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("result.");
+        wr.raw(structVar1);
+        wr.raw(" = sum;  // Wrapped result");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("result.");
+        wr.raw(structVar2);
+        wr.raw(" = ");
+        wr.raw(overflowCheck);
+        wr.raw(";  // Overflow flag");
+        wr.line("");
+        
+        wr.indent(1);
+        wr.raw("return result;");
+        wr.line("");
+        
+        wr.raw("}");
+        wr.line("");
+    }
+    
     SECTION_END;
 }
 
@@ -334,6 +630,7 @@ void Writer::functionDefinitions(const Program& program) {
 
         // start with variables
         for (const auto& var : func->variables) {
+            if( func->parameters.end() != std::find_if(func->parameters.begin(), func->parameters.end(), [&var](Value *v){return var->valueName == v->valueName;})) continue;
             wr.indent(1);
             wr.declareVar(var->getType()->toString(), var->getType()->surroundName(var->valueName));
         }

@@ -236,6 +236,7 @@ void SimplifyingExprVisitor::visit(AggregateInitializer& expr) {
 
 void SimplifyingExprVisitor::visit(ExprList& expr) {
     for (auto it = expr.expressions.begin(); it != expr.expressions.end(); ++it) {
+        (*it)->accept(*this);
         *it = simplify(*it);
     }
 }
@@ -273,8 +274,8 @@ void SimplifyingExprVisitor::visit(LogicalNot& expr) {
 
 void SimplifyingExprVisitor::visit(DoWhile& expr) {
     expr.cond->accept(*this);
-    expr.body->accept(*this);
-
     expr.cond = simplify(expr.cond);
+
+    expr.body->accept(*this);
     expr.body = simplify(expr.body);
 }

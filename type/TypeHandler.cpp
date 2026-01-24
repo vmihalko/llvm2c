@@ -29,7 +29,8 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         std::unique_ptr<Type> ty;
         const auto intType = static_cast<const llvm::IntegerType*>(type);
         if (intType->getBitWidth() == 1) {
-            return uint.get();
+            // Proper C boolean type for LLVM i1
+            return boolType.get();
         }
 
         if (intType->getBitWidth() <= 8) {
@@ -45,7 +46,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         }
 
         if (intType->getBitWidth() <= 64) {
-            return ulong.get();
+            return ulonglong.get();
         }
 
         return int128.get();
@@ -83,7 +84,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
                             for (unsigned i = 0; i < PT->levels; i++) {
                                 param += "*";
                             }
-                            param += ")" + PT->sizes;
+                            param += ")";
                         }
                     }
 
@@ -126,7 +127,7 @@ Type* TypeHandler::getType(const llvm::Type* type) {
         auto* strct = program->getStruct(structType);
 
         if (!strct) {
-            if (structType->getStructName() == "") {
+            if (structType->isLiteral() || structType->getStructName() == "") {
                 program->createNewUnnamedStruct(structType);
                 strct = program->getStruct(structType);
             }
@@ -191,6 +192,7 @@ IntegerType* TypeHandler::toggleSignedness(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;
@@ -206,6 +208,7 @@ IntegerType* TypeHandler::setSigned(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;
@@ -221,6 +224,7 @@ IntegerType* TypeHandler::setUnsigned(IntegerType* ty) {
     TYPES(uchar, schar);
     TYPES(ushort, sshort);
     TYPES(ulong, slong);
+    TYPES(ulonglong, slonglong);
 
 #undef TYPES
     return ty;

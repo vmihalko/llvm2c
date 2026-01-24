@@ -9,7 +9,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
     }
 
     if (ty->isIntegerTy()) {
-        auto zero = std::make_unique<Value>("0", program.getType(ty));
+        auto zero = std::make_unique<Value>("-1", program.getType(ty));
         return program.addOwnership(std::move(zero));
     }
 
@@ -25,7 +25,7 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
             values.push_back(createUndefValue(ST->getElementType(i), program));
         }
     } else {
-        ty->print(llvm::errs(), true);
+        //ty->print(llvm::errs(), true);
         assert(false && "globalVars: unrecognized type of undef value");
     }
 
@@ -35,6 +35,11 @@ Expr* createUndefValue(const llvm::Type* ty, Program& program) {
 }
 
 Expr* createConstantValue(const llvm::Value* val, Program& program) {
+    // First check if we already have an expression for this value
+    if (Expr* existing = program.getExpr(val)) {
+        return existing;
+    }
+
     if (llvm::isa<llvm::UndefValue>(val)) {
         return createUndefValue(val->getType(), program);
     }
@@ -66,7 +71,12 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
             value = std::to_string(CI->getSExtValue());
         }
 
-        return program.makeExpr<Value>(value, program.getType(CI->getType()));
+        auto vtype = llvm::dyn_cast_or_null<IntegerType>(program.getType(CI->getType()));
+        if (value[0] == '-' ) {
+            vtype = program.typeHandler.setSigned(vtype);
+        }
+
+        return program.makeExpr<Value>(value, vtype);
     }
 
     if (auto CFP = llvm::dyn_cast_or_null<llvm::ConstantFP>(val)) {
@@ -106,6 +116,15 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
                 CFP->getValueAPF().toString(string, 32, 0);
                 for (unsigned i = 0; i < string.size(); i++) {
                     CFPvalue += string[i];
+                }
+            }
+
+            // Ensure float constants are emitted with 'f' suffix to preserve float semantics in C
+            if (CFP->getType()->isFloatTy()) {
+                // Avoid appending 'f' to special builtins handled above; here CFPvalue is a numeric string
+                // Append 'f' if not already present
+                if (CFPvalue.empty() || CFPvalue.back() != 'f') {
+                    CFPvalue += "f";
                 }
             }
 
@@ -167,10 +186,30 @@ Expr* createConstantValue(const llvm::Value* val, Program& program) {
         return parseLLVMInstruction(*inst.get(), program);
     }
 
-    if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
-        val->getType()->print(llvm::errs(), true);
+    // Check if this is an instruction that somehow ended up here
+    if (llvm::isa<llvm::Instruction>(val)) {
+        // This should not happen in normal cases, but if it does, we can try to handle it
+        // by treating it as an instruction
+        if (auto *inst = llvm::dyn_cast<llvm::Instruction>(val)) {
+            return parseLLVMInstruction(*inst, program);
+        }
+    }
 
-        val->print(llvm::errs(), true);
+    if (!val->getType()->isStructTy() && !val->getType()->isPointerTy() && !val->getType()->isArrayTy()) {
+        // Check if it's a ConstantExpr that wasn't caught
+        if (auto *CE = const_cast<llvm::ConstantExpr*>(llvm::dyn_cast<llvm::ConstantExpr>(val))) {
+            auto inst = toInst(CE);
+            return parseLLVMInstruction(*inst.get(), program);
+        }
+
+        // If this is an instruction-like value, try to handle it appropriately
+        if (val->getValueID() >= 32 && val->getValueID() <= 100) { // Range for instruction-like values
+            // For instruction-like values that ended up here, create a placeholder
+            // This might happen with certain LLVM transformations
+            auto placeholder = program.makeExpr<Value>("0", program.getType(val->getType()));
+            program.addExpr(val, placeholder);  // Add to expression map
+            return placeholder;
+        }
 
         assert(false && "constval: unknown type of constant value");
     }

@@ -4,6 +4,7 @@
 #include "constval.h"
 #include "cfunc.h"
 #include "compare.h"
+#include <cstring>
 
 #include <llvm/ADT/iterator_range.h>
 #include <llvm/IR/Instruction.h>
@@ -105,12 +106,27 @@ static bool canInline(const llvm::Value* value) {
 }
 
 static void inlineOrCreateVariable(const llvm::Value* value, Expr* expr, Func* func, Block* block) {
-    if (canInline(value)) {
-        func->program->addExpr(value, expr);
-        return;
+    if (auto *valExpr = llvm::dyn_cast_or_null<Value>(expr)) {
+        const std::string &txt = valExpr->valueName;
+        if (!txt.empty() && std::isdigit(txt[0])) {
+            func->program->addExpr(value, expr);   // inline literal
+            return;
+        }
     }
 
+    if (canInline(value)) {
+        func->program->addExpr(value, expr);
+	//llvm::errs() << "INLINING\n";
+	//value->print(llvm::errs());
+	//llvm::errs() << "\n";
+        return;
+    }
+	//llvm::errs() << "Createting varibale: \n";
+
     auto var = std::make_unique<Value>(func->getVarName(), expr->getType());
+	//llvm::errs() << var->valueName << " from ";
+	//value->print(llvm::errs());
+	//llvm::errs() << " created! \n";
     auto assign = std::make_unique<AssignExpr>(var.get(), expr);
     auto alloca = std::make_unique<StackAlloc>(var.get());
 
@@ -166,6 +182,90 @@ static Expr* parseExtractValueInstruction(const llvm::Instruction& ins, Program&
     return program.makeExpr<ExtractValueExpr>(std::move(indices));
 }
 
+static void parseInsertValueInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    const llvm::InsertValueInst* IVI = llvm::cast<const llvm::InsertValueInst>(&ins);
+
+    // Result aggregate type
+    Type* aggregateType = program.getType(IVI->getType());
+
+    // Create a new temporary aggregate variable to hold the updated value
+    auto* tempVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), aggregateType));
+    auto* alloca = program.makeExpr<StackAlloc>(tempVar);
+    block->addExpr(alloca);
+
+    // Initialize from the source aggregate if it is not 'undef'
+    Expr* srcAgg = program.getExpr(IVI->getAggregateOperand());
+    if (!srcAgg && llvm::isa<llvm::Constant>(IVI->getAggregateOperand())) {
+        srcAgg = createConstantValue(IVI->getAggregateOperand(), program);
+        if (srcAgg) {
+            program.addExpr(IVI->getAggregateOperand(), srcAgg);
+        }
+    }
+
+    if (srcAgg && !llvm::isa<llvm::UndefValue>(IVI->getAggregateOperand())) {
+        auto* initAssign = program.makeExpr<AssignExpr>(tempVar, srcAgg);
+        block->addExpr(initAssign);
+    }
+
+    // Build an lvalue expression referencing the target field within the temp aggregate
+    Expr* lhs = tempVar;
+    Type* prevType = aggregateType;
+    for (unsigned idx : IVI->getIndices()) {
+        if (llvm::isa<StructType>(prevType)) {
+            lhs = program.makeExpr<AggregateElement>(lhs, idx);
+            prevType = lhs->getType();
+            continue;
+        }
+
+        if (auto* arrTy = llvm::dyn_cast_or_null<ArrayType>(prevType)) {
+            auto* indexVal = program.makeExpr<Value>(std::to_string(idx), program.typeHandler.uint.get());
+            lhs = program.makeExpr<ArrayElement>(lhs, indexVal, arrTy->type);
+            prevType = lhs->getType();
+            continue;
+        }
+
+        // Unsupported aggregate kind in index path; bail out
+        assert(false && "insertvalue: unsupported aggregate index kind");
+        abort();
+    }
+
+    // Right-hand side value to insert
+    Expr* rhs = program.getExpr(IVI->getInsertedValueOperand());
+    if (!rhs && llvm::isa<llvm::Constant>(IVI->getInsertedValueOperand())) {
+        rhs = createConstantValue(IVI->getInsertedValueOperand(), program);
+        if (rhs) {
+            program.addExpr(IVI->getInsertedValueOperand(), rhs);
+        }
+    }
+    assert(rhs && "insertvalue: missing inserted value expression");
+
+    // Perform the field assignment on the temporary aggregate
+    auto* fieldAssign = program.makeExpr<AssignExpr>(lhs, rhs);
+    block->addExpr(fieldAssign);
+
+    // The result of insertvalue is the (updated) aggregate value
+    program.addExpr(&ins, tempVar);
+}
+
+static void parseLandingPadInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    // Create a local temporary of the landingpad result type and bind it to this instruction.
+    Type* lpType = program.getType(ins.getType());
+    auto* tempVar = static_cast<Value*>(program.makeExpr<Value>(func->getVarName(), lpType));
+    auto* alloca = program.makeExpr<StackAlloc>(tempVar);
+    block->addExpr(alloca);
+    program.addExpr(&ins, tempVar);
+}
+
+static void parseResumeInstruction(const llvm::Instruction& ins, Func* func, Block* block, Program& program) {
+    // Translate resume as terminating abort(), which is a conservative replacement under panic=abort.
+    auto* call = program.makeExpr<CallExpr>(nullptr, "abort", std::vector<Expr*>{}, program.typeHandler.voidType.get());
+    block->addExpr(call);
+}
+
+// Helper function to build isnan checks for floating point comparisons
+// Implementation note: __isnan and __isnanf should be defined as:
+//   int __isnan( double x ) { return x != x; }
+//   int __isnanf( float x ) { return x != x; }
 static std::unique_ptr<Expr> buildIsNan(Program& program, Expr* val) {
     if (val->getType() == program.typeHandler.floatType.get())
         return std::make_unique<CallExpr>(nullptr, "__isnanf", std::vector<Expr*>{val}, program.typeHandler.sint.get());
@@ -240,7 +340,7 @@ static Expr* parseFCmpInstruction(const llvm::Instruction& ins, Program& program
         return program.makeExpr<LogicalOr>(isUnordered, cmpExpr);
     }
 
-    cmpInst->print(llvm::errs(), true);
+    //cmpInst->print(llvm::errs(), true);
     assert(false && "parseFCmpInstruction: unknown compare predicate");
     abort(); // for release builds
 }
@@ -366,6 +466,15 @@ static Expr* parseLoadInstruction(const llvm::Instruction& ins, Program& program
     return program.addOwnership(std::move(deref));
 }
 
+static Expr* parseFreezeInstruction(const llvm::Instruction& ins, Program& program) {
+    return program.getExpr(ins.getOperand(0));
+}
+
+static Expr* parseFnegInstruction(const llvm::Instruction& ins, Program& program) {
+    auto mnsExpr = std::make_unique<MinusExpr>(program.getExpr(ins.getOperand(0)));
+    return program.addOwnership(std::move(mnsExpr));
+}
+
 static Expr *toSigned(Expr *expr, Program& program) {
     auto IT = static_cast<IntegerType*>(expr->getType());
     auto *cast
@@ -394,7 +503,13 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     Expr* val1 = program.getExpr(ins.getOperand(1));
     assert(val0 && val1);
 
-    if (binOp->hasNoSignedWrap() ||
+    // Check if this is an OverflowingBinaryOperator before calling hasNoSignedWrap()
+    bool hasNSW = false;
+    if (auto* overflowOp = llvm::dyn_cast<const llvm::OverflowingBinaryOperator>(&ins)) {
+        hasNSW = overflowOp->hasNoSignedWrap();
+    }
+
+    if (hasNSW ||
         ins.getOpcode() == Instruction::SDiv ||
         ins.getOpcode() == Instruction::FDiv ||
         ins.getOpcode() == Instruction::SRem ||
@@ -408,15 +523,15 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     switch (ins.getOpcode()) {
     case llvm::Instruction::Add:
     case llvm::Instruction::FAdd:
-        expr = std::make_unique<AddExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<AddExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::Sub:
     case llvm::Instruction::FSub:
-        expr = std::make_unique<SubExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<SubExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::Mul:
     case llvm::Instruction::FMul:
-        expr = std::make_unique<MulExpr>(val0, val1, !binOp->hasNoSignedWrap());
+        expr = std::make_unique<MulExpr>(val0, val1, !hasNSW);
         break;
     case llvm::Instruction::UDiv:
         expr = std::make_unique<DivExpr>(val0, val1, true);
@@ -461,6 +576,13 @@ static Expr* parseBinaryInstruction(const llvm::Instruction& ins, Program& progr
     default:
         llvm::outs() << "Unsupported binary instruction: " << ins << "\n";
         throw std::invalid_argument("Unsupported binary instruction encountered!");
+    }
+
+    // If this is a floating point operation with float-typed result, wrap the expression in an
+    // explicit (float) cast so comparisons match LLVM IR float semantics (no implicit double).
+    if (ins.getType()->isFloatTy()) {
+        auto* inner = program.addOwnership(std::move(expr));
+        expr = std::make_unique<CastExpr>(inner, program.typeHandler.floatType.get());
     }
 
     return program.addOwnership(std::move(expr));
@@ -517,26 +639,68 @@ static void parseAsmInst(const llvm::Instruction& ins, Func* func, Block* block)
     block->addExpr(func->getExpr(&ins));
 }
 
+static Expr * removeCastsFromExpr(Expr* expr) {
+    if (auto* cast = llvm::dyn_cast_or_null<CastExpr>(expr)) {
+        //llvm::errs() << "cast removed\n";
+        Expr* innermost = cast->expr;
+
+        while (auto* inner = llvm::dyn_cast_or_null<CastExpr>(innermost)) {
+            //llvm::errs() << "cast removed\n";
+            innermost = inner->expr;
+        }
+
+        return innermost;
+    }
+
+    return expr;
+}
+
 static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& program) {
     Expr* val0 = program.getExpr(ins.getOperand(0));
     Expr* val1 = program.getExpr(ins.getOperand(1));
     assert(val0 && val1);
 
     auto* binOp = llvm::cast<const llvm::BinaryOperator>(&ins);
+    
+    // Check if this is an OverflowingBinaryOperator before calling hasNoSignedWrap()
+    bool hasNSW = false;
+    if (auto* overflowOp = llvm::dyn_cast<const llvm::OverflowingBinaryOperator>(&ins)) {
+        hasNSW = overflowOp->hasNoSignedWrap();
+    }
 
     std::unique_ptr<Expr> expr;
     switch (ins.getOpcode()) {
     case llvm::Instruction::Shl:
-        if (binOp->hasNoSignedWrap()) {
+        if (hasNSW) {
             val0 = toSigned(val0, program);
             val1 = toSigned(val1, program);
         }
+
+		//llvm::errs() << removeCastsFromExpr(val1)->getKind() << " end\n";
+	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
+	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "1") {
+		//llvm::errs() << removeCastsFromExpr(val1)->getKind() << "WASHER\n";
+		auto two = std::make_unique<Value>("2", removeCastsFromExpr(val1)->getType());
+		expr = std::make_unique<MulExpr>(val0,  two.get(),
+					 !binOp->hasNoSignedWrap());
+		program.addOwnership(std::move(two));
+	    }
+	else {
         expr = std::make_unique<ShlExpr>(val0, toUnsigned(val1, program),
                                          !binOp->hasNoSignedWrap());
-        break;
+	} break;
     case llvm::Instruction::LShr:
-        expr = std::make_unique<LshrExpr>(val0, val1);
-        break;
+	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
+	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "63") {
+           // create 0
+	   auto zero = std::make_unique<Value>("0", removeCastsFromExpr(val1)->getType());
+	   // create: val0 < 0
+	   expr = std::make_unique<CmpExpr>(val1, zero.get(), "<", false);
+	   program.addOwnership(std::move(zero));
+
+   } else {
+	expr = std::make_unique<LshrExpr>(val0, val1);
+        } break;
     case llvm::Instruction::AShr:
         expr = std::make_unique<AshrExpr>(val0, toUnsigned(val1, program));
         break;
@@ -682,6 +846,40 @@ std::vector<std::string> getAsmOutputStrings(llvm::InlineAsm::ConstraintInfoVect
     return ret;
 }
 
+static Type *deduceNondetReturnType(const std::string &name,
+    TypeHandler &th) {
+// Fast reject
+if (name.rfind("__VERIFIER_nondet_", 0) != 0)
+return nullptr;
+
+if (name.compare(0, 22, "__VERIFIER_nondet_bool") == 0)
+return th.uchar.get(); // _Bool is typically unsigned char
+if (name.compare(0, 22, "__VERIFIER_nondet_char") == 0)
+return th.schar.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_uchar") == 0)
+return th.uchar.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_short") == 0)
+return th.sshort.get();
+if (name.compare(0, 24, "__VERIFIER_nondet_ushort") == 0)
+return th.ushort.get();
+if (name.compare(0, 21, "__VERIFIER_nondet_int") == 0)
+return th.sint.get();
+if (name.compare(0, 22, "__VERIFIER_nondet_uint") == 0)
+return th.uint.get();
+if (name.compare(0, 22, "__VERIFIER_nondet_long") == 0)
+return th.slong.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_ulong") == 0)
+return th.ulong.get();
+if (name.compare(0, 25, "__VERIFIER_nondet_longlong") == 0)
+return th.slonglong.get();
+if (name.compare(0, 26, "__VERIFIER_nondet_ulonglong") == 0)
+return th.ulonglong.get();
+if (name.compare(0, 23, "__VERIFIER_nondet_uint128") == 0)
+return th.int128.get();
+
+return nullptr; // not found
+}
+
 static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block* block) {
     const llvm::Value* value = &ins;
     const llvm::CallInst* callInst = llvm::cast<llvm::CallInst>(&ins);
@@ -714,7 +912,141 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
             return;
         }
 
+        if (!funcName.substr(0,8).compare("llvm.abs")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            auto zero = std::make_unique<Value>("0", type);
+            std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, zero.get(), "<", false);
+            auto mnsExpr = std::make_unique<MinusExpr>(a);
+            auto slctExpr = std::make_unique<SelectExpr>(cmprsn.get(), mnsExpr.get() ,a);
+            block->addOwnership(std::move(zero));
+            block->addOwnership(std::move(cmprsn));
+            block->addOwnership(std::move(mnsExpr));
+            if (value->hasNUses(0)) {
+                block->addExpr(slctExpr.get());
+                func->createExpr(value, std::move(slctExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
+            }
+            return;
+        }
+
+        /*
+        https://reviews.llvm.org/D9293?id=&download=true
+        The expression::
+
+            call i8 @llvm.umax.i8(i8 %a, i8 %b)
+
+        is equivalent to::
+
+            %1 = icmp ugt i8 %a, %b
+            %2 = select i1 %1, i8 %a, i8 %b
+        */
+        if (!funcName.substr(0,9).compare("llvm.smax") || !funcName.substr(0,9).compare("llvm.smin") ||
+            !funcName.substr(0,9).compare("llvm.umax") || !funcName.substr(0,9).compare("llvm.umin")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            Expr* b = func->getExpr(ins.getOperand(1));
+            assert(a && b);
+            Expr* cmprsn_ptr = nullptr;
+            if (!funcName.substr(0,9).compare("llvm.smin")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", false);
+                cmprsn_ptr = cmprsn.get();
+                block->addOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.smax")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", false);
+                cmprsn_ptr = cmprsn.get();
+                block->addOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.umin")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, "<", true);
+                cmprsn_ptr = cmprsn.get();
+                block->addOwnership(std::move(cmprsn));
+            } else if (!funcName.substr(0,9).compare("llvm.umax")) {
+                std::unique_ptr<CmpExpr> cmprsn = std::make_unique<CmpExpr>(a, b, ">", true);
+                cmprsn_ptr = cmprsn.get();
+                block->addOwnership(std::move(cmprsn));
+            }
+            auto slctExpr = std::make_unique<SelectExpr>(cmprsn_ptr, a, b);
+		    //llvm::errs() << "T: " << slctExpr->getType()->toString() << "\n";
+		    //llvm::errs() << "Ta: " << a->getType()->toString() << "\n";
+            if (value->hasNUses(0)) {
+		    //llvm::errs() << "zeroUSES\n";
+                block->addExpr(slctExpr.get());
+                func->createExpr(value, std::move(slctExpr));
+            } else {
+		    //llvm::errs() << "NONzeroUSES\n";
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(slctExpr)), func, block);
+            }
+            return;
+        }
+
+        // Handle llvm.ctpop.* intrinsics: convert to __builtin_popcount/__builtin_popcountl
+        if (!funcName.substr(0,10).compare("llvm.ctpop")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            assert(a);
+            
+            // Determine which builtin to use based on bit width
+            std::string builtinName;
+            if (funcName.find("i64") != std::string::npos || funcName.find("i128") != std::string::npos) {
+                builtinName = "__builtin_popcountl";
+            } else {
+                builtinName = "__builtin_popcount";
+            }
+            
+            // Create a CallExpr with the builtin name (nullptr for funcValue since it's a direct call)
+            std::vector<Expr*> params = {a};
+            auto callExpr = std::make_unique<CallExpr>(nullptr, builtinName, params, type);
+            
+            if (value->hasNUses(0)) {
+                block->addExpr(callExpr.get());
+                func->createExpr(value, std::move(callExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(callExpr)), func, block);
+            }
+            return;
+        }
+
+        if (!funcName.substr(0,11).compare("llvm.assume")) {
+            return;
+        }
+
+        // Handle llvm.fmuladd.* intrinsics: a * b + c
+        if (!funcName.substr(0,12).compare("llvm.fmuladd")) {
+            Expr* a = func->getExpr(ins.getOperand(0));
+            Expr* b = func->getExpr(ins.getOperand(1));
+            Expr* c = func->getExpr(ins.getOperand(2));
+            assert(a && b && c);
+            
+            // Create a * b
+            auto mulExpr = std::make_unique<MulExpr>(a, b, true);
+            // Create (a * b) + c
+            std::unique_ptr<Expr> addExpr = std::make_unique<AddExpr>(mulExpr.get(), c, true);
+            block->addOwnership(std::move(mulExpr));
+                // For float result, wrap in explicit (float) cast to preserve float semantics
+            if (ins.getType()->isFloatTy()) {
+                auto* ownedAdd = func->program->addOwnership(std::move(addExpr));
+                addExpr = std::make_unique<CastExpr>(ownedAdd, func->program->typeHandler.floatType.get());
+            }
+            
+            if (value->hasNUses(0)) {
+                block->addExpr(addExpr.get());
+                func->createExpr(value, std::move(addExpr));
+            } else {
+                inlineOrCreateVariable(value, func->program->addOwnership(std::move(addExpr)), func, block);
+            }
+            return;
+        }
+
         if (funcName.substr(0,4).compare("llvm") == 0) {
+            // Check for overflow intrinsics that need definitions
+            if (funcName.find("uadd.with.overflow") != std::string::npos ||
+                funcName.find("usub.with.overflow") != std::string::npos ||
+                funcName.find("umul.with.overflow") != std::string::npos ||
+                funcName.find("sadd.with.overflow") != std::string::npos ||
+                funcName.find("ssub.with.overflow") != std::string::npos ||
+                funcName.find("smul.with.overflow") != std::string::npos) {
+                // Mark for definition generation (use original name before transformation)
+                func->program->markIntrinsicForDefinition(funcName);
+            }
+            
             if (isCFunc(trimPrefix(funcName))) {
                 funcName = trimPrefix(funcName);
             } else {
@@ -729,7 +1061,13 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
 #endif
         llvm::PointerType* PT = llvm::cast<llvm::PointerType>(operand->getType());
         llvm::FunctionType* FT = llvm::cast<llvm::FunctionType>(PT->getPointerElementType());
-        type = func->getType(FT->getReturnType());
+        // Try to detect SV-COMP nondet helpers and override the return type
+        // accordingly. Fallback to the LLVM-deduced return type otherwise.
+        if (Type *ndTy = deduceNondetReturnType(funcName, func->program->typeHandler)) {
+            type = ndTy;
+        } else {
+            type = func->getType(FT->getReturnType());
+        }
 
         if (llvm::isa<llvm::InlineAsm>(operand)) {
             parseInlineASM(ins, func, block);
@@ -763,6 +1101,10 @@ static void parseCallInstruction(const llvm::Instruction& ins, Func* func, Block
         block->addExpr(func->getExpr(value));
     } else {
         auto callExpr = std::make_unique<CallExpr>(funcValue, funcName, params, type);
+        //llvm::errs() << "Var: " << var->valueName << " with type:  " << expr->getType()->toString() <<  " from ";
+	//llvm::errs() << "CallExpr created: ";
+	//value->print(llvm::errs());
+	        //llvm::errs() << "inlining?\n";
 
         // for example printf returns value, but it is usually not used. in this case, we need to add the call to the block regardless
         if (value->hasNUses(0)) {
@@ -949,6 +1291,24 @@ static void parseBitcastInstruction(const llvm::Instruction& ins, Func* func, Bl
 
 static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program) {
     Expr* expr = program.getExpr(ins.getOperand(0));
+    
+    // If the operand expression doesn't exist yet, try to create it
+    if (!expr) {
+        const llvm::Value* operand = ins.getOperand(0);
+        
+        // If the operand is an instruction, try to process it first
+        if (const llvm::Instruction* operandInst = llvm::dyn_cast<llvm::Instruction>(operand)) {
+            expr = parseLLVMInstruction(*operandInst, program);
+        } 
+        // If it's a constant, try to create a constant value
+        else if (llvm::isa<llvm::Constant>(operand)) {
+            expr = createConstantValue(operand, program);
+            if (expr) {
+                program.addExpr(operand, expr);
+            }
+        }
+    }
+    
     assert(expr);
 
     //operand is used for initializing output in inline asm
@@ -958,10 +1318,25 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     const llvm::CastInst* CI = llvm::cast<const llvm::CastInst>(&ins);
 
+
     if (llvm::isa<llvm::SExtInst>(CI)) {
         // for SExt, we do double cast -- first cast to the original
         // type that is made signed and then to the new type.
         // We must do that because we store all values as unsigned...
+    if (CI->getOperand(0)->getType()->isIntegerTy(1) &&
+        CI->getDestTy()->isIntegerTy() ) {
+        // create zero
+        auto zero = std::make_unique<Value>("0", program.getType(CI->getDestTy()));
+        // create -1
+        auto minusOne = std::make_unique<Value>("-1", program.getType(CI->getDestTy()));
+        // create comparison select ? -1 : 0
+        Expr* cond = program.getExpr(ins.getOperand(0));
+
+        auto slctExpr = program.makeExpr<SelectExpr>(cond, minusOne.get(), zero.get());
+        program.addOwnership(std::move(zero));
+        program.addOwnership(std::move(minusOne));
+        return slctExpr;
+    }
         auto *recastOrigExpr
             = program.makeExpr<CastExpr>(
                 expr,
@@ -980,6 +1355,22 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
         return castExpr;
     }
 
+    if (llvm::isa<llvm::ZExtInst>(CI)) {
+        auto *recastOrigExpr
+                    = program.makeExpr<CastExpr>(
+                        expr,
+                        program.getType(ins.getOperand(0)->getType())
+                );
+        auto *IT = static_cast<IntegerType*>(recastOrigExpr->getType());
+        recastOrigExpr->setType(program.typeHandler.setUnsigned(IT));
+        auto *castExpr = program.makeExpr<CastExpr>(
+                recastOrigExpr,
+                program.getType(CI->getDestTy())
+        );
+        IT = static_cast<IntegerType*>(castExpr->getType());
+        castExpr->setType(program.typeHandler.setUnsigned(IT));
+        return castExpr;
+    }
     auto castExpr = program.makeExpr<CastExpr>(expr, program.getType(CI->getDestTy()));
     auto IT = static_cast<IntegerType*>(castExpr->getType());
     if (ins.getOpcode() == llvm::Instruction::FPToUI) {
@@ -988,10 +1379,6 @@ static Expr* parseCastInstruction(const llvm::Instruction& ins, Program& program
 
     if (ins.getOpcode() == llvm::Instruction::FPToSI) {
         castExpr->setType(program.typeHandler.setSigned(IT));
-    }
-
-    if (llvm::isa<llvm::ZExtInst>(CI)) {
-        castExpr->setType(program.typeHandler.setUnsigned(IT));
     }
 
     return castExpr;
@@ -1025,6 +1412,39 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
         program.addOwnership(std::move(newCast));
     }
 
+    // Normalize pointer index for robust signed pointer arithmetic
+    auto normalizeIndexForPointerShift = [&](Expr* idx) -> Expr* {
+        Expr* result = idx;
+        // Detect pattern: (0 - X) => -(X)
+        if (auto sub = llvm::dyn_cast_or_null<SubExpr>(idx)) {
+            if (sub->left && sub->left->isZero() && sub->right) {
+                Expr* inner = sub->right;
+                // Unwrap ALL casts to get to the core expression
+                // This handles: (int)(unsigned int)(ptrtoint(...))
+                while (auto cast = llvm::dyn_cast_or_null<CastExpr>(inner)) {
+                    inner = cast->expr;
+                }
+                // FIX: Cast to long FIRST, then negate (not the other way around)
+                // This generates: -(long)expr instead of (long)(-expr)
+                // The latter is invalid when expr is a pointer like &(...)
+                Expr* innerAsLong = program.makeExpr<CastExpr>(inner, program.typeHandler.slong.get());
+                result = program.makeExpr<MinusExpr>(innerAsLong);
+                return result;  // Already cast, don't cast again below
+            }
+        }
+        // Cast index (possibly negated) to appropriate type for pointer arithmetic
+        // Use unsigned long long for unsigned indices (like size_t), signed long for signed indices
+        auto* intType = llvm::dyn_cast_or_null<IntegerType>(result->getType());
+        if (intType && intType->unsignedType) {
+            // For unsigned indices, use unsigned long long to preserve the value
+            result = program.makeExpr<CastExpr>(result, program.typeHandler.ulonglong.get());
+        } else {
+            // For signed indices, use signed long to model ptrdiff_t
+            result = program.makeExpr<CastExpr>(result, program.typeHandler.slong.get());
+        }
+        return result;
+    };
+
     for (auto it = llvm::gep_type_begin(gepInst); it != llvm::gep_type_end(gepInst); it++) {
         Expr* index = program.getExpr(it.getOperand());
         assert(index);
@@ -1033,7 +1453,7 @@ static Expr* parseGepInstruction(const llvm::Instruction& ins, Program& program)
             if (index->isZero()) {
                 indices.push_back(program.makeExpr<DerefExpr>(prevExpr));
             } else {
-                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, index));
+                indices.push_back(program.makeExpr<PointerShift>(program.getType(prevType), prevExpr, normalizeIndexForPointerShift(index)));
             }
         }
 
@@ -1105,6 +1525,10 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
         return parseGepInstruction(ins, program);
     case llvm::Instruction::ExtractValue:
         return parseExtractValueInstruction(ins, program);
+    case llvm::Instruction::InsertValue:
+        // insertvalue is handled in the top-level creator where we have Block/Func.
+        // Here, just return the expression if it was already created.
+        return program.getExpr(&ins);
     case llvm::Instruction::BitCast:
     case llvm::Instruction::SExt:
     case llvm::Instruction::ZExt:
@@ -1118,12 +1542,25 @@ Expr* parseLLVMInstruction(const llvm::Instruction& ins, Program& program) {
     case llvm::Instruction::IntToPtr:
     case llvm::Instruction::Trunc:
         return parseCastInstruction(ins, program);
+    case llvm::Instruction::Freeze:
+        return parseFreezeInstruction(ins, program);
+    case llvm::Instruction::FNeg:
+        return parseFnegInstruction(ins, program);
     default:
-        llvm::outs() << ins << "\n";
+        llvm::errs() << "Unsupported instruction encountered by llvm2c: ";
+        ins.print(llvm::errs());
+        llvm::errs() << "\n";
+        llvm::errs().flush();
         assert(false && "File contains unsupported instruction!");
         abort();
     }
 }
+    // {
+    //     auto *expr = parseCastInstruction(ins, program);
+    //     if (auto castExpr = llvm::dyn_cast_or_null<CastExpr>( expr ))
+    //         castExpr->setLossy();
+    //     return expr;
+    // }
 
 void createExpressions(const llvm::Module* module, Program& program, bool bitcastUnions) {
     assert(program.isPassCompleted(PassType::CreateConstants));
@@ -1155,6 +1592,15 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
                     expr = parseStoreInstruction(ins, program);
                     if (expr)
                         myBlock->addExpr(expr);
+                    break;
+                case llvm::Instruction::InsertValue:
+                    parseInsertValueInstruction(ins, func, myBlock, program);
+                    break;
+                case llvm::Instruction::LandingPad:
+                    parseLandingPadInstruction(ins, func, myBlock, program);
+                    break;
+                case llvm::Instruction::Resume:
+                    parseResumeInstruction(ins, func, myBlock, program);
                     break;
                 case llvm::Instruction::Call:
                     parseCallInstruction(ins, func, myBlock);

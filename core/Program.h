@@ -50,10 +50,15 @@ public:
     // set of passes applied to the program
     std::unordered_set<PassType> passes;
 
+    std::set<std::string> metadatedVars;
+
     //variables used for creating names for structs and anonymous structs
     unsigned structVarCount = 0;
     unsigned anonStructCount = 0;
     unsigned unionCounter = 0;
+
+    // Track LLVM intrinsics that need C definitions (not just extern declarations)
+    std::unordered_set<std::string> intrinsicsNeedingDefinitions;
 
     /**
      * @brief getAnonStructName Creates new name for anonymous struct.
@@ -181,4 +186,8 @@ public:
     std::string getUnionName();
 
     UnionType* addUnion(const std::vector<Type*>& subtypes);
+
+    void markIntrinsicForDefinition(const std::string& name) {
+        intrinsicsNeedingDefinitions.insert(name);
+    }
 };

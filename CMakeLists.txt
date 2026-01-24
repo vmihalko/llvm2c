@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 # FIXME: Unfortunately, C is (at least temporarily) required due to a bug
 # in LLVM 14.  See https://github.com/llvm/llvm-project/issues/53950.
@@ -20,7 +20,26 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
 # --------------------------------------------------
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -pedantic -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-rtti")
+
+# --------------------------------------------------
+# Sanitizers
+# --------------------------------------------------
+if (USE_SANITIZERS)
+	set(CMAKE_REQUIRED_FLAGS "-fsanitize=undefined,address") # for linker
+  include(CheckCXXCompilerFlag)
+	check_cxx_compiler_flag("-fsanitize=undefined,address" sanitizers_work)
+	set(CMAKE_REQUIRED_FLAGS "")
+
+	if (sanitizers_work)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer")
+		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-sanitize-recover=all")
+		add_definitions(-DUSING_SANITIZERS)
+	else()
+		message(WARNING "Used compiler does not support sanitizers or its support is incomplete.")
+	endif()
+endif()
 
 # --------------------------------------------------
 # LLVM
@@ -45,16 +64,41 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
-option(LLVM_LINK_DYLIB "Link with LLVM dynamically" ON)
+option(LLVM_LINK_DYLIB "Link with LLVM dynamically" OFF)
 if(LLVM_LINK_DYLIB)
   message(STATUS "LLVM linking: dynamic")
   set(llvm_libs LLVM)
 else()
   message(STATUS "LLVM linking: static")
-  # Find the libraries that correspond to the LLVM components
-  # that we wish to use
-  llvm_map_components_to_libnames(llvm_libs bitwriter core irreader linker
-                                            support)
+  # Link the required LLVM components explicitly (LLVM 14)
+  llvm_map_components_to_libnames(llvm_libs
+    AggressiveInstCombine
+    Analysis
+    AsmParser
+    BinaryFormat
+    BitReader
+    BitWriter
+    Core
+    DebugInfoCodeView
+    DebugInfoDWARF
+    Demangle
+    FrontendOpenMP
+    Instrumentation
+    InstCombine
+    IRReader
+    IPO
+    Linker
+    MC
+    MCParser
+    Object
+    Passes
+    ProfileData
+    Remarks
+    ScalarOpts
+    Support
+    TextAPI
+    TransformUtils
+    Vectorize)
 endif()
 
 # --------------------------------------------------
@@ -81,6 +125,7 @@ set(llvm2c_sources
   parser/ProgramParser.h
   parser/SimplifyingExprVisitor.cpp
   parser/addSignCasts.cpp
+  parser/addCastsToConstants.cpp
   parser/arrowify.cpp
   parser/cfunc.h
   parser/computeGlobalVarsOrder.cpp
@@ -110,9 +155,11 @@ set(llvm2c_sources
   parser/parseStructItems.cpp
   parser/passes.h
   parser/prepareBitcastUnion.cpp
+  parser/propagateTypes.cpp
   parser/refDeref.cpp
   parser/toinst.cpp
   parser/toinst.h
+  parser/InsertVLADecls.cpp
 
   type/Type.cpp
   type/Type.h

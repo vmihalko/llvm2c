@@ -19,38 +19,43 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
                     if (allocaInst->isArrayAllocation()) {
-                       //llvm::errs() << *allocaInst << "\n";
-                       //llvm::errs() << *allocaInst->getAllocatedType() << "\n";
-                        auto *llsize = allocaInst->getArraySize();
-                        Expr *size = nullptr;
-                        if (llvm::isa<llvm::ConstantInt>(llsize)) {
-                            size = createConstantValue(llsize, program);
+                        const llvm::Value* llsizeVal = allocaInst->getArraySize();
+                        Expr *sizeExpr = program.getExpr(llsizeVal);
+                        if (!sizeExpr) {
+                            // see if the operand is just the alloca of MAX itself
+                            if (auto *load = llvm::dyn_cast<llvm::LoadInst>(llsizeVal)) {
+                                sizeExpr = program.getExpr(load->getPointerOperand()); // this is MAX
+                            }
+                        }
+                        if (!sizeExpr)
+                            sizeExpr = createConstantValue(llsizeVal, program); // fallback
+
+                        if (auto ref = llvm::dyn_cast_or_null<RefExpr>(sizeExpr)) {
+                            // For VLAs, we want the variable name, not the address
+                            // Create a stable Value expression for the VLA size
+                            if (auto innerVal = llvm::dyn_cast_or_null<Value>(ref->expr)) {
+                                // Create a new Value expression that will be owned by the program
+                                auto stableSize = std::make_unique<Value>(innerVal->valueName, innerVal->getType());
+                                sizeExpr = stableSize.get();
+                                program.addOwnership(std::move(stableSize));
+                            }
+                        }
+
+                        Type* elemTy = func->getType(allocaInst->getAllocatedType());
+                        Type *vlaTy = program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr);
+
+                        theVariable = std::make_unique<Value>(func->getVarName(), vlaTy);
+                        alloc       = std::make_unique<StackAlloc>(theVariable.get());
+                        
+                        // For VLAs, just add ownership (no expression yet - will be inserted by InsertVLADecls pass)
+                        if (!llvm::isa<llvm::ConstantInt>(allocaInst->getArraySize())) {
+                            myBlock->addOwnership(std::move(alloc));
                         } else {
-                            size = program.getExpr(llsize);
-                        }
-                        if (!size) {
-                            llvm::errs() << "Unhandled size argument of alloca: " << *allocaInst << "\n";
-                            throw std::invalid_argument("Unhandled alloca");
+                            // Fixed-size array, add as expression immediately
+                            myBlock->addExprAndOwnership(std::move(alloc));
                         }
 
-                       //theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getType()));
-                       //alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        std::vector<Expr*> params;
-                        params.push_back(size);
-                        auto allocacall = std::make_unique<CallExpr>(
-                                nullptr,
-                                "alloca",
-                                params,
-                                func->getType(allocaInst->getType()));
-
-                        // assign the result of the call to the variable
-                        theVariable = std::make_unique<Value>(func->getVarName(), allocacall->getType());
-                        alloc = std::make_unique<StackAlloc>(theVariable.get());
-                        auto assign = std::make_unique<AssignExpr>(theVariable.get(), allocacall.get());
-                        myBlock->addExprAndOwnership(std::move(alloc));
-                        myBlock->addOwnership(std::move(allocacall));
-                        myBlock->addExprAndOwnership(std::move(assign));
-                        //func->createExpr(&ins, std::move(allocacall));
+                        // The createExpr for &ins is performed unconditionally below; no need to duplicate here
                     } else  {
                         // normal alloca on the stack
                         theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));
