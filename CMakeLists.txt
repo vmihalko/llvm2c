@@ -155,6 +155,7 @@ set(llvm2c_sources
   parser/parseStructItems.cpp
   parser/passes.h
   parser/prepareBitcastUnion.cpp
+  parser/fixOverflowIntrinsicTypes.cpp
   parser/propagateTypes.cpp
   parser/refDeref.cpp
   parser/toinst.cpp

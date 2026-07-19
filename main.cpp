@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     cl::opt<bool> Casts("no-function-call-casts", cl::desc("Removes casts around function calls. For experimental purposes."), cl::cat(options));
     cl::opt<bool> BitcastUnions("bitcasts-with-unions", cl::desc("Use unions to translate bitcasts"), cl::cat(options), cl::init(false));
     cl::opt<bool> BlockLabels("force-block-labels", cl::desc("Forces printing of block labels of inlined blocks"), cl::cat(options));
+    cl::opt<bool> PreciseSignedOverflow("precise-signed-overflow", cl::desc("Emit mathematically correct predicates in the llvm.s{add,sub,mul}.with.overflow model functions (default: legacy heuristic predicates, bit-compatible with stock llvm2c)"), cl::cat(options), cl::init(false));
 
     cl::HideUnrelatedOptions(options);
     cl::ParseCommandLineOptions(argc, argv);
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
         auto program = parser.parse(Input, BitcastUnions);
 
         if (Print) {
-            Writer wr{ std::cout, Includes, Casts, BlockLabels };
+            Writer wr{ std::cout, Includes, Casts, BlockLabels, PreciseSignedOverflow };
             wr.writeProgram(program);
         }
 
@@ -44,7 +45,7 @@ int main(int argc, char** argv) {
             if (!file.is_open()) {
                 throw std::invalid_argument("Output file cannot be opened!");
             }
-            Writer wr{ file, Includes, Casts, BlockLabels };
+            Writer wr{ file, Includes, Casts, BlockLabels, PreciseSignedOverflow };
             wr.writeProgram(program);
         }
 

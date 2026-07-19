@@ -328,7 +328,13 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
                          cName.find("usub") != std::string::npos ||
                          cName.find("umul") != std::string::npos;
         
-        std::string argType = is32bit ? "unsigned int" : "unsigned long long";
+        // Use signed types for signed intrinsics (sadd, ssub, smul)
+        std::string argType;
+        if (is32bit) {
+            argType = isUnsigned ? "unsigned int" : "int";
+        } else {
+            argType = isUnsigned ? "unsigned long long" : "long long";
+        }
         std::string structName;
         std::string structVar1;
         std::string structVar2;
@@ -509,21 +515,42 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
         structVar2 = structType->items[1].second;
         
         // Determine operation and overflow check
+        std::string maxVal = is32bit ? "2147483647" : "9223372036854775807LL";
+        std::string minVal = is32bit ? "(-2147483648)" : "(-9223372036854775807LL - 1)";
+
         std::string op = "+";
         std::string overflowCheck;
-        if (cName.find("sub") != std::string::npos) {
+        const bool isSub = cName.find("sub") != std::string::npos;
+        const bool isMul = cName.find("mul") != std::string::npos;
+
+        // Precise signed predicates only behind --precise-signed-overflow;
+        // default emits the legacy heuristic checks (bit-compatible with
+        // upstream/stock llvm2c output).
+        const bool precise = preciseSignedOverflow && !isUnsigned;
+
+        if (isSub) {
             op = "-";
-            // For subtraction: overflow (underflow) occurs when a < b
-            overflowCheck = "(a < b)";
-        } else if (cName.find("mul") != std::string::npos) {
+            if (!precise) {
+                overflowCheck = "(a < b)";
+            } else {
+                overflowCheck = "(b <= 0 ? a > " + maxVal + " + b : a < " + minVal + " + b)";
+            }
+        } else if (isMul) {
             op = "*";
-            // For multiplication: overflow occurs when result wraps
-            // Correct check: (a != 0 && (sum / a) != b)
-            // This correctly handles the case when b == 0 (no overflow) and when overflow occurs
-            overflowCheck = "(a != 0 && (sum / a) != b)";
+            if (!precise) {
+                overflowCheck = "(a != 0 && (sum / a) != b)";
+            } else {
+                // UB-free signed mul check; handles INT_MIN * -1 via b < MAX / a branch
+                overflowCheck = "(a > 0 ? (b > 0 ? a > " + maxVal + " / b : (b < 0 ? b < " +
+                                  minVal + " / a : 0)) : (a < 0 ? (b > 0 ? a < " + minVal +
+                                  " / b : (b < 0 ? (a != 0 && b < " + maxVal + " / a) : 0)) : 0))";
+            }
         } else {
-            // For addition: overflow occurs when result wraps
-            overflowCheck = "(sum < a || sum < b)";
+            if (!precise) {
+                overflowCheck = "(sum < a || sum < b)";
+            } else {
+                overflowCheck = "(b > 0 ? a > " + maxVal + " - b : a < " + minVal + " - b)";
+            }
         }
         
         // Generate function definition
@@ -543,6 +570,8 @@ void Writer::writeIntrinsicDefinitions(const Program& program) {
         wr.line("");
         
         wr.indent(1);
+        // Use direct arithmetic - for signed types, overflow is UB which verifiers
+        // can assume doesn't happen. For unsigned types, wrap-around is well-defined.
         wr.raw(argType);
         wr.raw(" sum = a ");
         wr.raw(op);

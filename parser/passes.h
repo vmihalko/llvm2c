@@ -34,4 +34,5 @@ void computeGlobalVarsOrder(const llvm::Module* module, Program& program);
 void createConstants(const llvm::Module* mod, Program& program);
 void inlineBlocks(const llvm::Module* mod, Program& program);
 void prepareBitcastUnion(const llvm::Module* mod, Program& program);
+void fixOverflowIntrinsicTypes(const llvm::Module* mod, Program& program);
 void propagateTypes(const llvm::Module* mod, Program& program);

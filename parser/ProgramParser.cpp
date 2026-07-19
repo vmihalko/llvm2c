@@ -205,6 +205,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // It can do (int)var from (int)(short)var
     // where var is (unsigned short).
     RUN_PASS(extractVars);
+    RUN_PASS(fixOverflowIntrinsicTypes);  // Fix signed overflow struct types before propagation
     RUN_PASS(propagateTypes);
     RUN_PASS(addSignCasts);
     //RUN_PASS(addCastsToConstants);

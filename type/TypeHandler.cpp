@@ -3,6 +3,7 @@
 #include "llvm/IR/DerivedTypes.h"
 
 #include "../core/Program.h"
+#include <cctype>
 
 Type* TypeHandler::getType(const llvm::Type* type) {
     if (typeDefs.find(type) != typeDefs.end()) {
@@ -149,7 +150,14 @@ Type* TypeHandler::getBinaryType(Type* left, Type* right) {
 
 std::string TypeHandler::getStructName(const std::string& structName) {
     std::string name = structName;
-    std::replace(name.begin(), name.end(), '.', '_');
+    
+    // Sanitize characters that are invalid in C identifiers
+    // Rust type names can contain: @ < > & # [ ] { } ( ) , ; : ! $ %
+    for (char& c : name) {
+        if (!std::isalnum(c) && c != '_') {
+            c = '_';
+        }
+    }
 
     if (name.substr(0, 6).compare("struct") == 0) {
         name.erase(0, 7);

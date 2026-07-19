@@ -29,15 +29,9 @@ static std::vector<Expr*> generatePhiAssignments(Block* blockEnding, Block* next
         for (unsigned i = 0; i < phi.getNumIncomingValues(); ++i) {
             if (phi.getIncomingBlock(i) == blockEnding->block) {
                 Expr* incoming = program.getExpr(phi.getIncomingValue(i));
-
-                exprs.push_back(program.makeExpr<AssignExpr>(phiVar, isLoop ? program.makeExpr<SelectExpr>(
-                                    blockEnding->func->getExpr(
-                                        llvm::dyn_cast<llvm::BranchInst>(blockEnding->block->getTerminator())->getCondition()
-                                                 ),
-                                    incoming,
-                                    phiVar,
-                                    isNegated
-                                ) : incoming));
+                // Phi assignments should be unconditional - when the edge is taken,
+                // the phi variable gets the incoming value
+                exprs.push_back(program.makeExpr<AssignExpr>(phiVar, incoming));
             }
         }
     }

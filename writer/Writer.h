@@ -19,6 +19,7 @@ private:
     bool useIncludes;
     bool noFuncCasts;
     bool forceBlockLabels;
+    bool preciseSignedOverflow;
 
     void includes(const Program& program);
     void unionDeclarations(const Program& program);
@@ -41,6 +42,6 @@ private:
 
 
 public:
-    Writer(std::ostream& stream, bool useIncludes, bool noFuncCasts, bool forceBlockLabels) : wr(CWriter(stream)), ew(ExprWriter(stream, noFuncCasts, forceBlockLabels)), useIncludes(useIncludes), noFuncCasts(true), forceBlockLabels(forceBlockLabels) {}
+    Writer(std::ostream& stream, bool useIncludes, bool noFuncCasts, bool forceBlockLabels, bool preciseSignedOverflow = false) : wr(CWriter(stream)), ew(ExprWriter(stream, noFuncCasts, forceBlockLabels)), useIncludes(useIncludes), noFuncCasts(true), forceBlockLabels(forceBlockLabels), preciseSignedOverflow(preciseSignedOverflow) {}
     void writeProgram(const Program& program);
 };

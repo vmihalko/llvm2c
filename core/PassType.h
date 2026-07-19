@@ -30,5 +30,6 @@ enum class PassType {
     ComputeGlobalVarsOrder,
     CreateConstants,
     PrepareBitcastUnion,
+    FixOverflowIntrinsicTypes,
     PropagateTypes,
 };
