@@ -166,6 +166,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     RUN_PASS(createFunctionParameters);
     RUN_PASS(createBlocks);
     RUN_PASS(createAllocas);
+    createByvalCopies(mod, result);
 
     // ------------------------------------------------------------------
     // We must create the IR → C expressions *before* we try to rename
