@@ -42,6 +42,7 @@ public:
     void visit(XorExpr& expr) override;
     void visit(CmpExpr& expr) override;
     void visit(ShlExpr& expr) override;
+    void visit(DoWhile& expr) override;
 };
 
 
@@ -67,6 +68,21 @@ void addSignCasts(const llvm::Module* module, Program& program) {
 void SignCastsVisitor::visit(IfExpr& expr) {
     if (expr.cmp) {
         expr.cmp->accept(*this);
+    }
+}
+
+// A do-while's condition comes from the loop-latch branch (a separate icmp from
+// the header guard that IfExpr handles). Without traversing it here, a signed
+// icmp on an unsigned operand keeps its raw unsigned form (e.g. `x >= 0`, which
+// is always true), turning a terminating loop into an infinite one. Route the
+// condition (and body, mirroring PropagateTypesVisitor) through the same
+// CmpExpr/castIfNeeded path used for every other comparison.
+void SignCastsVisitor::visit(DoWhile& expr) {
+    if (expr.cond) {
+        expr.cond->accept(*this);
+    }
+    if (expr.body) {
+        expr.body->accept(*this);
     }
 }
 
