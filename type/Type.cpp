@@ -210,7 +210,7 @@ std::string ArrayType::surroundName(const std::string& name) {
         for (unsigned i = 0; i < pointer->levels; i++) {
             ret += "*";
         }
-        return ret + name + sizeToString() + ")";
+        return ret + name + sizeToString() + ")" + pointer->arraySizes();
     } else {
         return name + sizeToString();
     }
@@ -272,6 +272,17 @@ bool PointerType::classof(const Type* type) {
     return type->getKind() == TK_PointerType;
 }
 
+std::string PointerType::arraySizes() const {
+    const Type* t = type;
+    while (auto PT = llvm::dyn_cast_or_null<const PointerType>(t)) {
+        t = PT->type;
+    }
+    if (auto AT = llvm::dyn_cast_or_null<const ArrayType>(t)) {
+        return AT->sizeToString();
+    }
+    return "";
+}
+
 std::string PointerType::toString() const {
     std::string ret = getConstStaticString();
 
@@ -299,8 +310,7 @@ std::string PointerType::surroundName(const std::string& name) {
     }
 
     if (isArrayPointer) {
-        const ArrayType* at = llvm::dyn_cast<ArrayType>(type);
-        ret += at ? at->sizeToString() : "";
+        ret += arraySizes();
         //ret = ret + sizes;
     }
 

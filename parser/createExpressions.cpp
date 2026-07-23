@@ -456,6 +456,13 @@ static Expr* parseStoreInstruction(const llvm::Instruction& ins, Program& progra
         AE->addOutputExpr(val1, 0);
         return nullptr;
     }
+    // An aggregate copy of array type is emitted as memcpy by the writer
+    // (C forbids array assignment); make sure <string.h> is pulled in even
+    // when the module itself contains no memcpy call.
+    if (llvm::dyn_cast_or_null<ArrayType>(type)) {
+        program.hasString = true;
+    }
+
     auto assign = std::make_unique<AssignExpr>(program.addOwnership(std::move(deref)), val0);
 
     return program.addOwnership(std::move(assign));

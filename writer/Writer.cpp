@@ -34,6 +34,16 @@ void Writer::includes(const Program& program) {
         wr.line("int __isnan( double x ) { return x != x; }");
     }
 
+    // Array aggregate copies are rendered as memmove by ExprWriter.  The call
+    // is synthesised by the writer, so it is not in the module and
+    // functionDeclarations() will not declare it.  Without -add-includes there
+    // is no <string.h> either, which would leave memmove implicitly declared
+    // (invalid C99+, hard error on GCC 14+/C23).  Declare it explicitly.
+    // size_t is `unsigned long` under the artifact's pinned LP64 data model.
+    if (program.hasString && !useIncludes) {
+        wr.line("void *memmove(void *, const void *, unsigned long);");
+    }
+
     if (!useIncludes)
         return;
 
@@ -247,6 +257,7 @@ void Writer::functionHead(const Func* func, bool isdecl) {
             wr.startArrayFunction(param->getType()->toString(), ppt->levels, "");
             param->accept(ew);
             wr.raw(")");
+            wr.raw(ppt->arraySizes());
         } else {
             wr.raw(param->getType()->toString());
             wr.raw(" ");
@@ -275,7 +286,7 @@ void Writer::functionHead(const Func* func, bool isdecl) {
 
     if (arrayPtr) {
         wr.raw(")");
-        //wr.raw(PT->sizes);
+        wr.raw(PT->arraySizes());
     }
 }
 

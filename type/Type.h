@@ -158,6 +158,10 @@ public:
 
     std::string surroundName(const std::string& name) override;
 
+    //sizes of the pointed-to array, walked through pointer levels
+    //(replacement for the removed cached `sizes` string)
+    std::string arraySizes() const;
+
     static bool classof(const Type* type);
 };
 

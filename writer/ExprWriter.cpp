@@ -277,7 +277,7 @@ void ExprWriter::visit(PointerShift& expr) {
         for (unsigned i = 0; i < PT->levels; i++) {
             ss << "*";
         }
-        ss << ")";
+        ss << ")" << PT->arraySizes();
     }
 
     ss << ")(";
@@ -329,7 +329,7 @@ void ExprWriter::writeCastType(Type *Ty) {
             for (unsigned i = 0; i < PT->levels; i++) {
                 ss << "*";
             }
-            ss << ")";
+            ss << ")" << PT->arraySizes();
         }
     }
     ss << ")";
@@ -353,6 +353,33 @@ void ExprWriter::visit(SubExpr& expr) {
 }
 
 void ExprWriter::visit(AssignExpr& expr) {
+    // C does not allow assignment of array types (an array aggregate copy in
+    // the IR -- e.g. `store [N x T]`).  Render such a copy with memmove
+    // instead of `=`.  Array operands decay to pointers as arguments, and
+    // sizeof on the array lvalue yields the full byte size of the array.
+    // Struct aggregates keep `=`.
+    //
+    // memMOVE, not memcpy: the IR `store` of a loaded aggregate copies
+    // through a value snapshot, but the C we emit re-references the source
+    // *lvalue*, so the as-if-through-a-temp property is lost and overlapping
+    // storage would be corrupted by memcpy.
+    //
+    // Both sides must be aggregates.  llvm2c models some lvalues as a whole
+    // array while the IR stores a scalar into one element (VLA element
+    // stores); gating on the LHS alone would emit the scalar as the source
+    // *pointer* argument.  Falling through to `=` in that case reproduces the
+    // pre-existing behaviour instead of emitting nonsense.
+    if (llvm::dyn_cast_or_null<ArrayType>(expr.left->getType())
+            && llvm::dyn_cast_or_null<ArrayType>(expr.right->getType())) {
+        ss << "memmove(";
+        parensIfNotSimple(expr.left);
+        ss << ", ";
+        parensIfNotSimple(expr.right);
+        ss << ", sizeof(";
+        parensIfNotSimple(expr.left);
+        ss << "))";
+        return;
+    }
     parensIfNotSimple(expr.left);
     ss << " = ";
     parensIfNotSimple(expr.right);
