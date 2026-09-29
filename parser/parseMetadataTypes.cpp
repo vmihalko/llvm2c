@@ -99,10 +99,12 @@ std::optional<Type *> getFnctnPtrType(Program& program, const llvm::DIDerivedTyp
             return it->second.get();
         }
 
-        auto nthTypeDef = program.typeHandler.getTypeDefNumber();
+        // Share the name counter and the output list with TypeHandler::getType:
+        // a separate counter indexing sortedTypeDefs overwrote the IR-derived
+        // typedefs (and wrote out of bounds when the vector was shorter).
         program.typeHandler.ditypeCache[diDtype] = std::make_unique<FunctionPointerType>(
-                    rtrnType + "(*",  "typeDef_" + std::to_string(nthTypeDef), ")" + fnctnTypesOfArgsString);
-        program.typeHandler.sortedTypeDefs[nthTypeDef] = static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get());
+                    rtrnType + "(*",  program.typeHandler.getTypeDefName(), ")" + fnctnTypesOfArgsString);
+        program.typeHandler.sortedTypeDefs.push_back(static_cast<FunctionPointerType *>(program.typeHandler.ditypeCache[diDtype].get()));
         return program.typeHandler.ditypeCache[diDtype].get();
 }
 

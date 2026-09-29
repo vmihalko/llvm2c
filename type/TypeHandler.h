@@ -43,7 +43,6 @@ public:
     std::unordered_map<Type*, uptr<Type>> pointerTypes;
 
     unsigned typeDefCount = 0; //variable used for creating new name for typedef
-    unsigned typeDefCountForMetadata = 0;
 
     /**
      * @brief getTypeDefName Creates new name for a typedef.
@@ -53,13 +52,6 @@ public:
         std::string ret = "typeDef_" + std::to_string(typeDefCount);
         typeDefCount++;
         return ret;
-    }
-    /**
-     * @brief getTypeDefNumber returns a unique typedef counter
-     * @return unique typedef counter
-     */
-     unsigned getTypeDefNumber() {
-        return typeDefCountForMetadata++;
     }
 
     /**
