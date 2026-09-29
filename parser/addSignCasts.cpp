@@ -1,5 +1,10 @@
 #include <llvm/IR/Instruction.h>
 #include <memory>
+#include <algorithm>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
 
 #include "../core/Program.h"
 #include "../core/Func.h"
@@ -13,6 +18,7 @@ class SignCastsVisitor : public ExprVisitor {
 
     Expr* castIfNeeded(Expr* expr, bool isUnsigned);
     IntegerType* toggleSignedness(IntegerType* ty);
+    void enforceCSignedness(BinaryExpr& expr, bool isUnsigned);
 
 public:
     SignCastsVisitor(Program& program, Block* block) : block(block), program(program) {}
@@ -86,6 +92,91 @@ void SignCastsVisitor::visit(DoWhile& expr) {
     }
 }
 
+
+namespace {
+// C type of an expression as the *printed* C will see it (LP64), which can
+// differ from llvm2c's model: `243 ^ (long long)x` is modelled with the IR
+// constant's unsigned type but is signed in C (decimal literals are signed).
+struct CType { bool known = false; bool uns = false; int bits = 0; };
+
+int bitsOfName(std::string n) {
+    for (const char* p : {"unsigned ", "signed "})
+        if (n.rfind(p, 0) == 0) n = n.substr(strlen(p));
+    if (n == "char") return 8;
+    if (n == "short") return 16;
+    if (n == "int") return 32;
+    if (n == "long" || n == "long long") return 64;
+    if (n == "__int128") return 128;
+    return 0;
+}
+
+CType fromType(Type* t) {
+    auto IT = llvm::dyn_cast_or_null<IntegerType>(t);
+    if (!IT) return {};
+    int b = bitsOfName(IT->toString());
+    if (!b) return {};
+    return {true, IT->unsignedType, b};
+}
+
+CType promote(CType c) {
+    if (c.known && c.bits < 32) return {true, false, 32};
+    return c;
+}
+
+CType usualConversions(CType a, CType b) {
+    if (!a.known || !b.known) return {};
+    a = promote(a); b = promote(b);
+    if (a.uns == b.uns) return {true, a.uns, std::max(a.bits, b.bits)};
+    CType u = a.uns ? a : b, s = a.uns ? b : a;
+    return u.bits >= s.bits ? u : s;
+}
+
+bool isIntLiteral(const Expr* e) {
+    if (e->getKind() != Expr::EK_Value) return false;
+    const std::string& n = static_cast<const Value*>(e)->valueName;
+    size_t i = (!n.empty() && n[0] == '-') ? 1 : 0;
+    return i < n.size() && std::all_of(n.begin() + i, n.end(), ::isdigit);
+}
+
+CType cType(Expr* e) {
+    if (isIntLiteral(e)) {
+        errno = 0;
+        long long v = strtoll(static_cast<Value*>(e)->valueName.c_str(), nullptr, 10);
+        bool fitsInt = errno == 0 && v >= INT_MIN && v <= INT_MAX;
+        return {true, false, fitsInt ? 32 : 64};
+    }
+    if (llvm::isa<CastExpr>(e)) return fromType(e->getType());
+    if (llvm::isa<AddExpr>(e) || llvm::isa<SubExpr>(e) || llvm::isa<MulExpr>(e) ||
+        llvm::isa<DivExpr>(e) || llvm::isa<RemExpr>(e) || llvm::isa<AndExpr>(e) ||
+        llvm::isa<OrExpr>(e) || llvm::isa<XorExpr>(e)) {
+        auto* b = static_cast<BinaryExpr*>(e);
+        return usualConversions(cType(b->left), cType(b->right));
+    }
+    if (llvm::isa<ShlExpr>(e) || llvm::isa<AshrExpr>(e) || llvm::isa<LshrExpr>(e))
+        return promote(cType(static_cast<BinaryExpr*>(e)->left));
+    return fromType(e->getType());
+}
+} // namespace
+
+// castIfNeeded trusts the modelled operand types.  For operations whose
+// result depends on signedness (ordered compare, div, rem), also check what
+// C will actually compute and cast the non-literal operands if it disagrees.
+void SignCastsVisitor::enforceCSignedness(BinaryExpr& expr, bool isUnsigned) {
+    CType c = usualConversions(cType(expr.left), cType(expr.right));
+    if (!c.known || c.uns == isUnsigned)
+        return;
+    for (Expr** side : {&expr.left, &expr.right}) {
+        CType s = cType(*side);
+        auto IT = llvm::dyn_cast_or_null<IntegerType>((*side)->getType());
+        if (!IT || isIntLiteral(*side) || (s.known && promote(s).uns == isUnsigned))
+            continue;
+        Type* target = IT->unsignedType == isUnsigned ? IT : toggleSignedness(IT);
+        auto cast = std::make_unique<CastExpr>(*side, target);
+        *side = cast.get();
+        block->addOwnership(std::move(cast));
+    }
+}
+
 Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
     Expr* result = expr;
     auto IT = llvm::dyn_cast_or_null<IntegerType>(expr->getType());
@@ -111,6 +202,8 @@ void SignCastsVisitor::visit(CmpExpr& expr) {
     
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
+    if (expr.comparsion != "==" && expr.comparsion != "!=")
+        enforceCSignedness(expr, expr.isUnsigned);
 }
 
 void SignCastsVisitor::visit(AggregateElement& expr) {
@@ -215,6 +308,7 @@ void SignCastsVisitor::visit(DivExpr& expr) {
 
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
+    enforceCSignedness(expr, expr.isUnsigned);
 }
 
 void SignCastsVisitor::visit(RemExpr& expr) {
@@ -223,6 +317,7 @@ void SignCastsVisitor::visit(RemExpr& expr) {
 
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
+    enforceCSignedness(expr, expr.isUnsigned);
 }
 
 void SignCastsVisitor::visit(AndExpr& expr) {
