@@ -129,8 +129,12 @@ void PropagateTypesVisitor::visit(RemExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    // Unlike add/sub/mul, signedness is the semantics of div/rem: keep the
+    // opcode's (udiv/urem vs sdiv/srem) and make the result type agree, so
+    // addSignCasts casts the operands instead of the operation being flipped.
     if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
-	    expr.isUnsigned = IT->unsignedType;
+	    if (IT->unsignedType != expr.isUnsigned)
+		    expr.setType(prgrm->typeHandler.toggleSignedness(IT));
     }
 }
 
@@ -192,8 +196,12 @@ void PropagateTypesVisitor::visit(DivExpr& expr) {
     expr.left->accept(*this);
     expr.right->accept(*this);
     expr.setType(expr.left->getType() ? expr.left->getType() : expr.right->getType());
+    // Unlike add/sub/mul, signedness is the semantics of div/rem: keep the
+    // opcode's (udiv/urem vs sdiv/srem) and make the result type agree, so
+    // addSignCasts casts the operands instead of the operation being flipped.
     if(auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.getType())) {
-	    expr.isUnsigned = IT->unsignedType;
+	    if (IT->unsignedType != expr.isUnsigned)
+		    expr.setType(prgrm->typeHandler.toggleSignedness(IT));
     }
 }
 

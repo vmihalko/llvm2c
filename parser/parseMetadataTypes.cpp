@@ -541,9 +541,8 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
                 //             << " specified by the user differs from the type in DIinfo.\n";
                 return;
             }
+	    // keep d->isUnsigned: it is the opcode (udiv vs sdiv), not the variable's type
 	    d->setType(t.value());
-	    if(auto IT = llvm::dyn_cast_or_null<IntegerType>(d->getType()))
-		d->isUnsigned = IT->unsignedType;
 	}
     }
 else {
