@@ -173,9 +173,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                             dstForAssign = innerExpr;
                                         }
                                     }
-                                } else if (auto* dstDeref = llvm::dyn_cast_or_null<DerefExpr>(dstUnwrapped)) {
-                                    // Destination is already *ptr, use as is
-                                    dstForAssign = dstUnwrapped;
                                 } else {
                                     // Destination is a Value or other expression
                                     // Check if it's a pointer type
@@ -236,9 +233,6 @@ void memcpyToAssignment(const llvm::Module* module, Program& program) {
                                             srcForAssign = innerExpr;
                                         }
                                     }
-                                } else if (auto* srcDeref = llvm::dyn_cast_or_null<DerefExpr>(srcUnwrapped)) {
-                                    // Source is already *ptr, use as is
-                                    srcForAssign = srcUnwrapped;
                                 } else {
                                     // Source is a Value, AggregateElement, or other expression
                                     // Check if it's a pointer type - if so, we need to dereference it
