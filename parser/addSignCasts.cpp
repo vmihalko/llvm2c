@@ -19,6 +19,7 @@ class SignCastsVisitor : public ExprVisitor {
     Expr* castIfNeeded(Expr* expr, bool isUnsigned);
     IntegerType* toggleSignedness(IntegerType* ty);
     void enforceCSignedness(BinaryExpr& expr, bool isUnsigned);
+    void enforceShiftSignedness(BinaryExpr& expr, bool isUnsigned);
 
 public:
     SignCastsVisitor(Program& program, Block* block) : block(block), program(program) {}
@@ -48,6 +49,13 @@ public:
     void visit(XorExpr& expr) override;
     void visit(CmpExpr& expr) override;
     void visit(ShlExpr& expr) override;
+    void visit(AshrExpr& expr) override;
+    void visit(LshrExpr& expr) override;
+    void visit(MinusExpr& expr) override;
+    void visit(LogicalNot& expr) override;
+    void visit(LogicalAnd& expr) override;
+    void visit(LogicalOr& expr) override;
+    void visit(ArrowExpr& expr) override;
     void visit(DoWhile& expr) override;
 };
 
@@ -175,6 +183,23 @@ void SignCastsVisitor::enforceCSignedness(BinaryExpr& expr, bool isUnsigned) {
         *side = cast.get();
         block->addOwnership(std::move(cast));
     }
+}
+
+// C's `>>` is arithmetic or logical depending on the type of its left
+// operand, so make that type (unpromoted, of the IR width) match the opcode.
+void SignCastsVisitor::enforceShiftSignedness(BinaryExpr& expr, bool isUnsigned) {
+    expr.left = castIfNeeded(expr.left, isUnsigned);
+    auto IT = llvm::dyn_cast_or_null<IntegerType>(expr.left->getType());
+    if (!IT)
+        return;
+    CType s = cType(expr.left);
+    int irBits = bitsOfName(IT->toString());
+    if (!irBits || (s.known && s.uns == isUnsigned && s.bits == irBits))
+        return;
+    Type* target = IT->unsignedType == isUnsigned ? IT : toggleSignedness(IT);
+    auto cast = std::make_unique<CastExpr>(expr.left, target);
+    expr.left = cast.get();
+    block->addOwnership(std::move(cast));
 }
 
 Expr* SignCastsVisitor::castIfNeeded(Expr* expr, bool isUnsigned) {
@@ -341,6 +366,40 @@ void SignCastsVisitor::visit(ShlExpr& expr) {
 
     expr.left = castIfNeeded(expr.left, expr.isUnsigned);
     expr.right = castIfNeeded(expr.right, expr.isUnsigned);
+}
+
+void SignCastsVisitor::visit(AshrExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    enforceShiftSignedness(expr, false);
+}
+
+void SignCastsVisitor::visit(LshrExpr& expr) {
+    expr.left->accept(*this);
+    expr.right->accept(*this);
+    enforceShiftSignedness(expr, true);
+}
+
+void SignCastsVisitor::visit(MinusExpr& expr) {
+    expr.expr->accept(*this);
+}
+
+void SignCastsVisitor::visit(LogicalNot& expr) {
+    expr.expr->accept(*this);
+}
+
+void SignCastsVisitor::visit(LogicalAnd& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+}
+
+void SignCastsVisitor::visit(LogicalOr& expr) {
+    expr.lhs->accept(*this);
+    expr.rhs->accept(*this);
+}
+
+void SignCastsVisitor::visit(ArrowExpr& expr) {
+    expr.expr->accept(*this);
 }
 
 IntegerType* SignCastsVisitor::toggleSignedness(IntegerType* ty) {
