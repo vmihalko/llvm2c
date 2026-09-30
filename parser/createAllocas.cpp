@@ -44,7 +44,12 @@ void createAllocas(const llvm::Module* module, Program& program) {
                         alloc = std::make_unique<StackAlloc>(theVariable.get());
                         myBlock->addExprAndOwnership(std::move(alloc));
                     }
-                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get(), program.typeHandler.pointerTo(theVariable.get()->getType())));
+                    // a VLA's address is an `elem*` in the IR; its variable is typed
+                    // `elem*` only as a placeholder, so don't derive `elem**` from it
+                    Type* addrTy = program.vlaAllocs.count(allocaInst)
+                        ? theVariable->getType()
+                        : program.typeHandler.pointerTo(theVariable->getType());
+                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get(), addrTy));
                     myBlock->addOwnership(std::move(theVariable));
                 }
             }
