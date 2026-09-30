@@ -435,6 +435,12 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
         llvm::Metadata* varMD = llvm::dyn_cast_or_null<llvm::MetadataAsValue>(ins->getOperand(1))->getMetadata();
         llvm::DILocalVariable* localVar = llvm::dyn_cast_or_null<llvm::DILocalVariable>(varMD);
 
+        // A VLA is lowered to an `elem*` (see createAllocas): its DWARF array
+        // type must not replace that
+        for (const auto& vla : program.vlaAllocs)
+            if (vla.second == variable)
+                return;
+
         // Special handling for VLAs: check if current variable is a VLA
         if (auto currentArrayType = llvm::dyn_cast_or_null<ArrayType>(variable->getType())) {
             if (currentArrayType->dynSize) {

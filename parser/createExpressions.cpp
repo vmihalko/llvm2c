@@ -1585,19 +1585,22 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
                 Expr* expr = nullptr;
                 switch (ins.getOpcode()) {
                 case llvm::Instruction::Alloca: {
-                    // VLA: declare it here, where its size expression exists
-                    // and evaluates at the same point as in the IR.
-                    auto vla = program.vlaAllocs.find(llvm::cast<llvm::AllocaInst>(&ins));
+                    // VLA: `v = (elem*)__builtin_alloca(n * sizeof(elem));` here, where
+                    // the size expression exists and evaluates as in the IR
+                    const auto* AI = llvm::cast<llvm::AllocaInst>(&ins);
+                    auto vla = program.vlaAllocs.find(AI);
                     if (vla != program.vlaAllocs.end()) {
-                        const llvm::Value* llsizeVal = llvm::cast<llvm::AllocaInst>(&ins)->getArraySize();
-                        Expr* sizeExpr = program.getExpr(llsizeVal);
-                        if (!sizeExpr)
-                            sizeExpr = createConstantValue(llsizeVal, program);
-                        StackAlloc* SA = vla->second;
-                        Type* elemTy = llvm::cast<PointerType>(SA->value->getType())->type;
-                        SA->value->setType(program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr));
-                        SA->setType(SA->value->getType());
-                        myBlock->addExpr(SA);
+                        Expr* count = program.getExpr(AI->getArraySize());
+                        if (!count)
+                            count = createConstantValue(AI->getArraySize(), program);
+                        auto* ull = program.typeHandler.ulonglong.get();
+                        uint64_t elemBytes = module->getDataLayout().getTypeAllocSize(AI->getAllocatedType());
+                        Expr* bytes = program.makeExpr<MulExpr>(program.makeExpr<CastExpr>(count, ull),
+                                                                program.makeExpr<Value>(std::to_string(elemBytes) + "ULL", ull), true);
+                        Expr* call = program.makeExpr<CallExpr>(nullptr, "__builtin_alloca", std::vector<Expr*>{bytes},
+                                                                program.typeHandler.pointerTo(program.typeHandler.voidType.get()));
+                        Value* var = vla->second;
+                        myBlock->addExpr(program.makeExpr<AssignExpr>(var, program.makeExpr<CastExpr>(call, var->getType())));
                     }
                     break;
                 }

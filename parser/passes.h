@@ -16,7 +16,6 @@ void createFunctionParameters(const llvm::Module* module, Program& program);
 void createBlocks(const llvm::Module* module, Program& program);
 void createAllocas(const llvm::Module* module, Program& program);
 void createByvalCopies(const llvm::Module* module, Program& program);
-void fixVLAAddresses(const llvm::Module* module, Program& program);
 void parseMetadataTypes(const llvm::Module* module, Program& program);
 void createExpressions(const llvm::Module* module, Program& program, bool bitcastUnions);
 void findDeclaredFunctions(const llvm::Module* module, Program& program);

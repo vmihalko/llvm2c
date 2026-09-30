@@ -43,9 +43,9 @@ public:
 
     // all expressions in the program (just for memory management purposes)
     std::vector<std::unique_ptr<Expr>> ownership;
-    // VLA allocas: declared by createExpressions at the alloca's position,
-    // where their size expression exists (see createAllocas)
-    std::map<const llvm::AllocaInst*, StackAlloc*> vlaAllocs;
+    // VLA allocas -> their `elem*` variable, allocated by createExpressions
+    // with __builtin_alloca at the alloca's position (see createAllocas)
+    std::map<const llvm::AllocaInst*, Value*> vlaAllocs;
 
     // union used for bitcasts from LLVM
     UnionType* bitcastUnion = nullptr;

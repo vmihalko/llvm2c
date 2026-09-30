@@ -19,15 +19,16 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
                     if (allocaInst->isArrayAllocation() && !llvm::isa<llvm::ConstantInt>(allocaInst->getArraySize())) {
-                        // VLA.  Its size is usually an expression over values
-                        // createExpressions has not built yet (`int a[n + 1]`),
-                        // so the real type and the declaration are made there,
-                        // at the alloca's position.  Placeholder until then.
+                        // VLA: a function-scope `elem* v`, allocated by createExpressions
+                        // at the alloca (`v = (elem*)__builtin_alloca(n * sizeof(elem))`).
+                        // Not a C VLA: llvm2c's goto layout leaves and re-enters block
+                        // scopes, which ends a VLA's lifetime (CBMC: wrong FALSE on
+                        // array-tiling) or jumps into its scope (compile error).
                         Type* elemTy = func->getType(allocaInst->getAllocatedType());
                         theVariable = std::make_unique<Value>(func->getVarName(), program.typeHandler.pointerTo(elemTy));
                         alloc       = std::make_unique<StackAlloc>(theVariable.get());
-                        program.vlaAllocs[allocaInst] = alloc.get();
-                        myBlock->addOwnership(std::move(alloc));
+                        program.vlaAllocs[allocaInst] = theVariable.get();
+                        myBlock->addExprAndOwnership(std::move(alloc));
                     } else if (allocaInst->isArrayAllocation()) {
                         // constant count: unchanged from before
                         const llvm::Value* llsizeVal = allocaInst->getArraySize();
@@ -44,12 +45,12 @@ void createAllocas(const llvm::Module* module, Program& program) {
                         alloc = std::make_unique<StackAlloc>(theVariable.get());
                         myBlock->addExprAndOwnership(std::move(alloc));
                     }
-                    // a VLA's address is an `elem*` in the IR; its variable is typed
-                    // `elem*` only as a placeholder, so don't derive `elem**` from it
-                    Type* addrTy = program.vlaAllocs.count(allocaInst)
-                        ? theVariable->getType()
-                        : program.typeHandler.pointerTo(theVariable->getType());
-                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get(), addrTy));
+                    if (program.vlaAllocs.count(allocaInst)) {
+                        // the alloca's value (an `elem*`) is the pointer variable itself
+                        func->createExpr(&ins, std::move(theVariable));
+                        continue;
+                    }
+                    func->createExpr(&ins, std::make_unique<RefExpr>(theVariable.get(), program.typeHandler.pointerTo(theVariable->getType())));
                     myBlock->addOwnership(std::move(theVariable));
                 }
             }
@@ -153,33 +154,3 @@ void createByvalCopies(const llvm::Module* module, Program& program) {
     }
 }
 
-// A VLA alloca is an `elem*` in the IR, so its address is `&a[0]`, not `&a`
-// (an `elem(*)[n]`: pointer arithmetic would stride whole arrays and a deref
-// would yield an array, i.e. an array assignment gcc/CBMC reject).
-// createAllocas maps the alloca to `&a` because InsertVLADecls and the
-// metadata passes look through that RefExpr to the variable; rewrite it in
-// place once they are done and before refDeref folds `*(&a)` to `a`.
-void fixVLAAddresses(const llvm::Module* module, Program& program) {
-    for (const auto& function : module->functions()) {
-        auto* func = program.getFunction(&function);
-        if (!func)
-            continue;
-        for (const auto& block : function) {
-            for (const auto& ins : block) {
-                const auto* AI = llvm::dyn_cast<llvm::AllocaInst>(&ins);
-                if (!AI || !AI->isArrayAllocation() || llvm::isa<llvm::ConstantInt>(AI->getArraySize()))
-                    continue;
-                auto* ref = llvm::dyn_cast_or_null<RefExpr>(func->getExpr(AI));
-                if (!ref)
-                    continue;
-                auto* var = llvm::dyn_cast_or_null<Value>(ref->expr);
-                auto* arrTy = var ? llvm::dyn_cast_or_null<ArrayType>(var->getType()) : nullptr;
-                if (!arrTy || !arrTy->dynSize)
-                    continue;
-                Expr* zero = program.makeExpr<Value>("0", program.typeHandler.slong.get());
-                ref->expr = program.makeExpr<ArrayElement>(var, zero, arrTy->type);
-                ref->setType(program.typeHandler.pointerTo(arrTy->type));
-            }
-        }
-    }
-}

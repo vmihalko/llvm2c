@@ -191,7 +191,6 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
     // safely rename them according to the debug information.
     RUN_PASS(findMetadataVariableNames);
     RUN_PASS(parseMetadataTypes);
-    fixVLAAddresses(mod, result);
 
     RUN_PASS(parseBreaks);
 
