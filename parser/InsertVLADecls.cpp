@@ -12,6 +12,7 @@
 struct VLAInfo {
     StackAlloc* stackAlloc;
     Expr* sizeExpr;  // The expression that represents the size (e.g., CELLCOUNT)
+    const llvm::BasicBlock* block; // block of the alloca (fallback location)
 };
 using Map = std::map<RefExpr*, VLAInfo>;
 
@@ -27,7 +28,10 @@ static void collectVLAs(Func *F, Map &M, Program &P)
         // Check if this is a VLA AllocaInst
         if (llvmVal) {
             if (auto *AI = llvm::dyn_cast<llvm::AllocaInst>(llvmVal)) {
-                if (AI->isArrayAllocation() && !llvm::isa<llvm::ConstantInt>(AI->getArraySize())) {
+                // exprMap is program-wide: only this function's VLAs, or they
+                // get declared (and same-named variables removed) in every function
+                if (AI->isArrayAllocation() && !llvm::isa<llvm::ConstantInt>(AI->getArraySize())
+                        && F && F->blockMap.count(AI->getParent())) {
                     // The expr should be a RefExpr pointing to the VLA variable
                     if (auto *refExpr = llvm::dyn_cast<RefExpr>(expr)) {
                         // Find the corresponding StackAlloc in the ownership list
@@ -40,6 +44,7 @@ static void collectVLAs(Func *F, Map &M, Program &P)
                                             VLAInfo info;
                                             info.stackAlloc = SA;
                                             info.sizeExpr = arrayTy->dynSize;
+                                            info.block = AI->getParent();
                                             M[refExpr] = info;
  
                                             // Remove original declaration locations (prologue vars and block expressions)
@@ -262,23 +267,15 @@ static void insertAfterSizeInitialization(Func *F, Map &M)
         }
     }
     
-    // Fallback: For any remaining VLAs, insert them at the beginning of the first block
-    // This handles cases where we couldn't find the size assignment
-    if (!M.empty()) {
-        Block* entryBlock = nullptr;
-        for (auto &BP : F->blockMap) {
-            if (!BP.second->expressions.empty()) {
-                entryBlock = BP.second.get();
-                break;
-            }
-        }
-        
-        if (entryBlock) {
-            auto insertPos = entryBlock->expressions.begin();
-            for (auto &pair : M) {
-                VLAInfo &info = pair.second;
-                entryBlock->expressions.insert(insertPos, info.stackAlloc);
-            }
+    // Fallback: for any remaining VLAs (size assignment not found), insert
+    // them at the beginning of the alloca's own block.  (blockMap is keyed by
+    // pointer, so "its first non-empty block" was an arbitrary block.)
+    for (auto &pair : M) {
+        VLAInfo &info = pair.second;
+        auto bit = F->blockMap.find(info.block);
+        if (bit != F->blockMap.end()) {
+            auto &exprs = bit->second->expressions;
+            exprs.insert(exprs.begin(), info.stackAlloc);
         }
     }
     

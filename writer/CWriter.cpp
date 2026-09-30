@@ -96,8 +96,10 @@ void CWriter::declareVar(StrRef ty, StrRef name) {
     out << ty << " " << name << ";" << std::endl;
 }
 
-void CWriter::startBlock(StrRef label) {
-    out << label << ":" << std::endl;
+void CWriter::startBlock(StrRef label, bool declFollows) {
+    // C11 allows only a statement after a label, not a declaration (a VLA
+    // declared at the start of its block): add an empty statement.
+    out << label << ":" << (declFollows ? " ;" : "") << std::endl;
 }
 
 void CWriter::functionNoArgs() {

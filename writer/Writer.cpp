@@ -634,7 +634,8 @@ bool Writer::isFunctionPrinted(const Func* func) const {
 
 void Writer::writeBlock(const Block* block) {
     wr.indent(1);
-    wr.startBlock(block->blockName);
+    wr.startBlock(block->blockName,
+                  !block->expressions.empty() && llvm::isa<StackAlloc>(block->expressions.front()));
 
     for (const auto& expr : block->expressions) {
         wr.indent(1);

@@ -119,7 +119,9 @@ void ExprWriter::visit(LatchExpr& expr) {
     // if( expr.headEdgeLatch ) { // this is necessary to print whenever the path is longer than 1
     //     return;
     // }
-    ss << latchBlock->blockName << ":" << (latchBlock->expressions.empty() ? ";\n" : "\n");
+    // `;` also when a (VLA) declaration follows: C11 labels need a statement.
+    ss << latchBlock->blockName << ":" << (latchBlock->expressions.empty()
+            || llvm::isa<StackAlloc>(latchBlock->expressions.front()) ? ";\n" : "\n");
         // if (!latchBlock->expressions.empty())
         //     ss << "\n";
     for (const auto& expr : latchBlock->expressions) {

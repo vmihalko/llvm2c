@@ -165,3 +165,34 @@ void createByvalCopies(const llvm::Module* module, Program& program) {
         }
     }
 }
+
+// A VLA alloca is an `elem*` in the IR, so its address is `&a[0]`, not `&a`
+// (an `elem(*)[n]`: pointer arithmetic would stride whole arrays and a deref
+// would yield an array, i.e. an array assignment gcc/CBMC reject).
+// createAllocas maps the alloca to `&a` because InsertVLADecls and the
+// metadata passes look through that RefExpr to the variable; rewrite it in
+// place once they are done and before refDeref folds `*(&a)` to `a`.
+void fixVLAAddresses(const llvm::Module* module, Program& program) {
+    for (const auto& function : module->functions()) {
+        auto* func = program.getFunction(&function);
+        if (!func)
+            continue;
+        for (const auto& block : function) {
+            for (const auto& ins : block) {
+                const auto* AI = llvm::dyn_cast<llvm::AllocaInst>(&ins);
+                if (!AI || !AI->isArrayAllocation() || llvm::isa<llvm::ConstantInt>(AI->getArraySize()))
+                    continue;
+                auto* ref = llvm::dyn_cast_or_null<RefExpr>(func->getExpr(AI));
+                if (!ref)
+                    continue;
+                auto* var = llvm::dyn_cast_or_null<Value>(ref->expr);
+                auto* arrTy = var ? llvm::dyn_cast_or_null<ArrayType>(var->getType()) : nullptr;
+                if (!arrTy || !arrTy->dynSize)
+                    continue;
+                Expr* zero = program.makeExpr<Value>("0", program.typeHandler.slong.get());
+                ref->expr = program.makeExpr<ArrayElement>(var, zero, arrTy->type);
+                ref->setType(program.typeHandler.pointerTo(arrTy->type));
+            }
+        }
+    }
+}

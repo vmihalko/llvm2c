@@ -41,7 +41,7 @@ public:
     void startFunctionBody();
     void endFunctionBody();
     void declareVar(StrRef ty, StrRef name);
-    void startBlock(StrRef label);
+    void startBlock(StrRef label, bool declFollows = false);
 
     void functionNoArgs();
 };
