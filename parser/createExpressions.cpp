@@ -697,12 +697,13 @@ static Expr* parseShiftInstruction(const llvm::Instruction& ins, Program& progra
                                          !binOp->hasNoSignedWrap());
 	} break;
     case llvm::Instruction::LShr:
-	if(llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
+	if(ins.getType()->isIntegerTy(64) &&
+	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1)) &&
 	   llvm::dyn_cast_or_null<Value>(removeCastsFromExpr(val1))->valueName == "63") {
            // create 0
-	   auto zero = std::make_unique<Value>("0", removeCastsFromExpr(val1)->getType());
-	   // create: val0 < 0
-	   expr = std::make_unique<CmpExpr>(val1, zero.get(), "<", false);
+	   auto zero = std::make_unique<Value>("0", val0->getType());
+	   // create: val0 < 0 (signed: lshr x, 63 is the sign bit of x)
+	   expr = std::make_unique<CmpExpr>(val0, zero.get(), "<", false);
 	   program.addOwnership(std::move(zero));
 
    } else {
