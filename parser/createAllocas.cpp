@@ -18,44 +18,26 @@ void createAllocas(const llvm::Module* module, Program& program) {
                     std::unique_ptr<Value> theVariable;
                     std::unique_ptr<StackAlloc> alloc;
                     const auto *allocaInst = llvm::cast<const llvm::AllocaInst>(&ins);
-                    if (allocaInst->isArrayAllocation()) {
+                    if (allocaInst->isArrayAllocation() && !llvm::isa<llvm::ConstantInt>(allocaInst->getArraySize())) {
+                        // VLA.  Its size is usually an expression over values
+                        // createExpressions has not built yet (`int a[n + 1]`),
+                        // so the real type and the declaration are made there,
+                        // at the alloca's position.  Placeholder until then.
+                        Type* elemTy = func->getType(allocaInst->getAllocatedType());
+                        theVariable = std::make_unique<Value>(func->getVarName(), program.typeHandler.pointerTo(elemTy));
+                        alloc       = std::make_unique<StackAlloc>(theVariable.get());
+                        program.vlaAllocs[allocaInst] = alloc.get();
+                        myBlock->addOwnership(std::move(alloc));
+                    } else if (allocaInst->isArrayAllocation()) {
+                        // constant count: unchanged from before
                         const llvm::Value* llsizeVal = allocaInst->getArraySize();
                         Expr *sizeExpr = program.getExpr(llsizeVal);
-                        if (!sizeExpr) {
-                            // see if the operand is just the alloca of MAX itself
-                            if (auto *load = llvm::dyn_cast<llvm::LoadInst>(llsizeVal)) {
-                                sizeExpr = program.getExpr(load->getPointerOperand()); // this is MAX
-                            }
-                        }
                         if (!sizeExpr)
-                            sizeExpr = createConstantValue(llsizeVal, program); // fallback
-
-                        if (auto ref = llvm::dyn_cast_or_null<RefExpr>(sizeExpr)) {
-                            // For VLAs, we want the variable name, not the address
-                            // Create a stable Value expression for the VLA size
-                            if (auto innerVal = llvm::dyn_cast_or_null<Value>(ref->expr)) {
-                                // Create a new Value expression that will be owned by the program
-                                auto stableSize = std::make_unique<Value>(innerVal->valueName, innerVal->getType());
-                                sizeExpr = stableSize.get();
-                                program.addOwnership(std::move(stableSize));
-                            }
-                        }
-
+                            sizeExpr = createConstantValue(llsizeVal, program);
                         Type* elemTy = func->getType(allocaInst->getAllocatedType());
-                        Type *vlaTy = program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr);
-
-                        theVariable = std::make_unique<Value>(func->getVarName(), vlaTy);
+                        theVariable = std::make_unique<Value>(func->getVarName(), program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr));
                         alloc       = std::make_unique<StackAlloc>(theVariable.get());
-                        
-                        // For VLAs, just add ownership (no expression yet - will be inserted by InsertVLADecls pass)
-                        if (!llvm::isa<llvm::ConstantInt>(allocaInst->getArraySize())) {
-                            myBlock->addOwnership(std::move(alloc));
-                        } else {
-                            // Fixed-size array, add as expression immediately
-                            myBlock->addExprAndOwnership(std::move(alloc));
-                        }
-
-                        // The createExpr for &ins is performed unconditionally below; no need to duplicate here
+                        myBlock->addExprAndOwnership(std::move(alloc));
                     } else  {
                         // normal alloca on the stack
                         theVariable = std::make_unique<Value>(func->getVarName(), func->getType(allocaInst->getAllocatedType()));

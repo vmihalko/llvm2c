@@ -455,6 +455,10 @@ static void setMetadataInfo(Program& program, const llvm::CallInst* ins, Block* 
                         }
                     }
                 }
+                // Keep the IR's VLA type otherwise: the DWARF type of a
+                // multi-dimensional VLA (`int m[n][3]`) has no usable runtime
+                // bound and would turn it into `int m[0][3]`.
+                return;
             }
         }
         

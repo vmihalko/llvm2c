@@ -1584,8 +1584,23 @@ void createExpressions(const llvm::Module* module, Program& program, bool bitcas
             for (const auto& ins : block) {
                 Expr* expr = nullptr;
                 switch (ins.getOpcode()) {
-                case llvm::Instruction::Alloca:
+                case llvm::Instruction::Alloca: {
+                    // VLA: declare it here, where its size expression exists
+                    // and evaluates at the same point as in the IR.
+                    auto vla = program.vlaAllocs.find(llvm::cast<llvm::AllocaInst>(&ins));
+                    if (vla != program.vlaAllocs.end()) {
+                        const llvm::Value* llsizeVal = llvm::cast<llvm::AllocaInst>(&ins)->getArraySize();
+                        Expr* sizeExpr = program.getExpr(llsizeVal);
+                        if (!sizeExpr)
+                            sizeExpr = createConstantValue(llsizeVal, program);
+                        StackAlloc* SA = vla->second;
+                        Type* elemTy = llvm::cast<PointerType>(SA->value->getType())->type;
+                        SA->value->setType(program.typeHandler.variableLengthArrayOf(elemTy, sizeExpr));
+                        SA->setType(SA->value->getType());
+                        myBlock->addExpr(SA);
+                    }
                     break;
+                }
                 case llvm::Instruction::Switch:
                     parseSwitchInstruction(ins, false, nullptr, func, myBlock);
                     break;

@@ -185,7 +185,7 @@ Program ProgramParser::parse(const std::string& file, bool bitcastUnions) {
 
     // RUN_PASS(createExpressions);
     createExpressions(mod, result, bitcastUnions);
-    insertVLADecls(result);  
+    // VLA declarations are placed by createExpressions (insertVLADecls retired)
 
     // Now that every LLVM value has a corresponding Expr/Value, we can
     // safely rename them according to the debug information.
